@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import JapanPrecipMap from "@/components/JapanPrecipMap";
 
 /**
  * Dedicated weather signage page.
@@ -183,18 +184,25 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
         <g key={i}>
           <text
             x={p.x}
-            y={10 + plotH + 24}
+            y={10 + plotH + 22}
             fill="rgba(255,255,255,0.5)"
-            fontSize="14"
+            fontSize="13"
             fontFamily="monospace"
             textAnchor="middle"
           >
             {fmtHour(p.h.time)}時
           </text>
+          {/* Background circle for emoji visibility. */}
+          <circle
+            cx={p.x}
+            cy={10 + plotH + 42}
+            r="10"
+            fill="rgba(255,255,255,0.08)"
+          />
           <text
             x={p.x}
-            y={10 + plotH + 50}
-            fontSize="20"
+            y={10 + plotH + 48}
+            fontSize="16"
             textAnchor="middle"
           >
             {p.h.emoji}
@@ -300,92 +308,110 @@ export default function WeatherPage() {
           </div>
         ) : (
           <>
-            {/* Top: current weather + today summary. */}
+            {/* Top: current weather + today summary + precip map. */}
             <div className="flex min-h-0 flex-1 gap-4">
               {/* Current conditions card. */}
-              <div className="flex w-[40%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-8">
-                <div className="mb-4 flex items-center gap-3">
-                  <span className="text-6xl">{c!.emoji}</span>
+              <div className="flex w-[30%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
+                <div className="mb-3 flex items-center gap-3">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-4xl">
+                    {c!.emoji}
+                  </span>
                   <div>
-                    <p className="text-2xl font-semibold">{c!.label}</p>
-                    <p className="text-sm text-white/50">
+                    <p className="text-xl font-semibold">{c!.label}</p>
+                    <p className="text-xs text-white/50">
                       {fmtTime(c!.time)} 現在
                     </p>
                   </div>
                 </div>
-                <p className="font-mono text-7xl font-light tabular-nums">
+                <p className="font-mono text-6xl font-light tabular-nums">
                   {Math.round(c!.temperature)}
-                  <span className="text-4xl">°C</span>
+                  <span className="text-3xl">°C</span>
                 </p>
-                <p className="mt-2 text-sm text-white/60">
+                <p className="mt-1 text-sm text-white/60">
                   体感 {Math.round(c!.apparentTemperature)}°C
                 </p>
-                <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-lg bg-white/5 p-3">
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg bg-white/5 p-2">
                     <p className="text-white/50">湿度</p>
-                    <p className="mt-1 font-mono text-lg font-semibold">
+                    <p className="mt-0.5 font-mono text-base font-semibold">
                       {c!.humidity}%
                     </p>
                   </div>
-                  <div className="rounded-lg bg-white/5 p-3">
+                  <div className="rounded-lg bg-white/5 p-2">
                     <p className="text-white/50">風</p>
-                    <p className="mt-1 font-mono text-lg font-semibold">
-                      {c!.windDirectionLabel} {c!.windSpeed.toFixed(1)} km/h
+                    <p className="mt-0.5 font-mono text-base font-semibold">
+                      {c!.windDirectionLabel} {c!.windSpeed.toFixed(1)}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Today summary card. */}
-              <div className="flex w-[60%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-8">
-                <p className="mb-4 text-sm font-medium text-white/50">
+              <div className="flex w-[30%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
+                <p className="mb-3 text-sm font-medium text-white/50">
                   今日の天気
                 </p>
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-6">
                   <div className="flex flex-col">
-                    <p className="text-sm font-medium text-white/50">
+                    <p className="text-xs font-medium text-white/50">
                       最高気温
                     </p>
                     <p className="font-light tabular-nums text-orange-300">
-                      <span className="text-5xl">{Math.round(d!.maxTemp)}</span>
-                      <span className="text-2xl">°C</span>
+                      <span className="text-4xl">{Math.round(d!.maxTemp)}</span>
+                      <span className="text-xl">°C</span>
                     </p>
                   </div>
                   <div className="flex flex-col">
-                    <p className="text-sm font-medium text-white/50">
+                    <p className="text-xs font-medium text-white/50">
                       最低気温
                     </p>
                     <p className="font-light tabular-nums text-sky-300">
-                      <span className="text-5xl">{Math.round(d!.minTemp)}</span>
-                      <span className="text-2xl">°C</span>
+                      <span className="text-4xl">{Math.round(d!.minTemp)}</span>
+                      <span className="text-xl">°C</span>
                     </p>
                   </div>
-                  <div className="ml-auto flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm">
-                    <span>🌧</span>
-                    <span className="font-mono font-semibold">
-                      降水 {d!.maxPrecipProb}%
-                    </span>
-                  </div>
                 </div>
-                <div className="mt-8 grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3 rounded-xl bg-white/5 p-4">
-                    <span className="text-3xl">🌅</span>
+                <div className="mt-2 flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-sm">
+                    🌧
+                  </span>
+                  <span className="font-mono font-semibold">
+                    降水 {d!.maxPrecipProb}%
+                  </span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 rounded-xl bg-white/5 p-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-lg">
+                      🌅
+                    </span>
                     <div>
-                      <p className="text-xs text-white/50">日の出</p>
-                      <p className="font-mono text-xl font-semibold">
+                      <p className="text-[10px] text-white/50">日の出</p>
+                      <p className="font-mono text-base font-semibold">
                         {fmtTime(d!.sunrise)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 rounded-xl bg-white/5 p-4">
-                    <span className="text-3xl">🌇</span>
+                  <div className="flex items-center gap-2 rounded-xl bg-white/5 p-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-lg">
+                      🌇
+                    </span>
                     <div>
-                      <p className="text-xs text-white/50">日の入り</p>
-                      <p className="font-mono text-xl font-semibold">
+                      <p className="text-[10px] text-white/50">日の入り</p>
+                      <p className="font-mono text-base font-semibold">
                         {fmtTime(d!.sunset)}
                       </p>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Precipitation map card. */}
+              <div className="flex w-[40%] flex-col rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="mb-2 text-sm font-medium text-white/50">
+                  全国の降水確率マップ
+                </p>
+                <div className="min-h-0 flex-1">
+                  <JapanPrecipMap />
                 </div>
               </div>
             </div>
