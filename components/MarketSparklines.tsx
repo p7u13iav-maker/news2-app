@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { buildMarketComment } from "@/lib/marketComment";
 
 interface Point {
@@ -23,8 +23,13 @@ interface MarketResponse {
   markets: MarketData[];
 }
 
-/** Build an SVG path string from points, scaled to a 100x28 viewBox. */
-function buildPath(points: Point[], w: number, h: number, pad: number): string {
+/** Build an SVG path string from points, scaled to the given viewBox. */
+function buildPath(
+  points: Point[],
+  w: number,
+  h: number,
+  pad: number,
+): string {
   if (points.length < 2) return "";
   const vals = points.map((p) => p.v);
   const min = Math.min(...vals);
@@ -44,6 +49,25 @@ function buildPath(points: Point[], w: number, h: number, pad: number): string {
     .join(" ");
 }
 
+/** Compute the total path length in viewBox units from a path string. */
+function pathLength(d: string): number {
+  const coords: [number, number][] = d
+    .replace(/[ML]/g, "|")
+    .split("|")
+    .filter(Boolean)
+    .map((s) => {
+      const [x, y] = s.split(",").map(Number);
+      return [x, y] as [number, number];
+    });
+  let len = 0;
+  for (let i = 1; i < coords.length; i++) {
+    const dx = coords[i][0] - coords[i - 1][0];
+    const dy = coords[i][1] - coords[i - 1][1];
+    len += Math.sqrt(dx * dx + dy * dy);
+  }
+  return len;
+}
+
 function Sparkline({
   points,
   up,
@@ -57,18 +81,6 @@ function Sparkline({
   const H = height;
   const PAD = 2;
   const d = buildPath(points, W, H, PAD);
-  const lineRef = useRef<SVGPathElement>(null);
-  const [dashLen, setDashLen] = useState(0);
-
-  // Measure the actual path length after mount so the dash
-  // animation covers the full line with no gaps.
-  useEffect(() => {
-    if (lineRef.current) {
-      const len = lineRef.current.getTotalLength();
-      if (len > 0) setDashLen(len);
-    }
-  }, [d]);
-
   if (!d) return null;
   const stroke = up ? "#34d399" : "#f87171";
   const fill = up ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)";
@@ -79,7 +91,8 @@ function Sparkline({
   const lastV = lastVals[lastVals.length - 1];
   const lastY = H - PAD - ((H - 2 * PAD) * (lastV - min)) / range;
   const fillD = `${d} L${W - PAD},${H} L${PAD},${H} Z`;
-  const ready = dashLen > 0;
+  // Compute exact path length in viewBox units + buffer for round linecap
+  const len = pathLength(d) + 2;
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
@@ -96,22 +109,17 @@ function Sparkline({
       />
       {/* Line draws from left to right */}
       <path
-        ref={lineRef}
         d={d}
         fill="none"
         stroke={stroke}
         strokeWidth={1.5}
         vectorEffect="non-scaling-stroke"
         strokeLinecap="round"
-        style={
-          ready
-            ? {
-                strokeDasharray: dashLen,
-                strokeDashoffset: dashLen,
-                animation: "sparkline-draw 1s ease-out forwards",
-              }
-            : { opacity: 0 }
-        }
+        style={{
+          strokeDasharray: len,
+          strokeDashoffset: len,
+          animation: "sparkline-draw 1s ease-out forwards",
+        }}
       />
       {/* Dot appears at end */}
       <circle
