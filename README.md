@@ -41,63 +41,66 @@ http://localhost:3000 を開く(RSS 部分はキー不要)。
 
 ### OITOMA AI を接続する
 
-1. `.env.example` を `.env.local` にコピー(既に存在する場合はそのままでよい)
-2. OITOMA の管理画面から **API キー** と **ベース URL** を取得
-3. `.env.local` に記入:
+おいとまは岡山大学の学内ローカルAI(OpenAI 互換 API)です。
+ドキュメント: https://ironical.okayama-u.ac.jp/ai/explanation
+
+1. **API キーを発行する**(学内 MS365 ログインが必要):
+   https://ironical.okayama-u.ac.jp/ai/keys
+   → 用途名(例 `news-app`)を入力 → 発行 → **キーをコピー**
+   (キーはこの画面を閉じるまでしか表示されません)
+
+2. `.env.local` にキーを記入(ベース URL・モデルは既定値で OK):
 
    ```
-   OITOMA_BASE_URL=https://api.oitoma.example/v1   # ← 実際の URL
-   OITOMA_API_KEY=sk-...
-   OITOMA_MODEL=oitoma/qwen3.8-27b-it
+   OITOMA_API_KEY=sk-発行されたキー
    ```
 
-4. `npm run dev` を再起動
-5. テスト:
+   参考: 既定値は
+   - `OITOMA_BASE_URL=https://ironical.okayama-u.ac.jp/ai/v1`
+   - `OITOMA_MODEL=qwen3.8-27b-it` (think モード)
+   - 高速モデルにしたい場合: `OITOMA_MODEL=qwen3.6-35b-a3b-it` (fast)
+
+3. `npm run dev` を起動(または再起動)
+
+4. テスト:
 
    ```bash
    curl -X POST http://localhost:3000/api/ai \
      -H "Content-Type: application/json" \
-     -d '{"messages":[{"role":"user","content":"こんにちは"}],"stream":false}'
+     -d "{\"messages\":[{\"role\":\"user\",\"content\":\"こんにちは\"}],\"stream\":false}"
    ```
 
    → `{"ok":true,"text":"..."}` が返れば連携成功。
 
+   ストリーミング確認:
+
+   ```bash
+   curl -N -X POST http://localhost:3000/api/ai \
+     -H "Content-Type: application/json" \
+     -d "{\"messages\":[{\"role\":\"user\",\"content\":\"岡山を1文で\"}]}"
+   ```
+
 ### Vercel にデプロイする
 
 `vercel` CLI または [vercel.com/new](https://vercel.com/new) でデプロイ後、
-**Project Settings → Environment Variables** に 3 環境変数
-(`OITOMA_BASE_URL` / `OITOMA_API_KEY` / `OITOMA_MODEL`)を Production + Preview に追加する。
+**Project Settings → Environment Variables** に `OITOMA_API_KEY` を
+Production + Preview に追加する(ベース URL・モデルは既定値で動きます)。
+
+> **注意**: おいとまは学内サーバーなので、Vercel(外部)からアクセスできるか
+> は岡山大学のネットワーク環境(VPN/ファイアウォール)次第です。
+> 学外から利用する場合は学内 VPN 等を経由する必要がある可能性があります。
 
 ## AI API (`/api/ai`)
 
 - **POST** `/api/ai`
   - Body: `{ messages: ModelMessage[], model?, maxOutputTokens?, stream? }`
-  - `stream: true`(既定) → AI SDK UI message stream(クライアントの `useChat({ api: "/api/ai" })` とそのまま連携)
+  - `stream: true`(既定) → AI SDK UI message stream(JSON Lines 形式のテキストストリーム)
   - `stream: false` → `{ ok, text, usage }` の JSON
 
-`useChat` での例(クライアントコンポーネント内):
-
-```tsx
-"use client";
-import { useChat } from "ai/react";
-
-export function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, status } =
-    useChat({ api: "/api/ai" });
-  return (
-    <form onSubmit={handleSubmit}>
-      {messages.map((m) => (
-        <p key={m.id}>{m.role}: {m.content}</p>
-      ))}
-      <input
-        value={input}
-        onChange={handleInputChange}
-        placeholder={status === "streaming" ? "…" : "質問を入力"}
-      />
-    </form>
-  );
-}
-```
+> **注**: `stream: true` のレスポンスは AI SDK v7 の UI message chunk を
+> JSON Lines でエンコードした形です。クライアントで直接扱う場合は
+> `/api/ai` を介さず `ai/react` の `useChat` + 専用の transport を使うか、
+> 既存のチャット UI には `stream: false`(ワンショット)を使うと手軽です。
 
 ### GitHub に push して Vercel にデプロイ
 
@@ -114,8 +117,7 @@ git push -u origin main
 
 1. [vercel.com/new](https://vercel.com/new) に GitHub リポジトリを import する
    (Framework: Next.js は自動認識)
-2. **Environment Variables** に `OITOMA_BASE_URL` / `OITOMA_API_KEY` /
-   `OITOMA_MODEL` を追加(「OITOMA AI を接続する」節を参照)
+2. **Environment Variables** に `OITOMA_API_KEY` を追加
 3. **Deploy**
 
 `vercel.json` の cron 定義により、デプロイの直後に毎日朝 6:00 に

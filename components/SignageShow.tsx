@@ -114,14 +114,14 @@ export default function SignageShow({
         </div>
         {clock && (
           <div className="text-right">
-            <p className="font-mono text-4xl font-light tabular-nums">
+            <p className="font-mono text-3xl font-light tabular-nums">
               {clock.toLocaleTimeString("ja-JP", {
                 hour: "2-digit",
                 minute: "2-digit",
                 second: "2-digit",
               })}
             </p>
-            <p className="text-sm text-white/50">
+            <p className="text-xs text-white/50">
               {clock.toLocaleDateString("ja-JP", {
                 year: "numeric",
                 month: "long",
@@ -142,11 +142,11 @@ export default function SignageShow({
           {/* Text column (left). */}
           <div className="flex min-w-0 flex-1 flex-col">
             {/* Source + time badge. */}
-            <div className="mb-6 flex items-center gap-4">
-              <span className="rounded-full bg-white/10 px-4 py-1.5 text-lg font-semibold backdrop-blur">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="rounded-full bg-white/10 px-3.5 py-1 text-base font-semibold backdrop-blur">
                 {source}
               </span>
-              <span className="text-base text-white/50">
+              <span className="text-sm text-white/50">
                 {time.toLocaleDateString("ja-JP", {
                   month: "numeric",
                   day: "numeric",
@@ -154,25 +154,25 @@ export default function SignageShow({
                   minute: "2-digit",
                 })}
               </span>
-              <span className="text-5xl font-thin text-white/20">
+              <span className="text-4xl font-thin text-white/20">
                 {index + 1}
-                <span className="text-2xl"> / {slides.length}</span>
+                <span className="text-xl"> / {slides.length}</span>
               </span>
             </div>
 
             {/* Headline. */}
-            <h1 className="slide-title mb-6 text-5xl font-bold leading-tight tracking-tight md:text-6xl">
+            <h1 className="slide-title mb-5 text-4xl font-bold leading-tight tracking-tight md:text-5xl">
               {current.title}
             </h1>
 
             {/* Body / lead text. */}
             {current.description && (
-              <div className="slide-desc relative pl-6">
+              <div className="slide-desc relative pl-5">
                 <span
                   aria-hidden
-                  className="absolute left-0 top-1 h-[95%] w-1.5 rounded-full bg-gradient-to-b from-white/70 to-white/10"
+                  className="absolute left-0 top-0.5 h-[95%] w-1 rounded-full bg-gradient-to-b from-white/70 to-white/10"
                 />
-                <p className="text-2xl leading-relaxed text-white/80 md:text-3xl">
+                <p className="line-clamp-6 text-xl leading-relaxed text-white/80 md:text-2xl">
                   {current.description}
                 </p>
               </div>
@@ -181,7 +181,7 @@ export default function SignageShow({
 
           {/* Image column (right). Shown only when the article has a photo. */}
           {current.urlToImage && (
-            <div className="slide-img hidden h-[60vh] w-[38vw] shrink-0 overflow-hidden rounded-2xl border border-white/10 shadow-2xl lg:block">
+            <div className="slide-img hidden h-[52vh] w-[34vw] shrink-0 overflow-hidden rounded-2xl border border-white/10 shadow-2xl lg:block">
               <img
                 src={current.urlToImage}
                 alt={current.title}
