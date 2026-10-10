@@ -124,6 +124,10 @@ vercel.json           # cron 定義(毎日朝 6:00)
 - **日経新聞**(`assets.wor.jp/rss/rdf/nikkei/business.rdf`)は **RDF 1.0** 形式、
   **日経ビジネス**(`business.nikkei.com/rss/sns/nb.rdf`)は **RSS 2.0** 形式。
   本文と画像は記事ページから取得します。
+- **BBC**(`feeds.bbci.co.uk/news/world/rss.xml`)と **Guardian**
+  (`theguardian.com/world/rss`)は海外(英語)の世界ニュース。要約ページ
+  (`/summary`)の入力源として追加しています。RSS に `<description>` が含まれる
+  ため記事ページの fetch は不要です(英語見出しは AI が日本語で要約)。
 
 ### 補足: 本文と画像について
 

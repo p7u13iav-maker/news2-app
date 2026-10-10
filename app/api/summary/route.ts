@@ -57,8 +57,9 @@ export async function POST() {
     const { text } = await generateText({
       model: getGemini(),
       system: `ニュース見出しを3カテゴリに分類し、JSON配列で出力してください。
-各カテゴリは文字列の配列(2〜4項目)。各項目は20〜40文字の短い要約。
+各カテゴリは文字列の配列(2〜4項目)。各項目は20〜40文字の**日本語**の短い要約。
 カテゴリ: domestic(国内), international(国外), economy(経済)
+※ 見出しは日本語と英語(BBC/Guardian)が混在しますが、全て日本語で要約してください。
 例: {"domestic":["項目1","項目2"],"international":["項目1"],"economy":["項目1","項目2"]}
 出力はJSONのみ。`,
       prompt: `以下の見出しを要約してください:
