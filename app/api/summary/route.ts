@@ -41,20 +41,18 @@ export async function POST() {
     // Ask the AI to categorize and summarize.
     const { text } = await generateText({
       model: getGemini(),
-      system: `あなたはニュース要約の専門家です。提供されたニュース記事の見出しを、以下の3つのカテゴリに分類して要約してください。
+      system: `あなたはニュース要約の専門家です。提供された見出しを3カテゴリに分類して要約し、**JSONのみ**を出力してください。説明・markdown・コードフェンスは一切付けないでください。
 
 カテゴリ:
-1. 国内の出来事: 日本の国内で起きた出来事・事件・災害・社会ニュース
-2. 国外の出来事: 日本国外(海外・国際)で起きた出来事
-3. 経済ニュース: 日本を含む世界の経済・ビジネス・金融・株式・企業関連のニュース
+1. domestic: 日本の国内で起きた出来事・事件・災害・社会ニュース
+2. international: 日本国外(海外・国際)で起きた出来事
+3. economy: 日本を含む世界の経済・ビジネス・金融・株式・企業関連
 
 ルール:
-- 各カテゴリについて、箇条書き(1項目1文)で2〜5項目の短いサマリーを作成
-- 各項目は15〜35文字程度の簡潔な一文
+- 各カテゴリは2〜5項目の配列。各項目は15〜35文字の簡潔な一文
 - 見出しの意味を正確に反映し、捏造しない
-- 該当する記事がなければそのカテゴリは空配列にする
-- 出力は必ず以下のJSON形式のみ(余計なテキスト・markdown不要):
-{"domestic":["...","..."],"international":["..."],"economy":["..."]}`,
+- 該当なければ空配列 []
+- 出力は**JSONオブジェクトのみ**。最初が { で最後が } で終わること`,
       prompt: `以下のニュース記事の見出しを要約してください:
 
 ${newsText}`,
@@ -62,14 +60,29 @@ ${newsText}`,
       maxOutputTokens: 1200,
     });
 
-    // Parse the AI's JSON response.
+    // Parse the AI's JSON response. The model may wrap the JSON in markdown
+    // code fences or prepend explanatory text, so we extract the first
+    // balanced { ... } block.
     let parsed: { domestic: string[]; international: string[]; economy: string[] };
     try {
-      // The model may wrap JSON in markdown code fences; strip them.
-      const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      // Strip markdown code fences.
+      let cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      // Find the first { and its matching } (balanced braces).
+      const start = cleaned.indexOf("{");
+      if (start === -1) throw new Error("No JSON object found");
+      let depth = 0;
+      let end = -1;
+      for (let i = start; i < cleaned.length; i++) {
+        if (cleaned[i] === "{") depth++;
+        else if (cleaned[i] === "}") {
+          depth--;
+          if (depth === 0) { end = i; break; }
+        }
+      }
+      if (end === -1) throw new Error("Unbalanced JSON braces");
+      cleaned = cleaned.slice(start, end + 1);
       parsed = JSON.parse(cleaned);
     } catch {
-      // Fallback: if JSON parse fails, return the raw text as a single bullet.
       return NextResponse.json(
         {
           ok: false,
