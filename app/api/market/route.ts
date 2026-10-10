@@ -21,8 +21,8 @@ interface MarketItem {
 const MARKET: MarketItem[] = [
   { key: "us10y", label: "米国債 10年金利", unit: "%", symbol: "^TNX" },
   { key: "us2y", label: "米国債 2年金利", unit: "%", symbol: "^FVX" },
-  { key: "sp500", label: "S&P 500", unit: "", symbol: "SPY" },
-  { key: "nasdaq", label: "NASDAQ 100", unit: "", symbol: "QQQ" },
+  { key: "sp500", label: "S&P 500", unit: "", symbol: "^GSPC" },
+  { key: "nasdaq", label: "NASDAQ", unit: "", symbol: "^IXIC" },
   { key: "nikkei", label: "日経平均", unit: "", symbol: "^N225" },
   { key: "topix", label: "TOPIX", unit: "", symbol: "9010.T" },
 ];

@@ -70,8 +70,17 @@ function Sparkline({ points, up }: { points: Point[]; up: boolean }) {
   );
 }
 
-function fmt(v: number): string {
+// Indexes that should be shown as whole numbers (no decimals).
+const INTEGER_KEYS = new Set(["sp500", "nasdaq", "topix"]);
+
+function fmt(v: number, integer = false): string {
   if (!Number.isFinite(v)) return "-";
+  if (integer) {
+    return v.toLocaleString("ja-JP", {
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    });
+  }
   return v.toLocaleString("ja-JP", {
     maximumFractionDigits: v < 10 ? 3 : 1,
     minimumFractionDigits: v < 10 ? 2 : 0,
@@ -140,7 +149,7 @@ export default function MarketSparklines() {
             }`}
           >
             {sign}
-            {fmt(diff)}
+            {fmt(diff, INTEGER_KEYS.has(m.key))}
             {m.unit}
           </span>
         </div>
@@ -156,7 +165,7 @@ export default function MarketSparklines() {
           </div>
           <div className="text-right">
             <p className="font-mono text-lg font-semibold tabular-nums leading-none text-white">
-              {last != null ? fmt(last) : "-"}
+              {last != null ? fmt(last, INTEGER_KEYS.has(m.key)) : "-"}
               {m.unit}
             </p>
             {pts.length >= 2 && (
