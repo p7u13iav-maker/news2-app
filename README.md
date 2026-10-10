@@ -1,6 +1,6 @@
 # 毎朝ニュース (デジタルサイネージ)
 
-日本のニュース(**NHK NEWS WEB**)を **最新10件を10秒間隔のスライドショー**で表示する、
+日本のニュース(日経新聞・日経ビジネス)を **最新10件を10秒間隔のスライドショー**で表示する、
 デジタルサイネージ向けの Next.js ページ。
 **Vercel** にデプロイし、**GitHub** をソースとしてプッシュで自動デプロイする。
 毎朝 **Vercel Cron** でニュースをリフレッシュする。
@@ -12,7 +12,7 @@
 - 見出し + **本文(リード文)** + **記事写真**(右側、写真がある記事のみ)
 - スライドアニメーション(フェード/スライドイン)+ 進捗バー + 実時計
 - 文字サイズは画面に全体が収まるよう調整済み
-- **NHK NEWS WEB** の RSS を直接取得
+- **日経新聞**(business、RDF 1.0) と **日経ビジネス**(RSS 2.0) を直接取得
 - **API キー不要**(RSS は公開フィードなので環境変数不要)
 - **Vercel Cron** が毎日朝 6:00 に `/api/cron` を叩き、`revalidateTag` で強制更新
 - `use cache` + `cacheLife('minutes')` で 1 分ごとに自動再検証
@@ -81,7 +81,7 @@ vercel.json           # cron 定義(毎日朝 6:00)
 ## 仕組み
 
 1. **毎朝**: Vercel Cron が `0 6 * * *` に `/api/cron` を呼ぶ
-2. **cron**: NHK の RSS を取得 → `revalidateTag("news", "max")`
+2. **cron**: 日経新聞 + 日経ビジネスの RSS を取得 → `revalidateTag("news", "max")`
 3. **ページ**: 次回のアクセス時に fresh なニュースで再レンダリング
 4. **通常時**: `cacheLife('minutes')` が 1 分ごとにバックグラウンド再検証
 5. **表示**: `SignageShow` が最新10件を 10秒ごとにスライド切替(クライアント)
@@ -94,16 +94,18 @@ vercel.json           # cron 定義(毎日朝 6:00)
 - **表示件数**: `app/page.tsx` の `count`(スライドで表示する件数、既定 10)
 - **スライド間隔**: `components/SignageShow.tsx` の `SLIDE_MS`(既定 10000ms = 10秒)
 
-### 補足: NHK の RSS について
+### 補足: RSS 形式について
 
-- **NHK NEWS WEB**(`www3.nhk.or.jp/rss/news/cat0.xml`)は **RSS 2.0** 形式
-  (`<item>`, `<pubDate>`)。
-- 各記事の `<description>` に**リード文(本文冒頭)がそのまま含まれている**ため、
-  記事ページへの追加 fetch は本文には不要です。
+- **日経新聞**(`assets.wor.jp/rss/rdf/nikkei/business.rdf`)は **RDF 1.0** 形式
+  (`<item rdf:about="...">`、日付は `<dc:date>`)。
+- **日経ビジネス**(`business.nikkei.com/rss/sns/nb.rdf`)は **RSS 2.0** 形式
+  (`<item>`, `<dc:date>`)。
+- 両形式を `lib/newsApi.ts` のパーサーが自動判別・解析します。
 
 ### 補足: 本文と画像について
 
-- **本文(リード文)**: NHK の RSS `<description>` をそのまま本文として表示しています。
+- **本文(リード文)**: 日経の RSS は説明文を含んでいないため、記事 URL の
+  `<meta name="og:description">` を取得して表示しています。
 - **記事写真**: 記事 URL の `<meta name="og:image">` を取得し、スライド右側に
   表示しています(写真がある記事のみ)。
-- 画像が**取得失敗しても記事は表示**されます(タイトル+本文だけの表示)。
+- 本文・画像とも**取得失敗しても記事は表示**されます(タイトルだけの表示)。

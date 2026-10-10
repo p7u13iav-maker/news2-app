@@ -109,7 +109,7 @@ export default function SignageShow({
           </span>
           <div>
             <p className="text-2xl font-bold tracking-tight">毎朝ニュース</p>
-            <p className="text-sm text-white/50">NHK NEWS WEB</p>
+            <p className="text-sm text-white/50">日経新聞 / 日経ビジネス</p>
           </div>
         </div>
         {clock && (
