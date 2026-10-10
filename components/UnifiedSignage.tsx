@@ -338,15 +338,11 @@ export default function UnifiedSignage({
               製銑部 朝会前のひととき
             </p>
             <p className="text-sm text-white/50">
-              ニューストピック ·{" "}
               <span className="text-white/60">{sectionLabel}</span>
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-white/40">
-            {index + 1} / {total}
-          </span>
           {clock && (
             <div className="text-right">
               <p className="font-mono text-3xl font-light tabular-nums">
@@ -401,34 +397,43 @@ export default function UnifiedSignage({
           Dots row is 12×0.5rem (inactive) + 1×2rem (active) + 12×0.5rem gaps
           = 8rem + 3rem + 3rem = 14rem fixed width, so the progress bar
           below it can use the exact same width without jittering. */}
-      <footer
-        className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 flex-col items-stretch gap-2"
-        style={{ width: "14rem" }}
-      >
-        {/* Dots row (fixed width). */}
-        <div className="flex items-center gap-2">
-          {slides.map((s, i) => (
-            <span
-              key={i}
-              className="h-2 rounded-full transition-all duration-500"
-              style={{
-                width: i === index ? "2rem" : "0.5rem",
-                background:
-                  i === index
-                    ? "#fff"
-                    : s.kind === current.kind
-                      ? "rgba(255,255,255,0.4)"
-                      : "rgba(255,255,255,0.15)",
-              }}
-            />
-          ))}
-        </div>
-        {/* Progress bar — same fixed width as the dots row. */}
-        <div className="h-1 overflow-hidden rounded-full bg-white/10">
+      <footer className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2">
+        <div className="flex items-center gap-3">
+          {/* Dots + progress bar (fixed 14rem width, aligned). */}
           <div
-            className="h-full bg-white/60"
-            style={{ width: `${progress}%` }}
-          />
+            className="flex flex-col items-stretch gap-2"
+            style={{ width: "14rem" }}
+          >
+            {/* Dots row (fixed width). */}
+            <div className="flex items-center gap-2">
+              {slides.map((s, i) => (
+                <span
+                  key={i}
+                  className="h-2 rounded-full transition-all duration-500"
+                  style={{
+                    width: i === index ? "2rem" : "0.5rem",
+                    background:
+                      i === index
+                        ? "#fff"
+                        : s.kind === current.kind
+                          ? "rgba(255,255,255,0.4)"
+                          : "rgba(255,255,255,0.15)",
+                  }}
+                />
+              ))}
+            </div>
+            {/* Progress bar — same fixed width as the dots row. */}
+            <div className="h-1 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full bg-white/60"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+          {/* Page number, right of the dots. */}
+          <span className="text-sm tabular-nums text-white/40">
+            {index + 1} / {total}
+          </span>
         </div>
       </footer>
     </div>
