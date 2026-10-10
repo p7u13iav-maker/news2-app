@@ -299,15 +299,15 @@ export default function UnifiedSignage({
 
   const current = slides[index];
 
-  // Section label for the header subtitle.
+  // Section label shown as a small badge (title is unified across pages).
   const sectionLabel =
     current.kind === "summary"
       ? "📋 ニュースサマリー"
       : current.kind === "market"
         ? "📊 市場データ"
         : current.kind === "news"
-          ? "📰 毎朝ニュース"
-          : "✨ 12星座占い";
+          ? "📰 ニューストピック"
+          : "✨ 今日の運勢";
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-zinc-950 text-white">
@@ -331,12 +331,15 @@ export default function UnifiedSignage({
       <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-10 pt-8">
         <div className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-2xl">
-            📡
+            ☀️
           </span>
           <div>
-            <p className="text-2xl font-bold tracking-tight">{sectionLabel}</p>
+            <p className="text-2xl font-bold tracking-tight">
+              製銑部 朝会前のひととき
+            </p>
             <p className="text-sm text-white/50">
-              毎朝 6:30 更新 · NHK / 日経 / 市場 / 占い
+              ニューストピック ·{" "}
+              <span className="text-white/60">{sectionLabel}</span>
             </p>
           </div>
         </div>

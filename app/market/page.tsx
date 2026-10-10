@@ -36,10 +36,12 @@ export default function MarketPage() {
       <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 px-10 py-5">
         <div className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-2xl">
-            📊
+            ☀️
           </span>
           <div>
-            <p className="text-2xl font-bold tracking-tight">市場データ</p>
+            <p className="text-2xl font-bold tracking-tight">
+              製銑部 朝会前のひととき
+            </p>
             <p className="text-sm text-white/50">
               金利 / 米国株 / 日本株 · 3ヶ月の推移
             </p>

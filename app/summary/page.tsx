@@ -73,12 +73,14 @@ export default function SummaryPage() {
       <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 px-10 py-4">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xl">
-            📋
+            ☀️
           </span>
           <div>
-            <p className="text-xl font-bold tracking-tight">ニュースサマリー</p>
+            <p className="text-xl font-bold tracking-tight">
+              製銑部 朝会前のひととき
+            </p>
             <p className="text-sm text-white/50">
-              NHK / 日経 / BBC / Guardian · AI による要約
+              国内 / 国際 / 経済 のひとまとめ · AI 要約
             </p>
           </div>
         </div>

@@ -89,14 +89,14 @@ export default function HoroscopePage() {
       <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 px-10 py-4">
         <div className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-2xl">
-            ✨
+            ☀️
           </span>
           <div>
             <p className="text-2xl font-bold tracking-tight">
-              12星座占い
+              製銑部 朝会前のひととき
             </p>
             <p className="text-sm text-white/50">
-              今日の運勢 · AI翻訳 · {data?.date ?? ""}
+              今日の運勢 · 12星座 · {data?.date ?? ""}
             </p>
           </div>
         </div>
