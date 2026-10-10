@@ -38,10 +38,12 @@ export async function POST() {
       .map((a, i) => `${i + 1}. [${a.source}] ${a.title}`)
       .join("\n");
 
-    // Ask the AI to categorize and summarize.
+    // Ask the AI to categorize and summarize. We use responseFormat to force
+    // JSON output, which is more reliable than a plain-text "output JSON only"
+    // instruction (especially for thinking models).
     const { text } = await generateText({
       model: getGemini(),
-      system: `あなたはニュース要約の専門家です。提供された見出しを3カテゴリに分類して要約し、**JSONのみ**を出力してください。説明・markdown・コードフェンスは一切付けないでください。
+      system: `あなたはニュース要約の専門家です。提供された見出しを3カテゴリに分類して要約してください。
 
 カテゴリ:
 1. domestic: 日本の国内で起きた出来事・事件・災害・社会ニュース
@@ -51,13 +53,19 @@ export async function POST() {
 ルール:
 - 各カテゴリは2〜5項目の配列。各項目は15〜35文字の簡潔な一文
 - 見出しの意味を正確に反映し、捏造しない
-- 該当なければ空配列 []
-- 出力は**JSONオブジェクトのみ**。最初が { で最後が } で終わること`,
+- 該当なければ空配列 []`,
       prompt: `以下のニュース記事の見出しを要約してください:
 
 ${newsText}`,
       temperature: 0.2,
       maxOutputTokens: 1200,
+      providerOptions: {
+        google: {
+          // Force structured (JSON) output so the model returns valid JSON
+          // instead of free-text bullet points.
+          structuredOutputs: true,
+        },
+      },
     });
 
     // Parse the AI's JSON response. The model may wrap the JSON in markdown
