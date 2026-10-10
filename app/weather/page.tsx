@@ -73,8 +73,10 @@ function fmtHour(iso: string): string {
   return d
     .toLocaleTimeString("ja-JP", {
       hour: "2-digit",
+      minute: "2-digit",
       timeZone: "Asia/Tokyo",
     })
+    .replace("時", "")
     .replace(":00", "");
 }
 
@@ -100,6 +102,13 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
   const line = points.map((p) => `${p.x},${p.y}`).join(" ");
   const area = `${PAD},${H} ${line} ${W - PAD},${H}`;
 
+  // Y-axis: 3 tick labels (max / mid / min) for the temperature scale.
+  const yTicks = [
+    { v: max, y: PAD },
+    { v: (max + min) / 2, y: H / 2 },
+    { v: min, y: H - PAD },
+  ];
+
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
@@ -112,6 +121,30 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
           <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
         </linearGradient>
       </defs>
+
+      {/* Gridlines + scale labels. */}
+      {yTicks.map((t, i) => (
+        <g key={i}>
+          <line
+            x1="0"
+            y1={t.y}
+            x2={W}
+            y2={t.y}
+            stroke="rgba(255,255,255,0.08)"
+            strokeWidth="1"
+          />
+          <text
+            x="6"
+            y={t.y - 6}
+            fill="rgba(255,255,255,0.5)"
+            fontSize="14"
+            fontFamily="monospace"
+          >
+            {Math.round(t.v)}°
+          </text>
+        </g>
+      ))}
+
       <polygon points={area} fill="url(#tempGrad)" />
       <polyline
         points={line}
@@ -155,7 +188,7 @@ function HourlyRow({ hourly }: { hourly: WeatherHourly[] }) {
           <span className="text-xs text-white/50">{fmtHour(h.time)}時</span>
           <span className="text-2xl">{h.emoji}</span>
           <span className="font-mono text-sm font-semibold tabular-nums">
-            {Math.round(h.temperature)}°
+            {Math.round(h.temperature)}°C
           </span>
           <span className="text-[10px] text-sky-300/70">
             {h.precipitationProbability}%
@@ -302,16 +335,24 @@ export default function WeatherPage() {
                 <p className="mb-4 text-sm font-medium text-white/50">
                   今日の天気
                 </p>
-                <div className="flex items-center gap-6">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-light tabular-nums text-orange-300">
-                      {Math.round(d!.maxTemp)}°
-                    </span>
+                <div className="flex items-center gap-8">
+                  <div className="flex flex-col">
+                    <p className="text-sm font-medium text-white/50">
+                      最高気温
+                    </p>
+                    <p className="font-light tabular-nums text-orange-300">
+                      <span className="text-5xl">{Math.round(d!.maxTemp)}</span>
+                      <span className="text-2xl">°C</span>
+                    </p>
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-light tabular-nums text-sky-300">
-                      {Math.round(d!.minTemp)}°
-                    </span>
+                  <div className="flex flex-col">
+                    <p className="text-sm font-medium text-white/50">
+                      最低気温
+                    </p>
+                    <p className="font-light tabular-nums text-sky-300">
+                      <span className="text-5xl">{Math.round(d!.minTemp)}</span>
+                      <span className="text-2xl">°C</span>
+                    </p>
                   </div>
                   <div className="ml-auto flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm">
                     <span>🌧</span>
