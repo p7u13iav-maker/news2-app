@@ -12,17 +12,14 @@ export const TOP_HEADLINES = 8;
 /**
  * RSS feed sources. Each is fetched directly over HTTPS (no API key required).
  *
- * - 日経新聞 (business): RDF 1.0 feed of Nikkei business news.
- * - 日経ビジネス: RSS 2.0 feed of Nikkei Business electronic edition.
+ * NHK NEWS WEB: RSS 2.0 feeds. Each feed's <description> already contains the
+ * article's lead paragraph (full free body text), so no per-article fetch is
+ * needed for the body. The image (og:image) is still fetched per article.
  */
 const FEEDS = [
   {
-    label: "日経新聞",
-    url: "https://assets.wor.jp/rss/rdf/nikkei/business.rdf",
-  },
-  {
-    label: "日経ビジネス",
-    url: "https://business.nikkei.com/rss/sns/nb.rdf",
+    label: "NHK",
+    url: "https://www3.nhk.or.jp/rss/news/cat0.xml",
   },
 ];
 
@@ -71,8 +68,9 @@ function parseItem(itemXml: string, source: string): Article | null {
   const rawDesc = tagValue(itemXml, "description");
   let description: string | null = null;
   if (rawDesc) {
+    // NHK's <description> is the full lead paragraph of the article (free text).
     const plain = decodeEntities(unwrapCdata(rawDesc)).replace(/<[^>]+>/g, " ");
-    description = plain.replace(/\s+/g, " ").trim().slice(0, 220) || null;
+    description = plain.replace(/\s+/g, " ").trim().slice(0, 400) || null;
   }
 
   // Image: prefer <enclosure ... type="image/...">, then <img src> in description.
@@ -166,9 +164,9 @@ function metaContent(html: string, name: string): string | null {
 }
 
 /**
- * Fetch the lead paragraph (body text) and article image for an article by
- * reading its <meta> tags from the HTML page. Nikkei articles expose the lead
- * text (og:description) and a thumbnail (og:image), both useful for signage.
+ * Fetch the article image (og:image) for an article by reading its <meta> tag
+ * from the HTML page. The body text already comes from the RSS <description>,
+ * so only the image is needed here.
  *
  * Returns null if the article can't be fetched at all.
  */
@@ -215,11 +213,12 @@ async function fetchArticleMeta(url: string): Promise<ArticleMeta | null> {
 
 /**
  * Fetch all configured RSS feeds in parallel, then enrich each article with
- * its lead paragraph (body preview) by fetching the article page.
+ * its image (og:image) by fetching the article page.
  *
  * A failing feed is skipped so a single broken source never takes down the
- * whole page. Body fetches are best-effort: if one fails, the article is
- * kept without a description.
+ * whole page. Image fetches are best-effort: if one fails, the article is
+ * kept without an image. The body text already comes from the RSS
+ * <description>, so it is never overridden here.
  */
 export async function fetchHeadlines(): Promise<Article[]> {
   const results = await Promise.allSettled(FEEDS.map((f) => fetchFeed(f)));
@@ -230,19 +229,16 @@ export async function fetchHeadlines(): Promise<Article[]> {
     .map((r) => r.value);
   const merged = mergeArticles(lists);
 
-  // Enrich with body text + image. Only fetch for the top items we will
-  // actually show, to limit outbound requests. All fetches run in parallel.
+  // Enrich with the article image (og:image). Only fetch for the top items we
+  // will actually show, to limit outbound requests. All fetches run in
+  // parallel.
   const ENRICH_LIMIT = 12;
   const toEnrich = merged.slice(0, ENRICH_LIMIT);
   await Promise.all(
     toEnrich.map(async (a) => {
-      const needsDesc = !a.description;
-      const needsImg = !a.urlToImage;
-      if (!needsDesc && !needsImg) return; // RSS already provided both.
+      if (a.urlToImage) return; // RSS already provided one.
       const meta = await fetchArticleMeta(a.url);
-      if (!meta) return;
-      if (needsDesc && meta.description) a.description = meta.description;
-      if (needsImg && meta.image) a.urlToImage = meta.image;
+      if (meta?.image) a.urlToImage = meta.image;
     }),
   );
   return merged;
