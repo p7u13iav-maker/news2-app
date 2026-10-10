@@ -238,7 +238,7 @@ export default function UnifiedSignage({
     return () => clearInterval(id);
   }, []);
 
-  // Fetch summary (once, server caches for the day).
+  // Fetch summary immediately (server caches for the day).
   useEffect(() => {
     fetch("/api/summary", { method: "POST" })
       .then((r) => r.json())
@@ -246,18 +246,22 @@ export default function UnifiedSignage({
       .catch(() => setSummaryData({ ok: false, error: "fetch failed" }));
   }, []);
 
-  // Fetch horoscope (once, server caches for the day).
+  // Fetch horoscope after 5 min delay to stagger the Gemini calls
+  // (avoids two simultaneous requests hitting rate limits).
   useEffect(() => {
-    fetch("/api/horoscope", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ period: "daily" }),
-    })
-      .then((r) => r.json())
-      .then((json) => setHoroscopeData(json))
-      .catch(() =>
-        setHoroscopeData({ ok: false, error: "fetch failed" }),
-      );
+    const id = setTimeout(() => {
+      fetch("/api/horoscope", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ period: "daily" }),
+      })
+        .then((r) => r.json())
+        .then((json) => setHoroscopeData(json))
+        .catch(() =>
+          setHoroscopeData({ ok: false, error: "fetch failed" }),
+        );
+    }, 5 * 60 * 1000);
+    return () => clearTimeout(id);
   }, []);
 
   // Drive the slide + progress animation.
