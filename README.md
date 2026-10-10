@@ -28,7 +28,7 @@
 
 ## ニュースサマリー(AI 要約)
 
-`/summary` ページは、**OITOMA AI**(岡山大学の OpenAI 互換モデル)を使って
+`/summary` ページは、**Google Gemini AI** を使って
 その日のニュースを 3 つのカテゴリに分類して箇条書きで要約します:
 
 - 🇯🇵 **国内の出来事**: 日本の国内で起きた出来事
@@ -39,11 +39,13 @@
 
 ### 設定(必要な場合)
 
-AI 要約機能を使うには `OITOMA_API_KEY` が必要です:
+AI 要約機能を使うには `GEMINI_API_KEY` が必要です:
 
-1. https://ironical.okayama-u.ac.jp/ai/keys で API キーを発行
-2. Vercel: Project Settings → Environment Variables に `OITOMA_API_KEY` を追加
-3. ローカル: `.env.local` に `OITOMA_API_KEY=sk-...` を記入
+1. https://aistudio.google.com/apikey で API キーを発行(無料枠あり)
+2. Vercel: Project Settings → Environment Variables に `GEMINI_API_KEY` を追加
+3. ローカル: `.env.local` に `GEMINI_API_KEY=...` を記入
+
+モデルは既定で `gemini-2.0-flash`。`GEMINI_MODEL` 環境変数で変更可能。
 
 ## セットアップ
 

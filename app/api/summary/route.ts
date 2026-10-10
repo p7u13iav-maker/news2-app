@@ -1,4 +1,4 @@
-import { oitoma, oitomaModel, isOitomaConfigured } from "@/lib/oitoma";
+import { getGemini, geminiModel, isGeminiConfigured } from "@/lib/gemini";
 import { generateText } from "ai";
 import { fetchHeadlines } from "@/lib/newsApi";
 import { NextResponse } from "next/server";
@@ -16,9 +16,9 @@ import { NextResponse } from "next/server";
  * Each category is an array of short bullet-point strings.
  */
 export async function POST() {
-  if (!isOitomaConfigured()) {
+  if (!isGeminiConfigured()) {
     return NextResponse.json(
-      { ok: false, error: "OITOMA_API_KEY is not set." },
+      { ok: false, error: "GEMINI_API_KEY is not set." },
       { status: 500 },
     );
   }
@@ -40,7 +40,7 @@ export async function POST() {
 
     // Ask the AI to categorize and summarize.
     const { text } = await generateText({
-      model: oitoma(oitomaModel),
+      model: getGemini(),
       system: `あなたはニュース要約の専門家です。提供されたニュース記事の見出しを、以下の3つのカテゴリに分類して要約してください。
 
 カテゴリ:
