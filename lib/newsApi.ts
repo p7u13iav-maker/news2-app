@@ -193,7 +193,8 @@ async function fetchArticleMeta(url: string): Promise<ArticleMeta | null> {
     let description: string | null = null;
     if (rawDesc) {
       const plain = decodeEntities(rawDesc).replace(/\s+/g, " ").trim();
-      if (plain.length > 0) description = plain.slice(0, 240);
+      // Keep the full lead paragraph; Nikkei's og:description is the lead text.
+      if (plain.length > 0) description = plain.slice(0, 400);
     }
 
     // Image: og:image (twitter:image fallback).

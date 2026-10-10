@@ -172,7 +172,7 @@ export default function SignageShow({
                   aria-hidden
                   className="absolute left-0 top-0.5 h-[95%] w-1 rounded-full bg-gradient-to-b from-white/70 to-white/10"
                 />
-                <p className="line-clamp-6 text-xl leading-relaxed text-white/80 md:text-2xl">
+                <p className="line-clamp-8 text-xl leading-relaxed text-white/80 md:text-2xl">
                   {current.description}
                 </p>
               </div>
