@@ -92,9 +92,9 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
   const max = Math.max(...temps);
   const range = max - min || 1;
 
-  // Axis padding: room for Y-labels (left) and X-labels (bottom).
+  // Axis padding: room for Y-labels (left) and X-labels + weather emoji (bottom).
   const L = 60; // left padding for Y-axis labels
-  const B = 40; // bottom padding for X-axis labels
+  const B = 70; // bottom padding for hour labels + weather emoji
   const plotW = W - L - 20;
   const plotH = H - B - 20;
 
@@ -115,7 +115,7 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
     { v: min, y: 10 + plotH },
   ];
 
-  // X-axis: hour labels every 3 hours (0,3,6,9,12,15,18,21).
+  // X-axis: hour labels + weather emoji every 3 hours (0,3,6,9,12,15,18,21).
   const xTicks = points.filter((_, i) => i % 3 === 0);
 
   return (
@@ -155,21 +155,6 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
         </g>
       ))}
 
-      {/* X-axis hour labels. */}
-      {xTicks.map((p, i) => (
-        <text
-          key={i}
-          x={p.x}
-          y={10 + plotH + 28}
-          fill="rgba(255,255,255,0.5)"
-          fontSize="14"
-          fontFamily="monospace"
-          textAnchor="middle"
-        >
-          {fmtHour(p.h.time)}時
-        </text>
-      ))}
-
       {/* Area + line. */}
       <polygon points={area} fill="url(#tempGrad)" />
       <polyline
@@ -181,21 +166,6 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
         strokeLinecap="round"
       />
 
-      {/* Weather text labels every 3 hours (above the line). */}
-      {xTicks.map((p, i) => (
-        <text
-          key={i}
-          x={p.x}
-          y={p.y - 14}
-          fill="rgba(255,255,255,0.75)"
-          fontSize="15"
-          fontFamily="sans-serif"
-          textAnchor="middle"
-        >
-          {p.h.label}
-        </text>
-      ))}
-
       {/* Dots. */}
       {points.map((p, i) => (
         <circle
@@ -206,6 +176,30 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
           fill="#fbbf24"
           opacity={i % 3 === 0 ? 1 : 0.4}
         />
+      ))}
+
+      {/* X-axis: hour labels + weather emoji below the chart. */}
+      {xTicks.map((p, i) => (
+        <g key={i}>
+          <text
+            x={p.x}
+            y={10 + plotH + 24}
+            fill="rgba(255,255,255,0.5)"
+            fontSize="14"
+            fontFamily="monospace"
+            textAnchor="middle"
+          >
+            {fmtHour(p.h.time)}時
+          </text>
+          <text
+            x={p.x}
+            y={10 + plotH + 50}
+            fontSize="20"
+            textAnchor="middle"
+          >
+            {p.h.emoji}
+          </text>
+        </g>
       ))}
     </svg>
   );
