@@ -83,7 +83,7 @@ function fmtHour(iso: string): string {
 /** Simple inline SVG temperature chart for the 24 hourly values. */
 function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
   const W = 1000;
-  const H = 200;
+  const H = 260;
   const PAD = 10;
   if (hourly.length === 0) return null;
 
@@ -115,7 +115,7 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
     { v: min, y: 10 + plotH },
   ];
 
-  // X-axis: hour labels + weather emoji every 3 hours (0,3,6,9,12,15,18,21).
+  // X-axis: hour labels + weather icons every 3 hours (0,3,6,9,12,15,18,21).
   const xTicks = points.filter((_, i) => i % 3 === 0);
 
   return (
@@ -178,7 +178,7 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
         />
       ))}
 
-      {/* X-axis: hour labels + weather emoji below the chart. */}
+      {/* X-axis: hour labels + weather icons below the chart. */}
       {xTicks.map((p, i) => (
         <g key={i}>
           <text
@@ -191,24 +191,114 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
           >
             {fmtHour(p.h.time)}時
           </text>
-          {/* Background circle for emoji visibility. */}
-          <circle
-            cx={p.x}
-            cy={10 + plotH + 42}
-            r="10"
-            fill="rgba(255,255,255,0.08)"
-          />
-          <text
-            x={p.x}
-            y={10 + plotH + 48}
-            fontSize="16"
-            textAnchor="middle"
-          >
-            {p.h.emoji}
-          </text>
+          <WeatherIcon code={p.h.weatherCode} cx={p.x} cy={10 + plotH + 40} size={14} />
         </g>
       ))}
     </svg>
+  );
+}
+
+/** Render a small weather icon (sun/cloud/rain/snow) as SVG shapes. */
+function WeatherIcon({
+  code,
+  cx,
+  cy,
+  size,
+}: {
+  code: number;
+  cx: number;
+  cy: number;
+  size: number;
+}) {
+  const r = size / 2;
+  const s = size;
+
+  // Determine icon type + color from weather code.
+  const isSun = code === 0 || code === 1;
+  const isCloud = code === 2 || code === 3;
+  const isRain = code >= 51 && code <= 67 || (code >= 80 && code <= 82);
+  const isSnow = code >= 71 && code <= 77 || (code >= 85 && code <= 86);
+  const isThunder = code >= 95;
+  const isFog = code === 45 || code === 48;
+
+  const sunColor = "#fbbf24";
+  const cloudColor = "rgba(203,213,225,0.8)";
+  const rainColor = "#60a5fa";
+  const snowColor = "#e2e8f0";
+  const thunderColor = "#fbbf24";
+
+  return (
+    <g transform={`translate(${cx - s / 2}, ${cy - s / 2})`}>
+      {/* Sun (code 0,1). */}
+      {isSun && (
+        <>
+          <circle cx={s / 2} cy={s / 2} r={r * 0.6} fill={sunColor} />
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
+            <line
+              key={deg}
+              x1={s / 2 + Math.cos((deg * Math.PI) / 180) * r * 0.75}
+              y1={s / 2 + Math.sin((deg * Math.PI) / 180) * r * 0.75}
+              x2={s / 2 + Math.cos((deg * Math.PI) / 180) * r}
+              y2={s / 2 + Math.sin((deg * Math.PI) / 180) * r}
+              stroke={sunColor}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          ))}
+        </>
+      )}
+
+      {/* Cloud (code 2,3). */}
+      {(isCloud || isRain || isSnow || isThunder) && (
+        <path
+          d={`M ${s * 0.2} ${s * 0.6}
+             a ${s * 0.15} ${s * 0.15} 0 0 1 0 -${s * 0.3}
+             a ${s * 0.2} ${s * 0.2} 0 0 1 ${s * 0.4} 0
+             a ${s * 0.15} ${s * 0.15} 0 0 1 0 ${s * 0.3}
+             z`}
+          fill={cloudColor}
+        />
+      )}
+
+      {/* Rain drops (code 51-67, 80-82). */}
+      {isRain && (
+        <>
+          <line x1={s * 0.35} y1={s * 0.65} x2={s * 0.3} y2={s * 0.85} stroke={rainColor} strokeWidth="1.5" strokeLinecap="round" />
+          <line x1={s * 0.5} y1={s * 0.65} x2={s * 0.45} y2={s * 0.85} stroke={rainColor} strokeWidth="1.5" strokeLinecap="round" />
+          <line x1={s * 0.65} y1={s * 0.65} x2={s * 0.6} y2={s * 0.85} stroke={rainColor} strokeWidth="1.5" strokeLinecap="round" />
+        </>
+      )}
+
+      {/* Snow (code 71-77, 85-86). */}
+      {isSnow && (
+        <>
+          <circle cx={s * 0.35} cy={s * 0.75} r="1.5" fill={snowColor} />
+          <circle cx={s * 0.5} cy={s * 0.8} r="1.5" fill={snowColor} />
+          <circle cx={s * 0.65} cy={s * 0.75} r="1.5" fill={snowColor} />
+        </>
+      )}
+
+      {/* Thunder (code 95+). */}
+      {isThunder && (
+        <path
+          d={`M ${s * 0.48} ${s * 0.6} L ${s * 0.42} ${s * 0.75} L ${s * 0.52} ${s * 0.75} L ${s * 0.45} ${s * 0.9}`}
+          fill="none"
+          stroke={thunderColor}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+
+      {/* Fog (code 45,48). */}
+      {isFog && (
+        <>
+          <line x1={s * 0.25} y1={s * 0.4} x2={s * 0.75} y2={s * 0.4} stroke={cloudColor} strokeWidth="1.5" strokeLinecap="round" />
+          <line x1={s * 0.25} y1={s * 0.55} x2={s * 0.75} y2={s * 0.55} stroke={cloudColor} strokeWidth="1.5" strokeLinecap="round" />
+          <line x1={s * 0.3} y1={s * 0.7} x2={s * 0.7} y2={s * 0.7} stroke={cloudColor} strokeWidth="1.5" strokeLinecap="round" />
+        </>
+      )}
+    </g>
   );
 }
 
@@ -405,8 +495,8 @@ export default function WeatherPage() {
               </div>
             </div>
 
-            {/* Bottom: hourly temperature chart (full width, no scroll). */}
-            <div className="flex min-h-0 flex-1 items-center">
+            {/* Bottom: hourly temperature chart (fixed height, no scroll). */}
+            <div className="shrink-0" style={{ height: "38%" }}>
               <HourlyChart hourly={data.hourly} />
             </div>
           </>
