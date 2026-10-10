@@ -136,43 +136,58 @@ export default function SignageShow({
       {/* Slide content. Keyed by index so the whole block re-mounts and re-animates. */}
       <main
         key={index}
-        className="relative z-10 flex h-full flex-col justify-center px-16 pb-24 pt-28"
+        className="relative z-10 flex h-full flex-col justify-center px-14 pb-20 pt-24"
       >
-        <div className="slide-enter">
-          {/* Source + time badge. */}
-          <div className="mb-8 flex items-center gap-4">
-            <span className="rounded-full bg-white/10 px-5 py-2 text-xl font-semibold backdrop-blur">
-              {source}
-            </span>
-            <span className="text-lg text-white/50">
-              {time.toLocaleDateString("ja-JP", {
-                month: "numeric",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
-            <span className="text-6xl font-thin text-white/20">
-              {index + 1}
-              <span className="text-3xl"> / {slides.length}</span>
-            </span>
+        <div className="slide-enter flex items-center gap-12">
+          {/* Text column (left). */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            {/* Source + time badge. */}
+            <div className="mb-6 flex items-center gap-4">
+              <span className="rounded-full bg-white/10 px-4 py-1.5 text-lg font-semibold backdrop-blur">
+                {source}
+              </span>
+              <span className="text-base text-white/50">
+                {time.toLocaleDateString("ja-JP", {
+                  month: "numeric",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+              <span className="text-5xl font-thin text-white/20">
+                {index + 1}
+                <span className="text-2xl"> / {slides.length}</span>
+              </span>
+            </div>
+
+            {/* Headline. */}
+            <h1 className="slide-title mb-6 text-5xl font-bold leading-tight tracking-tight md:text-6xl">
+              {current.title}
+            </h1>
+
+            {/* Body / lead text. */}
+            {current.description && (
+              <div className="slide-desc relative pl-6">
+                <span
+                  aria-hidden
+                  className="absolute left-0 top-1 h-[95%] w-1.5 rounded-full bg-gradient-to-b from-white/70 to-white/10"
+                />
+                <p className="text-2xl leading-relaxed text-white/80 md:text-3xl">
+                  {current.description}
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Headline (very large). */}
-          <h1 className="slide-title mb-10 text-6xl font-bold leading-tight tracking-tight md:text-7xl">
-            {current.title}
-          </h1>
-
-          {/* Body / lead text. */}
-          {current.description && (
-            <div className="slide-desc relative max-w-6xl pl-8">
-              <span
-                aria-hidden
-                className="absolute left-0 top-1 h-[95%] w-1.5 rounded-full bg-gradient-to-b from-white/70 to-white/10"
+          {/* Image column (right). Shown only when the article has a photo. */}
+          {current.urlToImage && (
+            <div className="slide-img hidden h-[60vh] w-[38vw] shrink-0 overflow-hidden rounded-2xl border border-white/10 shadow-2xl lg:block">
+              <img
+                src={current.urlToImage}
+                alt={current.title}
+                className="h-full w-full object-cover"
+                loading="lazy"
               />
-              <p className="text-3xl leading-relaxed text-white/80 md:text-4xl">
-                {current.description}
-              </p>
             </div>
           )}
         </div>

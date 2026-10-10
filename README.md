@@ -5,6 +5,8 @@
 **Vercel** にデプロイし、**GitHub** をソースとしてプッシュで自動デプロイする。
 毎朝 **Vercel Cron** でニュースをリフレッシュする。
 
+AI 機能は **Vercel AI SDK** + **OITOMA(岡山大学の OpenAI 互換モデル)** で提供。
+
 ## 特徴(サイネージ)
 
 - **フルスクリーン表示**(スクロールなし・大文字・暗い背景)
@@ -33,7 +35,67 @@ npm install
 npm run dev
 ```
 
-http://localhost:3000 を開く(キーは不要)。
+http://localhost:3000 を開く(RSS 部分はキー不要)。
+
+### OITOMA AI を接続する
+
+1. `.env.example` を `.env.local` にコピー(既に存在する場合はそのままでよい)
+2. OITOMA の管理画面から **API キー** と **ベース URL** を取得
+3. `.env.local` に記入:
+
+   ```
+   OITOMA_BASE_URL=https://api.oitoma.example/v1   # ← 実際の URL
+   OITOMA_API_KEY=sk-...
+   OITOMA_MODEL=oitoma/qwen3.8-27b-it
+   ```
+
+4. `npm run dev` を再起動
+5. テスト:
+
+   ```bash
+   curl -X POST http://localhost:3000/api/ai \
+     -H "Content-Type: application/json" \
+     -d '{"messages":[{"role":"user","content":"こんにちは"}],"stream":false}'
+   ```
+
+   → `{"ok":true,"text":"..."}` が返れば連携成功。
+
+### Vercel にデプロイする
+
+`vercel` CLI または [vercel.com/new](https://vercel.com/new) でデプロイ後、
+**Project Settings → Environment Variables** に 3 環境変数
+(`OITOMA_BASE_URL` / `OITOMA_API_KEY` / `OITOMA_MODEL`)を Production + Preview に追加する。
+
+## AI API (`/api/ai`)
+
+- **POST** `/api/ai`
+  - Body: `{ messages: ModelMessage[], model?, maxOutputTokens?, stream? }`
+  - `stream: true`(既定) → AI SDK UI message stream(クライアントの `useChat({ api: "/api/ai" })` とそのまま連携)
+  - `stream: false` → `{ ok, text, usage }` の JSON
+
+`useChat` での例(クライアントコンポーネント内):
+
+```tsx
+"use client";
+import { useChat } from "ai/react";
+
+export function Chat() {
+  const { messages, input, handleInputChange, handleSubmit, status } =
+    useChat({ api: "/api/ai" });
+  return (
+    <form onSubmit={handleSubmit}>
+      {messages.map((m) => (
+        <p key={m.id}>{m.role}: {m.content}</p>
+      ))}
+      <input
+        value={input}
+        onChange={handleInputChange}
+        placeholder={status === "streaming" ? "…" : "質問を入力"}
+      />
+    </form>
+  );
+}
+```
 
 ### GitHub に push して Vercel にデプロイ
 
@@ -50,7 +112,9 @@ git push -u origin main
 
 1. [vercel.com/new](https://vercel.com/new) に GitHub リポジトリを import する
    (Framework: Next.js は自動認識)
-2. **Deploy**(環境変数は不要)
+2. **Environment Variables** に `OITOMA_BASE_URL` / `OITOMA_API_KEY` /
+   `OITOMA_MODEL` を追加(「OITOMA AI を接続する」節を参照)
+3. **Deploy**
 
 `vercel.json` の cron 定義により、デプロイの直後に毎日朝 6:00 に
 `/api/cron` が呼び出され、ニュースがリフレッシュされます。
@@ -62,12 +126,14 @@ app/
   page.tsx            # 記事を取得して SignageShow に渡す
   layout.tsx          # ルートレイアウト(フルスクリーン・暗い背景)
   api/
+    ai/route.ts       # OITOMA へのプロキシ(AI SDK ストリーム対応)
     cron/route.ts     # Vercel Cron のターゲット。revalidateTag で更新
 components/
   SignageShow.tsx     # スライドショー(最新10件・10秒間隔・アニメーション)
 lib/
   newsApi.ts          # RSS 取得 + XML パース + 記事の整形/マージ
   news.ts             # use cache によるキャッシュラッパー
+  oitoma.ts           # OITOMA プロバイダ(AI SDK createOpenAICompatible)
 vercel.json           # cron 定義(毎日朝 6:00)
 ```
 

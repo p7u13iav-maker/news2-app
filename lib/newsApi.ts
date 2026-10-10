@@ -144,14 +144,35 @@ async function fetchFeed(feed: {
   }
 }
 
+interface ArticleMeta {
+  description: string | null;
+  image: string | null;
+}
+
 /**
- * Fetch the lead paragraph (body text) for an article by reading the
- * <meta name="description"> from the article's HTML page. Nikkei articles
- * expose the lead text here, which makes for a good signage preview.
- *
- * Returns null if the article can't be fetched or has no description.
+ * Extract a <meta> tag's content attribute by name/property, regardless of
+ * attribute order in the tag.
  */
-async function fetchArticleBody(url: string): Promise<string | null> {
+function metaContent(html: string, name: string): string | null {
+  const re = new RegExp(
+    '<meta[^>]+(?:property|name)="' +
+      name +
+      '"[^>]+content="([^"]+)"|<meta[^>]+content="([^"]+)"[^>]+(?:property|name)="' +
+      name +
+      '"',
+  );
+  const m = html.match(re);
+  return m ? m[1] || m[2] || null : null;
+}
+
+/**
+ * Fetch the lead paragraph (body text) and article image for an article by
+ * reading its <meta> tags from the HTML page. Nikkei articles expose the lead
+ * text (og:description) and a thumbnail (og:image), both useful for signage.
+ *
+ * Returns null if the article can't be fetched at all.
+ */
+async function fetchArticleMeta(url: string): Promise<ArticleMeta | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -166,18 +187,24 @@ async function fetchArticleBody(url: string): Promise<string | null> {
     if (!res.ok) return null;
     const html = await res.text();
 
-    // Prefer og:description, then meta description.
-    const og = html.match(
-      /<meta[^>]+property="og:description"[^>]+content="([^"]+)"/,
-    );
-    const meta = html.match(
-      /<meta[^>]+name="description"[^>]+content="([^"]+)"/,
-    );
-    const raw = og?.[1] ?? meta?.[1] ?? null;
-    if (!raw) return null;
-    // Decode entities and cap the length for the signage display.
-    const plain = decodeEntities(raw).replace(/\s+/g, " ").trim();
-    return plain.length > 0 ? plain.slice(0, 240) : null;
+    // Lead text: prefer og:description, then meta description.
+    const rawDesc =
+      metaContent(html, "og:description") ?? metaContent(html, "description");
+    let description: string | null = null;
+    if (rawDesc) {
+      const plain = decodeEntities(rawDesc).replace(/\s+/g, " ").trim();
+      if (plain.length > 0) description = plain.slice(0, 240);
+    }
+
+    // Image: og:image (twitter:image fallback).
+    let image: string | null = null;
+    const rawImg = metaContent(html, "og:image") ?? metaContent(html, "twitter:image");
+    if (rawImg) {
+      const img = decodeEntities(rawImg).trim();
+      if (img.startsWith("http")) image = img;
+    }
+
+    return { description, image };
   } catch {
     return null;
   } finally {
@@ -202,15 +229,19 @@ export async function fetchHeadlines(): Promise<Article[]> {
     .map((r) => r.value);
   const merged = mergeArticles(lists);
 
-  // Enrich with body text. Only fetch for the top items we will actually show,
-  // to limit outbound requests. All body fetches run in parallel.
-  const BODY_FETCH_LIMIT = 12;
-  const toEnrich = merged.slice(0, BODY_FETCH_LIMIT);
+  // Enrich with body text + image. Only fetch for the top items we will
+  // actually show, to limit outbound requests. All fetches run in parallel.
+  const ENRICH_LIMIT = 12;
+  const toEnrich = merged.slice(0, ENRICH_LIMIT);
   await Promise.all(
     toEnrich.map(async (a) => {
-      if (a.description) return; // RSS already provided one.
-      const body = await fetchArticleBody(a.url);
-      if (body) a.description = body;
+      const needsDesc = !a.description;
+      const needsImg = !a.urlToImage;
+      if (!needsDesc && !needsImg) return; // RSS already provided both.
+      const meta = await fetchArticleMeta(a.url);
+      if (!meta) return;
+      if (needsDesc && meta.description) a.description = meta.description;
+      if (needsImg && meta.image) a.urlToImage = meta.image;
     }),
   );
   return merged;
