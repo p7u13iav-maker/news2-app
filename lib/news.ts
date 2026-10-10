@@ -28,12 +28,12 @@ export async function getMorningNews(): Promise<Article[]> {
   cacheLife("minutes");
   cacheTag(NEWS_TAG);
 
-  const hasKey = Boolean(process.env.NEWSAPI_KEY);
+  const hasKey = Boolean(process.env.GNEWS_KEY);
   if (!hasKey) return [];
 
   try {
-    // 日本(jp)のニュースのみに限定
-    const japan = await fetchHeadlines("japan");
+    // 日本語のトップニュース(jp)を取得
+    const japan = await fetchHeadlines();
     return mergeArticles([japan]);
   } catch {
     // On any upstream failure, return whatever the last successful fetch

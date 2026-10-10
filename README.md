@@ -1,13 +1,13 @@
 # 毎朝ニュース (Morning News)
 
-毎朝、日本のニュースを **NewsAPI** から取得して表示する Next.js ページ。
+毎朝、日本のニュースを **GNews** から取得して表示する Next.js ページ。
 **Vercel** にデプロイし、**GitHub** をソースとしてプッシュで自動デプロイする。
 毎朝 **Vercel Cron** でニュースをリフレッシュする。
 
 ## 特徴
 
 - **Next.js 16 (App Router) + Tailwind CSS 4**
-- **NewsAPI** で日本 (`jp`) のトップニュースを取得
+- **GNews** で日本のトップニュース(`lang=ja`, `country=jp`)を取得
 - **Vercel Cron** が毎日朝 6:00 (JST/UTC) に `/api/cron` を叩き、`revalidateTag` でページを強制更新
 - `use cache` + `cacheLife('minutes')` で 1 分ごとに自動再検証(レート制限に配慮)
 - GitHub にプッシュ → Vercel が自動デプロイ
@@ -16,14 +16,13 @@
 
 ### 1. ニュース API キーの取得
 
-[newsapi.org/register](https://newsapi.org/register) で無料キーを取得する
-(無料プランは 1 日 100 リクエスト / 開発用途)。
+[gnews.io](https://gnews.io/) で無料キーを取得する(無料プラン 100 リクエスト/日)。
 
 ### 2. ローカルで試す
 
 ```bash
 npm install
-cp .env.example .env.local   # 中の NEWSAPI_KEY= に自分のキーを入力
+cp .env.example .env.local   # 中の GNEWS_KEY= に自分のキーを入力
 npm run dev
 ```
 
@@ -44,7 +43,7 @@ git push -u origin main
 
 1. [vercel.com/new](https://vercel.com/new) に GitHub リポジトリを import する
    (Framework: Next.js は自動認識)
-2. **Environment Variables** に `NEWSAPI_KEY=<キー>` を追加
+2. **Environment Variables** に `GNEWS_KEY=<キー>` を追加
    (Production / Preview / Development いずれも)
 3. Deploy
 
@@ -80,6 +79,6 @@ vercel.json           # cron 定義(毎日朝 6:00)
 ## カスタマイズ
 
 - **表示時間を変える**: `vercel.json` の `schedule` を変更(例 `0 7 * * *`)
-- **国・カテゴリ**: `lib/newsApi.ts` の `fetchHeadlines` を変更
-  (例: `country: "jp"` を `"us"` に、`category` を `"business"` などに)
+- **言語・国**: `lib/newsApi.ts` の `fetchHeadlines` を変更
+  (例: `lang: "ja"` / `country: "jp"`)
 - **表示件数**: `lib/newsApi.ts` の `TOP_HEADLINES` / `mergeArticles` の `max`

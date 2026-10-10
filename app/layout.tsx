@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "毎朝ニュース | Morning News",
   description:
-    "日本の朝のニュースを、毎朝の Cron で自動更新して表示するページ。",
+    "日本の朝のニュースを(GNews)、毎朝の Cron で自動更新して表示するページ。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

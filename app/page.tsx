@@ -11,7 +11,7 @@ import Clock from "@/components/Clock";
  */
 export default async function Home() {
   const articles = await getMorningNews();
-  const hasKey = Boolean(process.env.NEWSAPI_KEY);
+  const hasKey = Boolean(process.env.GNEWS_KEY);
   const top = articles.slice(0, TOP_HEADLINES);
   const rest = articles.slice(TOP_HEADLINES);
 
@@ -30,7 +30,7 @@ export default async function Home() {
         {!hasKey && (
           <div className="mb-8 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             ニュース API のキーが設定されていません。 Vercel の環境変数に{" "}
-            <code className="font-mono">NEWSAPI_KEY</code>{" "}
+            <code className="font-mono">GNEWS_KEY</code>{" "}
             を設定すると、ここから日本の朝のニュースが表示されます。
           </div>
         )}
@@ -72,7 +72,7 @@ export default async function Home() {
 
       <footer className="border-t border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-2 px-6 py-4 text-xs text-zinc-400 sm:flex-row">
-          <span>ニュース提供: 日本 via NewsAPI</span>
+          <span>ニュース提供: 日本 via GNews</span>
           <span>1 分ごとに自動再検証 · 毎朝の Cron でリフレッシュ</span>
         </div>
       </footer>

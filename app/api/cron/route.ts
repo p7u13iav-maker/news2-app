@@ -16,8 +16,8 @@ import { NEWS_TAG } from "@/lib/news";
 export async function GET() {
   const started = Date.now();
   try {
-    // 日本(jp)のニュースのみに限定
-    const japan = await fetchHeadlines("japan");
+    // 日本語のトップニュース(jp)を取得
+    const japan = await fetchHeadlines();
     const count = mergeArticles([japan]).length;
     revalidateTag(NEWS_TAG, "max");
     return NextResponse.json({

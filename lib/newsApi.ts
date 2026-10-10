@@ -9,31 +9,29 @@ export interface Article {
 
 export const TOP_HEADLINES = 8;
 
-const BASE = "https://newsapi.org/v2";
+const BASE = "https://gnews.io/api/v4";
 
 /**
- * Fetch top headlines for the given country. NewsAPI key is read from the
- * NEWSAPI_KEY env var, which on Vercel is set as a project-level environment
- * variable.
+ * Fetch Japanese top headlines from GNews (https://gnews.io).
  *
- * The page currently only fetches "japan" (country: jp). The signature stays
- * country-based so adding more countries later is a one-line change.
+ * GNews key is read from the GNEWS_KEY env var, set as a project-level
+ * environment variable on Vercel.
+ *
+ * We use the /top-headlines endpoint with lang=ja & country=jp, which is
+ * reliable for Japanese news (unlike NewsAPI, where country=jp returns 0).
  */
-export async function fetchHeadlines(
-  source: "japan" | "world",
-): Promise<Article[]> {
-  const key = process.env.NEWSAPI_KEY;
+export async function fetchHeadlines(): Promise<Article[]> {
+  const key = process.env.GNEWS_KEY;
   if (!key) {
     // No key configured. Return an empty list; the UI shows a hint.
     return [];
   }
 
-  // NewsAPI limits: /top-headlines 100 req/day (dev), /everything 30 req/day.
-  // Top headlines is cheap and always has fresh results, so prefer it.
   const params = new URLSearchParams({
-    country: source === "japan" ? "jp" : "us",
-    pageSize: "20",
-    apiKey: key,
+    lang: "ja",
+    country: "jp",
+    max: "20",
+    apikey: key,
   });
 
   const res = await fetch(`${BASE}/top-headlines?${params.toString()}`, {
@@ -42,20 +40,25 @@ export async function fetchHeadlines(
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(
-      `NewsAPI request failed: ${res.status} ${body.slice(0, 200)}`,
+      `GNews request failed: ${res.status} ${body.slice(0, 200)}`,
     );
   }
   const json = (await res.json()) as {
     articles?: Array<{
-      source: { name: string | null };
       title: string | null;
       description: string | null;
-      url: string;
-      urlToImage: string | null;
+      url: string | null;
+      image: string | null;
       publishedAt: string | null;
+      source?: { name: string | null };
     }>;
+    errors?: string[];
   };
 
+  // GNews returns { errors: [...] } on rate-limit or quota issues.
+  if (json.errors && json.errors.length > 0) {
+    throw new Error(`GNews error: ${json.errors.join(", ")}`);
+  }
   if (!json.articles || json.articles.length === 0) return [];
 
   return json.articles
@@ -64,14 +67,14 @@ export async function fetchHeadlines(
       source: a.source?.name ?? "Unknown",
       title: a.title as string,
       description: a.description,
-      url: a.url,
-      urlToImage: a.urlToImage,
+      url: a.url as string,
+      urlToImage: a.image,
       publishedAt: a.publishedAt ?? new Date().toISOString(),
     }));
 }
 
 /**
- * Merge the two sources, dedupe by URL, sort by publishedAt desc, and cap.
+ * Dedupe by URL, sort by publishedAt desc, and cap.
  */
 export function mergeArticles(
   lists: Article[][],
@@ -81,9 +84,8 @@ export function mergeArticles(
   const out: Article[] = [];
   for (const list of lists) {
     for (const a of list) {
-      const key = a.url;
-      if (seen.has(key)) continue;
-      seen.add(key);
+      if (seen.has(a.url)) continue;
+      seen.add(a.url);
       out.push(a);
     }
   }
