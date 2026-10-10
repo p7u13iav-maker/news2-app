@@ -43,37 +43,25 @@ export async function POST() {
     // (which may be wrapped in markdown code fences).
     const { text } = await generateText({
       model: getGemini(),
-      system: `あなたはニュース要約の専門家です。以下の指示を厳密に従ってください。
+      system: `ニュース見出しを3カテゴリに分類し、JSONで要約してください。
 
-【出力形式】
-絶対に JSON オブジェクトのみを出力してください。
-- 最初に { を、最後に } を書いてください。
-- markdown のコードフェンス(三重バッククォート)は使用しないでください。
-- 説明・前置き・後書きは一切書かないでください。
+カテゴリ:
+- domestic: 国内の出来事(事件・災害・社会)
+- international: 国外・国際
+- economy: 経済・ビジネス・金融
 
-【JSON の構造】
+出力はJSONのみ。各カテゴリ2〜4項目、1項目20〜40文字。
 {
-  "domestic": ["項目1", "項目2"],
-  "international": ["項目1", "項目2"],
-  "economy": ["項目1", "項目2"]
-}
-
-【カテゴリ】
-- domestic: 日本の国内で起きた出来事・事件・災害・社会ニュース
-- international: 日本国外(海外・国際)で起きた出来事
-- economy: 日本を含む世界の経済・ビジネス・金融・株式・企業関連
-
-【ルール】
-- 各カテゴリは2〜5項目の文字列配列。各項目は15〜35文字の簡潔な一文
-- 見出しの意味を正確に反映し、捏造しない
-- 該当なければ空配列 []`,
+  "domestic": ["項目"],
+  "international": ["項目"],
+  "economy": ["項目"]
+}`,
       prompt: `以下のニュース記事の見出しを要約してください:
 
 ${newsText}`,
       temperature: 0.2,
-      // Keep output short so the request finishes well within Vercel's 100s
-      // timeout. 3 categories x ~5 items x ~30 chars is well under 400 tokens.
-      maxOutputTokens: 400,
+      // Keep output short but allow enough room for 3 categories x 3-4 items.
+      maxOutputTokens: 600,
     });
 
     // Extract the JSON object from the AI's response. The model may wrap it
