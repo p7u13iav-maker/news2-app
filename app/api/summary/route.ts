@@ -39,8 +39,10 @@ export async function POST() {
   }
 
   try {
-    // Fetch the latest headlines (NHK + Nikkei, top ~14).
-    const articles = await fetchHeadlines();
+    // Fetch the latest headlines, then take only the first 15 (half of ~30)
+    // to reduce Gemini token usage and avoid quota limits.
+    const allArticles = await fetchHeadlines();
+    const articles = allArticles.slice(0, 15);
     if (articles.length === 0) {
       return NextResponse.json(
         { ok: false, error: "No news articles found." },
