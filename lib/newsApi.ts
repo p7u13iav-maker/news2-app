@@ -288,8 +288,13 @@ async function fetchArticleMeta(
 }
 
 /**
- * Fetch all configured RSS feeds in parallel, then enrich each article from
- * its article page.
+ * Fetch configured RSS feeds in parallel, then enrich each article from its
+ * article page.
+ *
+ * `sources` (optional) limits which feed labels are included. When omitted,
+ * ALL feeds (NHK + Nikkei + BBC + Guardian) are returned — used by the AI
+ * summary page. The digital-signage page passes `["NHK", "日経新聞",
+ * "日経ビジネス"]` so it only shows domestic sources.
  *
  * - NHK: body text already comes from the RSS <description>, so only the
  *   image (og:image) is fetched.
@@ -301,8 +306,11 @@ async function fetchArticleMeta(
  * whole page. Fetches are best-effort: if one fails, the article is kept
  * without that field.
  */
-export async function fetchHeadlines(): Promise<Article[]> {
-  const results = await Promise.allSettled(FEEDS.map((f) => fetchFeed(f)));
+export async function fetchHeadlines(
+  sources?: string[],
+): Promise<Article[]> {
+  const feeds = sources ? FEEDS.filter((f) => sources.includes(f.label)) : FEEDS;
+  const results = await Promise.allSettled(feeds.map((f) => fetchFeed(f)));
   const lists = results
     .filter(
       (r): r is PromiseFulfilledResult<Article[]> => r.status === "fulfilled",

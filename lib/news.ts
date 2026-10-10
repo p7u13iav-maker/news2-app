@@ -25,8 +25,10 @@ export async function getMorningNews(): Promise<Article[]> {
   cacheTag(NEWS_TAG);
 
   try {
-    // Fetch NHK + GIGAZINE RSS feeds (no API key required).
-    return await fetchHeadlines();
+    // Digital signage shows domestic sources only (NHK + Nikkei). The
+    // international feeds (BBC / Guardian) are reserved for the AI summary
+    // page and are intentionally excluded here.
+    return await fetchHeadlines(["NHK", "日経新聞", "日経ビジネス"]);
   } catch {
     // On any upstream failure, return an empty list; the page shows a hint.
     return [];
