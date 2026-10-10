@@ -56,9 +56,10 @@ export async function POST() {
     // from the response text.
     const { text } = await generateText({
       model: getGemini(),
-      system: `ニュース見出しを3カテゴリに分類し、JSONで出力してください。
-各カテゴリ2〜4項目、1項目20〜40文字の短い要約。
+      system: `ニュース見出しを3カテゴリに分類し、JSON配列で出力してください。
+各カテゴリは文字列の配列(2〜4項目)。各項目は20〜40文字の短い要約。
 カテゴリ: domestic(国内), international(国外), economy(経済)
+例: {"domestic":["項目1","項目2"],"international":["項目1"],"economy":["項目1","項目2"]}
 出力はJSONのみ。`,
       prompt: `以下の見出しを要約してください:
 
@@ -104,6 +105,17 @@ ${newsText}`,
         for (let i = 0; i < Math.max(0, oc); i++) jsonStr += "}";
       }
       parsed = JSON.parse(jsonStr);
+      // If structuredOutputs wrapped items as {summary:"..."} objects, extract
+      // the string value.
+      for (const key of ["domestic", "international", "economy"] as const) {
+        if (Array.isArray(parsed[key])) {
+          parsed[key] = parsed[key].map((item: unknown) =>
+            typeof item === "object" && item !== null && "summary" in item
+              ? String((item as Record<string, unknown>).summary)
+              : String(item),
+          );
+        }
+      }
     } catch {
       return NextResponse.json(
         { ok: false, error: "Failed to parse AI response as JSON.", raw: text },
