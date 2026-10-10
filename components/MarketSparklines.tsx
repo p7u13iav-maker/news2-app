@@ -158,7 +158,7 @@ export default function MarketSparklines({
       <div
         key={m.key}
         className={`flex flex-col rounded-xl border border-white/5 bg-slate-900/40 ${
-          large ? "gap-3 p-6" : "gap-1 p-3"
+          large ? "min-h-0 flex-1 gap-3 p-6" : "gap-1 p-3"
         }`}
       >
         <div className="flex items-baseline justify-between">
@@ -185,12 +185,10 @@ export default function MarketSparklines({
           }`}
         >
           <div
-            className={`shrink-0 ${
-              large ? "h-24 w-48" : "h-8 w-20"
-            }`}
+            className={`shrink-0 ${large ? "h-20 w-44" : "h-8 w-20"}`}
           >
             {m.ok && pts.length >= 2 ? (
-              <Sparkline points={pts} up={up} height={large ? 96 : 30} />
+              <Sparkline points={pts} up={up} height={large ? 80 : 30} />
             ) : (
               <div className="flex h-full items-center justify-center text-[10px] text-white/30">
                 -
@@ -223,11 +221,11 @@ export default function MarketSparklines({
 
   return (
     <div
-      className={`rounded-2xl border border-white/10 bg-white/5 ${
+      className={`flex h-full min-h-0 flex-col rounded-2xl border border-white/10 bg-white/5 ${
         large ? "p-6" : "p-4"
       }`}
     >
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex shrink-0 items-center justify-between">
         <h2
           className={`flex items-center gap-2 font-bold tracking-tight ${
             large ? "text-2xl" : "text-base"
@@ -268,11 +266,13 @@ export default function MarketSparklines({
       )}
 
       {data && (
-        <div className={`grid grid-cols-3 ${large ? "gap-6" : "gap-3"}`}>
+        <div
+          className={`grid grid-cols-3 ${large ? "min-h-0 flex-1 gap-6" : "gap-3"}`}
+        >
           {groups.map((g) => (
             <div
               key={g.title}
-              className={`flex flex-col rounded-xl border border-white/5 bg-white/5 ${
+              className={`flex min-h-0 flex-col rounded-xl border border-white/5 bg-white/5 ${
                 large ? "gap-4 p-4" : "gap-2 p-2"
               }`}
             >
