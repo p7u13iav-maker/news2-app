@@ -394,9 +394,15 @@ export default function UnifiedSignage({
         </div>
       </main>
 
-      {/* Footer: slide dots + progress bar (same width). */}
-      <footer className="absolute inset-x-0 bottom-8 z-10 flex flex-col items-center gap-2">
-        {/* Dots row. */}
+      {/* Footer: slide dots + progress bar (same width).
+          Dots row is 12×0.5rem (inactive) + 1×2rem (active) + 12×0.5rem gaps
+          = 8rem + 3rem + 3rem = 14rem fixed width, so the progress bar
+          below it can use the exact same width without jittering. */}
+      <footer
+        className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 flex-col items-stretch gap-2"
+        style={{ width: "14rem" }}
+      >
+        {/* Dots row (fixed width). */}
         <div className="flex items-center gap-2">
           {slides.map((s, i) => (
             <span
@@ -414,10 +420,10 @@ export default function UnifiedSignage({
             />
           ))}
         </div>
-        {/* Progress bar — same width as the dots row. */}
-        <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+        {/* Progress bar — same fixed width as the dots row. */}
+        <div className="h-1 overflow-hidden rounded-full bg-white/10">
           <div
-            className="h-full bg-white/60 transition-none"
+            className="h-full bg-white/60"
             style={{ width: `${progress}%` }}
           />
         </div>
