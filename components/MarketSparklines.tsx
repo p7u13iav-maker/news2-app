@@ -157,8 +157,8 @@ export default function MarketSparklines({
     return (
       <div
         key={m.key}
-        className={`flex flex-col rounded-xl border border-white/5 bg-slate-900/40 ${
-          large ? "min-h-0 flex-1 gap-3 p-6" : "gap-1 p-3"
+        className={`flex flex-col justify-center rounded-xl border border-white/5 bg-slate-900/40 ${
+          large ? "min-h-0 flex-1 gap-2 p-4" : "gap-1 p-3"
         }`}
       >
         <div className="flex items-baseline justify-between">
@@ -180,15 +180,15 @@ export default function MarketSparklines({
           </span>
         </div>
         <div
-          className={`flex items-end justify-between ${
+          className={`flex flex-1 items-center justify-between ${
             large ? "gap-6" : "gap-2"
           }`}
         >
           <div
-            className={`shrink-0 ${large ? "h-20 w-44" : "h-8 w-20"}`}
+            className={`shrink-0 ${large ? "h-24 w-[55%]" : "h-8 w-20"}`}
           >
             {m.ok && pts.length >= 2 ? (
-              <Sparkline points={pts} up={up} height={large ? 80 : 30} />
+              <Sparkline points={pts} up={up} height={large ? 96 : 30} />
             ) : (
               <div className="flex h-full items-center justify-center text-[10px] text-white/30">
                 -
@@ -198,7 +198,7 @@ export default function MarketSparklines({
           <div className="text-right">
             <p
               className={`font-mono font-semibold tabular-nums leading-none text-white ${
-                large ? "text-4xl" : "text-lg"
+                large ? "text-3xl" : "text-lg"
               }`}
             >
               {last != null ? fmt(last, INTEGER_KEYS.has(m.key)) : "-"}
@@ -207,7 +207,7 @@ export default function MarketSparklines({
             {pts.length >= 2 && (
               <p
                 className={`text-white/40 ${
-                  large ? "mt-2 text-sm" : "text-[10px]"
+                  large ? "mt-1.5 text-xs" : "text-[10px]"
                 }`}
               >
                 {fmtDate(pts[0].t)}〜{fmtDate(pts[pts.length - 1].t)}
