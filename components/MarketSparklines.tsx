@@ -108,6 +108,68 @@ export default function MarketSparklines() {
 
   const markets = data?.markets ?? [];
 
+  // Group the 6 series into 3 columns (yields / US stocks / JP stocks),
+  // each column holding two cards stacked vertically.
+  const groups: { title: string; icon: string; keys: string[] }[] = [
+    { title: "金利", icon: "🇺🇸", keys: ["us10y", "us2y"] },
+    { title: "米国株", icon: "🇺🇸", keys: ["sp500", "nasdaq"] },
+    { title: "日本株", icon: "🇯🇵", keys: ["nikkei", "topix"] },
+  ];
+  const byKey: Record<string, MarketData> = {};
+  for (const m of markets) byKey[m.key] = m;
+
+  const renderCard = (m: MarketData) => {
+    const pts = m.points;
+    const first = pts[0]?.v;
+    const last = pts[pts.length - 1]?.v;
+    const diff = first && last ? last - first : 0;
+    const up = diff >= 0;
+    const sign = up ? "+" : "";
+    return (
+      <div
+        key={m.key}
+        className="flex flex-col gap-1 rounded-xl border border-white/5 bg-slate-900/40 p-3"
+      >
+        <div className="flex items-baseline justify-between">
+          <span className="text-xs font-medium text-white/60">
+            {m.label}
+          </span>
+          <span
+            className={`font-mono text-xs tabular-nums ${
+              up ? "text-emerald-400" : "text-red-400"
+            }`}
+          >
+            {sign}
+            {fmt(diff)}
+            {m.unit}
+          </span>
+        </div>
+        <div className="flex items-end justify-between gap-2">
+          <div className="h-8 w-20 shrink-0">
+            {m.ok && pts.length >= 2 ? (
+              <Sparkline points={pts} up={up} />
+            ) : (
+              <div className="flex h-full items-center justify-center text-[10px] text-white/30">
+                -
+              </div>
+            )}
+          </div>
+          <div className="text-right">
+            <p className="font-mono text-lg font-semibold tabular-nums leading-none text-white">
+              {last != null ? fmt(last) : "-"}
+              {m.unit}
+            </p>
+            {pts.length >= 2 && (
+              <p className="text-[10px] text-white/40">
+                {fmtDate(pts[0].t)}〜{fmtDate(pts[pts.length - 1].t)}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -135,58 +197,21 @@ export default function MarketSparklines() {
       )}
 
       {data && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {markets.map((m) => {
-            const pts = m.points;
-            const first = pts[0]?.v;
-            const last = pts[pts.length - 1]?.v;
-            const diff = first && last ? last - first : 0;
-            const up = diff >= 0;
-            const sign = up ? "+" : "";
-            return (
-              <div
-                key={m.key}
-                className="flex flex-col gap-1 rounded-xl border border-white/5 bg-slate-900/40 p-3"
-              >
-                <div className="flex items-baseline justify-between">
-                  <span className="text-xs font-medium text-white/60">
-                    {m.label}
-                  </span>
-                  <span
-                    className={`font-mono text-xs tabular-nums ${
-                      up ? "text-emerald-400" : "text-red-400"
-                    }`}
-                  >
-                    {sign}
-                    {fmt(diff)}
-                    {m.unit}
-                  </span>
-                </div>
-                <div className="flex items-end justify-between gap-2">
-                  <div className="h-8 w-20 shrink-0">
-                    {m.ok && pts.length >= 2 ? (
-                      <Sparkline points={pts} up={up} />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-[10px] text-white/30">
-                        -
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono text-lg font-semibold tabular-nums leading-none text-white">
-                      {last != null ? fmt(last) : "-"}
-                      {m.unit}
-                    </p>
-                    {pts.length >= 2 && (
-                      <p className="text-[10px] text-white/40">
-                        {fmtDate(pts[0].t)}〜{fmtDate(pts[pts.length - 1].t)}
-                      </p>
-                    )}
-                  </div>
-                </div>
+        <div className="grid grid-cols-3 gap-3">
+          {groups.map((g) => (
+            <div
+              key={g.title}
+              className="flex flex-col gap-2 rounded-xl border border-white/5 bg-white/5 p-2"
+            >
+              <div className="flex items-center gap-1.5 px-1 pt-0.5">
+                <span className="text-xs">{g.icon}</span>
+                <span className="text-xs font-semibold tracking-wide text-white/70">
+                  {g.title}
+                </span>
               </div>
-            );
-          })}
+              {g.keys.map((k) => (byKey[k] ? renderCard(byKey[k]) : null))}
+            </div>
+          ))}
         </div>
       )}
     </div>
