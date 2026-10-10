@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { buildMarketComment } from "@/lib/marketComment";
 
 interface Point {
@@ -57,6 +57,18 @@ function Sparkline({
   const H = height;
   const PAD = 2;
   const d = buildPath(points, W, H, PAD);
+  const lineRef = useRef<SVGPathElement>(null);
+  const [dashLen, setDashLen] = useState(0);
+
+  // Measure the actual path length after mount so the dash
+  // animation covers the full line with no gaps.
+  useEffect(() => {
+    if (lineRef.current) {
+      const len = lineRef.current.getTotalLength();
+      if (len > 0) setDashLen(len);
+    }
+  }, [d]);
+
   if (!d) return null;
   const stroke = up ? "#34d399" : "#f87171";
   const fill = up ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)";
@@ -66,10 +78,8 @@ function Sparkline({
   const range = max - min || 1;
   const lastV = lastVals[lastVals.length - 1];
   const lastY = H - PAD - ((H - 2 * PAD) * (lastV - min)) / range;
-  // Fill area (path from line down to bottom)
   const fillD = `${d} L${W - PAD},${H} L${PAD},${H} Z`;
-  // Approximate line length for dash animation (in viewBox units)
-  const lineLen = Math.sqrt((W - 2 * PAD) ** 2 + (H - 2 * PAD) ** 2) + 20;
+  const ready = dashLen > 0;
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
@@ -86,18 +96,22 @@ function Sparkline({
       />
       {/* Line draws from left to right */}
       <path
+        ref={lineRef}
         d={d}
         fill="none"
         stroke={stroke}
         strokeWidth={1.5}
         vectorEffect="non-scaling-stroke"
         strokeLinecap="round"
-        style={{
-          strokeDasharray: lineLen,
-          strokeDashoffset: lineLen,
-          "--dash": lineLen,
-          animation: "sparkline-draw 1s ease-out forwards",
-        } as React.CSSProperties}
+        style={
+          ready
+            ? {
+                strokeDasharray: dashLen,
+                strokeDashoffset: dashLen,
+                animation: "sparkline-draw 1s ease-out forwards",
+              }
+            : { opacity: 0 }
+        }
       />
       {/* Dot appears at end */}
       <circle

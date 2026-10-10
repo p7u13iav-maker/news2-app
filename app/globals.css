@@ -87,9 +87,6 @@ body {
 /* --- Sparkline draw animation --- */
 
 @keyframes sparkline-draw {
-  from {
-    stroke-dashoffset: var(--dash, 200);
-  }
   to {
     stroke-dashoffset: 0;
   }
