@@ -49,8 +49,10 @@ export async function POST() {
     // schema to force structured JSON output, which is the most reliable way
     // to get valid JSON from any model (including thinking models that ignore
     // plain-text "output JSON only" instructions).
-    // The `output` option forces the model to return valid JSON matching the
-    // schema. The `text` field will contain the JSON string.
+    // Ask the AI to categorize and summarize. We use Output.object with a Zod
+    // schema to force structured JSON output. We also disable thinking
+    // (thinkingBudget: 0) since structured output requires the model to
+    // produce direct JSON rather than reasoning first.
     const { text } = await generateText({
       model: getGemini(),
       output: Output.object({ schema: summarySchema }),
@@ -61,6 +63,13 @@ export async function POST() {
 ${newsText}`,
       temperature: 0.2,
       maxOutputTokens: 600,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingBudget: 0,
+          },
+        },
+      },
     });
 
     // Parse the JSON (Output.object guarantees valid JSON in `text`).
