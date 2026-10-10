@@ -84,6 +84,37 @@ body {
   animation-delay: 0.2s;
 }
 
+/* --- Sparkline draw animation --- */
+
+@keyframes sparkline-draw {
+  from {
+    stroke-dashoffset: var(--dash, 200);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes sparkline-fill {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sparkline-dot {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Respect reduced-motion preferences (accessibility). */
 @media (prefers-reduced-motion: reduce) {
   .slide-enter,
@@ -91,5 +122,10 @@ body {
   .slide-desc,
   .slide-img {
     animation: none;
+  }
+  svg path,
+  svg circle {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
   }
 }

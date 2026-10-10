@@ -66,15 +66,48 @@ function Sparkline({
   const range = max - min || 1;
   const lastV = lastVals[lastVals.length - 1];
   const lastY = H - PAD - ((H - 2 * PAD) * (lastV - min)) / range;
+  // Fill area (path from line down to bottom)
+  const fillD = `${d} L${W - PAD},${H} L${PAD},${H} Z`;
+  // Approximate line length for dash animation (in viewBox units)
+  const lineLen = Math.sqrt((W - 2 * PAD) ** 2 + (H - 2 * PAD) ** 2) + 20;
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
       className="h-full w-full"
+      style={{ overflow: "visible" }}
     >
-      <path d={`${d} L${W - PAD},${H} L${PAD},${H} Z`} fill={fill} stroke="none" />
-      <path d={d} fill="none" stroke={stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-      <circle cx={W - PAD} cy={lastY} r={2} fill={stroke} />
+      {/* Fill fades in */}
+      <path
+        d={fillD}
+        fill={fill}
+        stroke="none"
+        className="animate-[sparkline-fill_1s_ease-out_0.1s_both]"
+      />
+      {/* Line draws from left to right */}
+      <path
+        d={d}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={1.5}
+        vectorEffect="non-scaling-stroke"
+        strokeLinecap="round"
+        style={{
+          strokeDasharray: lineLen,
+          strokeDashoffset: lineLen,
+          "--dash": lineLen,
+          animation: "sparkline-draw 1s ease-out forwards",
+        } as React.CSSProperties}
+      />
+      {/* Dot appears at end */}
+      <circle
+        cx={W - PAD}
+        cy={lastY}
+        r={2}
+        fill={stroke}
+        className="animate-[sparkline-dot_0.3s_ease-out_0.9s_both]"
+        style={{ transformOrigin: `${W - PAD}px ${lastY}px` }}
+      />
     </svg>
   );
 }
