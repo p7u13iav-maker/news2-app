@@ -207,7 +207,7 @@ export default function MarketSparklines({
               }`}
             >
               {last != null ? fmt(last, INTEGER_KEYS.has(m.key)) : "-"}
-              {m.unit || (m.key === "nikkei" ? "円" : "")}
+              {m.unit || (m.key === "nikkei" || m.key === "jfe" ? "円" : "")}
             </p>
             {pts.length >= 2 && (
               <p
