@@ -75,7 +75,8 @@ export async function POST() {
 ${newsText}`,
       temperature: 0.2,
       maxOutputTokens: 600,
-      maxRetries: 3,
+      maxRetries: 1,
+      timeout: 60_000, // 60s timeout per attempt (Vercel function limit is 100s)
       providerOptions: {
         google: {
           thinkingConfig: {
