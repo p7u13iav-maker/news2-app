@@ -16,11 +16,9 @@ import { NEWS_TAG } from "@/lib/news";
 export async function GET() {
   const started = Date.now();
   try {
-    const [japan, world] = await Promise.all([
-      fetchHeadlines("japan"),
-      fetchHeadlines("world"),
-    ]);
-    const count = mergeArticles([japan, world]).length;
+    // 日本(jp)のニュースのみに限定
+    const japan = await fetchHeadlines("japan");
+    const count = mergeArticles([japan]).length;
     revalidateTag(NEWS_TAG, "max");
     return NextResponse.json({
       ok: true,

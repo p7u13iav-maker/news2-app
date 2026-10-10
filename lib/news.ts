@@ -32,11 +32,9 @@ export async function getMorningNews(): Promise<Article[]> {
   if (!hasKey) return [];
 
   try {
-    const [japan, world] = await Promise.all([
-      fetchHeadlines("japan"),
-      fetchHeadlines("world"),
-    ]);
-    return mergeArticles([japan, world]);
+    // 日本(jp)のニュースのみに限定
+    const japan = await fetchHeadlines("japan");
+    return mergeArticles([japan]);
   } catch {
     // On any upstream failure, return whatever the last successful fetch
     // cached. If there is nothing cached, an empty list is returned and the

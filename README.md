@@ -1,13 +1,13 @@
 # 毎朝ニュース (Morning News)
 
-毎朝、日本と世界のニュースを **NewsAPI** から取得して表示する Next.js ページ。
+毎朝、日本のニュースを **NewsAPI** から取得して表示する Next.js ページ。
 **Vercel** にデプロイし、**GitHub** をソースとしてプッシュで自動デプロイする。
 毎朝 **Vercel Cron** でニュースをリフレッシュする。
 
 ## 特徴
 
 - **Next.js 16 (App Router) + Tailwind CSS 4**
-- **NewsAPI** で日本 (`jp`) と世界 (`us`) のトップニュースを取得
+- **NewsAPI** で日本 (`jp`) のトップニュースを取得
 - **Vercel Cron** が毎日朝 6:00 (JST/UTC) に `/api/cron` を叩き、`revalidateTag` でページを強制更新
 - `use cache` + `cacheLife('minutes')` で 1 分ごとに自動再検証(レート制限に配慮)
 - GitHub にプッシュ → Vercel が自動デプロイ

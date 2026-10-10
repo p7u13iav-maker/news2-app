@@ -12,9 +12,12 @@ export const TOP_HEADLINES = 8;
 const BASE = "https://newsapi.org/v2";
 
 /**
- * Fetch top headlines (and optionally business / tech / science) for the
- * given source. NewsAPI key is read from the NEWSAPI_KEY env var, which on
- * Vercel is set as a project-level environment variable.
+ * Fetch top headlines for the given country. NewsAPI key is read from the
+ * NEWSAPI_KEY env var, which on Vercel is set as a project-level environment
+ * variable.
+ *
+ * The page currently only fetches "japan" (country: jp). The signature stays
+ * country-based so adding more countries later is a one-line change.
  */
 export async function fetchHeadlines(
   source: "japan" | "world",
@@ -32,10 +35,6 @@ export async function fetchHeadlines(
     pageSize: "20",
     apiKey: key,
   });
-  if (source === "world") {
-    // Add a couple of categories for a richer morning briefing.
-    params.set("category", "general");
-  }
 
   const res = await fetch(`${BASE}/top-headlines?${params.toString()}`, {
     headers: { accept: "application/json" },
