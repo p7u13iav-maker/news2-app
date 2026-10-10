@@ -92,22 +92,31 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
   const max = Math.max(...temps);
   const range = max - min || 1;
 
-  const step = hourly.length > 1 ? (W - PAD * 2) / (hourly.length - 1) : 0;
+  // Axis padding: room for Y-labels (left) and X-labels (bottom).
+  const L = 60; // left padding for Y-axis labels
+  const B = 40; // bottom padding for X-axis labels
+  const plotW = W - L - 20;
+  const plotH = H - B - 20;
+
+  const step = hourly.length > 1 ? plotW / (hourly.length - 1) : 0;
   const points = hourly.map((h, i) => {
-    const x = PAD + i * step;
-    const y = H - PAD - ((h.temperature - min) / range) * (H - PAD * 2);
+    const x = L + i * step;
+    const y = 10 + plotH - ((h.temperature - min) / range) * plotH;
     return { x, y, h };
   });
 
   const line = points.map((p) => `${p.x},${p.y}`).join(" ");
-  const area = `${PAD},${H} ${line} ${W - PAD},${H}`;
+  const area = `${L},${10 + plotH} ${line} ${L + plotW},${10 + plotH}`;
 
-  // Y-axis: 3 tick labels (max / mid / min) for the temperature scale.
+  // Y-axis: 3 tick labels (max / mid / min).
   const yTicks = [
-    { v: max, y: PAD },
-    { v: (max + min) / 2, y: H / 2 },
-    { v: min, y: H - PAD },
+    { v: max, y: 10 },
+    { v: (max + min) / 2, y: 10 + plotH / 2 },
+    { v: min, y: 10 + plotH },
   ];
+
+  // X-axis: hour labels every 3 hours (0,3,6,9,12,15,18,21).
+  const xTicks = points.filter((_, i) => i % 3 === 0);
 
   return (
     <svg
@@ -122,29 +131,46 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
         </linearGradient>
       </defs>
 
-      {/* Gridlines + scale labels. */}
+      {/* Y-axis gridlines + scale labels. */}
       {yTicks.map((t, i) => (
         <g key={i}>
           <line
-            x1="0"
+            x1={L}
             y1={t.y}
-            x2={W}
+            x2={L + plotW}
             y2={t.y}
-            stroke="rgba(255,255,255,0.08)"
+            stroke="rgba(255,255,255,0.1)"
             strokeWidth="1"
           />
           <text
-            x="6"
-            y={t.y - 6}
-            fill="rgba(255,255,255,0.5)"
-            fontSize="14"
+            x={L - 8}
+            y={t.y + 4}
+            fill="rgba(255,255,255,0.6)"
+            fontSize="16"
             fontFamily="monospace"
+            textAnchor="end"
           >
             {Math.round(t.v)}°
           </text>
         </g>
       ))}
 
+      {/* X-axis hour labels. */}
+      {xTicks.map((p, i) => (
+        <text
+          key={i}
+          x={p.x}
+          y={10 + plotH + 28}
+          fill="rgba(255,255,255,0.5)"
+          fontSize="14"
+          fontFamily="monospace"
+          textAnchor="middle"
+        >
+          {fmtHour(p.h.time)}時
+        </text>
+      ))}
+
+      {/* Area + line. */}
       <polygon points={area} fill="url(#tempGrad)" />
       <polyline
         points={line}
@@ -154,6 +180,23 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
         strokeLinejoin="round"
         strokeLinecap="round"
       />
+
+      {/* Weather text labels every 3 hours (above the line). */}
+      {xTicks.map((p, i) => (
+        <text
+          key={i}
+          x={p.x}
+          y={p.y - 14}
+          fill="rgba(255,255,255,0.75)"
+          fontSize="15"
+          fontFamily="sans-serif"
+          textAnchor="middle"
+        >
+          {p.h.label}
+        </text>
+      ))}
+
+      {/* Dots. */}
       {points.map((p, i) => (
         <circle
           key={i}
@@ -161,41 +204,10 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
           cy={p.y}
           r="3"
           fill="#fbbf24"
-          opacity={i % 3 === 0 ? 1 : 0}
+          opacity={i % 3 === 0 ? 1 : 0.4}
         />
       ))}
     </svg>
-  );
-}
-
-/** One hourly cell: emoji + temp. */
-function HourlyRow({ hourly }: { hourly: WeatherHourly[] }) {
-  // Show hours in 2h steps from now to keep it readable.
-  const nowHour = new Date().getHours();
-  const filtered = hourly.filter((h) => {
-    const hr = new Date(h.time).getHours();
-    return hr >= nowHour && hr <= nowHour + 14 && hr % 2 === 0;
-  });
-  const items = filtered.length >= 6 ? filtered : hourly.slice(0, 12);
-
-  return (
-    <div className="grid grid-cols-8 gap-2">
-      {items.map((h, i) => (
-        <div
-          key={i}
-          className="flex flex-col items-center gap-1 rounded-lg bg-white/5 py-2"
-        >
-          <span className="text-xs text-white/50">{fmtHour(h.time)}時</span>
-          <span className="text-2xl">{h.emoji}</span>
-          <span className="font-mono text-sm font-semibold tabular-nums">
-            {Math.round(h.temperature)}°C
-          </span>
-          <span className="text-[10px] text-sky-300/70">
-            {h.precipitationProbability}%
-          </span>
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -384,12 +396,9 @@ export default function WeatherPage() {
               </div>
             </div>
 
-            {/* Bottom: hourly chart + hourly row. */}
-            <div className="flex h-[38%] min-h-0 flex-col gap-2">
-              <div className="flex min-h-0 flex-1 items-center">
-                <HourlyChart hourly={data.hourly} />
-              </div>
-              <HourlyRow hourly={data.hourly} />
+            {/* Bottom: hourly temperature chart (full width, no scroll). */}
+            <div className="flex min-h-0 flex-1 items-center">
+              <HourlyChart hourly={data.hourly} />
             </div>
           </>
         )}
