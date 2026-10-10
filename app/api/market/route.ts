@@ -78,7 +78,31 @@ async function fetchSeries(symbol: string): Promise<Point[] | null> {
   }
 }
 
+// In-memory daily cache: market data is fetched once per day (at 6:30 via
+// cron or on first request), then served from cache for the rest of the day.
+// This keeps the update cycle consistent with news/summary/horoscope.
+const marketCache = new Map<
+  string,
+  { ts: number; data: { ok: boolean; fetchedAt: number; markets: unknown[] } }
+>();
+const DAILY_CACHE_MS = 24 * 60 * 60 * 1000;
+
+function todayKey(): string {
+  return new Date().toLocaleDateString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+}
+
 export async function GET() {
+  const cacheKey = "market-" + todayKey();
+  const cached = marketCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < DAILY_CACHE_MS) {
+    return NextResponse.json(cached.data);
+  }
+
   const results = await Promise.all(
     MARKET.map(async (item) => {
       const points = await fetchSeries(item.symbol);
@@ -93,9 +117,7 @@ export async function GET() {
     }),
   );
 
-  return NextResponse.json({
-    ok: true,
-    fetchedAt: Date.now(),
-    markets: results,
-  });
+  const data = { ok: true, fetchedAt: Date.now(), markets: results };
+  marketCache.set(cacheKey, { ts: Date.now(), data });
+  return NextResponse.json(data);
 }

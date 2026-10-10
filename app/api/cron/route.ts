@@ -9,10 +9,12 @@ import { fetchAllHoroscopes, todayKey } from "@/lib/zodiac";
  *
  *  1. Forces a fresh fetch of the RSS feeds (NHK + Nikkei + BBC + Guardian).
  *  2. Calls revalidateTag("news") so the next page request re-renders.
- *  3. Warms the horoscope cache by fetching all 12 signs (validates the API).
+ *  3. Warms the horoscope raw-data path (fetches all 12 signs).
+ *  4. Warms the market data path (fetches all 6 Yahoo Finance series).
  *
- * The actual Gemini translation happens lazily on first page load of
- * /summary or /horoscope for the day (the cron just warms the raw data).
+ * The Gemini translations (summary/horoscope) happen lazily on first page
+ * load of the day. Market data is cached in-memory for 24h per instance,
+ * so the first page load after 6:30 triggers a fresh Yahoo fetch.
  */
 export async function GET() {
   const started = Date.now();
@@ -29,11 +31,30 @@ export async function GET() {
       // Non-fatal: horoscope will still work on demand.
     }
 
+    // Warm the market data path (fetches all 6 series from Yahoo Finance).
+    let marketOk = false;
+    try {
+      const res = await fetch(
+        "https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?range=1d&interval=1d",
+        {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          },
+          signal: AbortSignal.timeout(10_000),
+        },
+      );
+      marketOk = res.ok;
+    } catch {
+      // Non-fatal: market data will still work on demand.
+    }
+
     return NextResponse.json({
       ok: true,
       count,
       date: todayKey(),
       horoscopeOk,
+      marketOk,
       ms: Date.now() - started,
     });
   } catch (e) {

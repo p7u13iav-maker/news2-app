@@ -1,20 +1,18 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import MarketSparklines from "@/components/MarketSparklines";
 
 /**
  * Dedicated market-data signage page.
  *
  * Shows the 3-month sparklines (yields / US stocks / JP stocks) full-screen
- * with a large layout, a live clock, and auto-refresh every 60s. No AI
- * summarization involved, so it works even while Gemini is rate-limited.
+ * with a large layout and a live clock. Data is refreshed once daily at 6:30
+ * via the cron (same as news/summary/horoscope). No AI involved, so it works
+ * even while Gemini is rate-limited.
  */
-const REFRESH_MS = 60_000;
-
 export default function MarketPage() {
   const [clock, setClock] = useState<Date | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   // Live clock.
   useEffect(() => {
@@ -22,14 +20,6 @@ export default function MarketPage() {
     const id = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-
-  // Auto-refresh market data every 60s.
-  useEffect(() => {
-    const id = setInterval(() => setRefreshKey((k) => k + 1), REFRESH_MS);
-    return () => clearInterval(id);
-  }, []);
-
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-slate-950 text-white">
@@ -55,39 +45,31 @@ export default function MarketPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          {clock && (
-            <div className="text-right">
-              <p className="font-mono text-3xl font-light tabular-nums">
-                {clock.toLocaleTimeString("ja-JP", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                })}
-              </p>
-              <p className="text-xs text-white/50">
-                {clock.toLocaleDateString("ja-JP", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  weekday: "long",
-                })}
-              </p>
-            </div>
-          )}
-          <button
-            onClick={refresh}
-            className="rounded-full bg-white/10 px-5 py-2 text-sm font-semibold backdrop-blur transition hover:bg-white/20"
-          >
-            更新
-          </button>
-        </div>
+        {clock && (
+          <div className="text-right">
+            <p className="font-mono text-3xl font-light tabular-nums">
+              {clock.toLocaleTimeString("ja-JP", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })}
+            </p>
+            <p className="text-xs text-white/50">
+              {clock.toLocaleDateString("ja-JP", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                weekday: "long",
+              })}
+            </p>
+          </div>
+        )}
       </header>
 
       {/* Market data, full screen, no scroll. */}
       <main className="relative z-10 flex min-h-0 flex-1 items-stretch p-8">
         <div className="w-full">
-          <MarketSparklines key={refreshKey} size="large" />
+          <MarketSparklines size="large" />
         </div>
       </main>
 
@@ -101,7 +83,7 @@ export default function MarketPage() {
         </a>
         <div className="flex items-center gap-4">
           <span className="text-xs text-white/30">
-            60秒ごとに自動更新 · 出典: Yahoo Finance
+            毎朝 6:30 に更新 · 出典: Yahoo Finance
           </span>
           <a
             href="/horoscope"
