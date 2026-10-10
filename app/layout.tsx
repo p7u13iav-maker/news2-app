@@ -1,4 +1,3 @@
-import Image from "next/image";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -14,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "毎朝ニュース | Morning News",
+  title: "毎朝ニュース | サイネージ",
   description:
-    "日本の朝のニュース(日経新聞・日経ビジネスの RSS)を、毎朝の Cron で自動更新して表示するページ。",
+    "日本の朝のニュース(日経新聞・日経ビジネスの RSS)を、最新10件を10秒間隔のスライドショーで表示するデジタルサイネージ。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -25,7 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900">
+      <body className="h-dvh overflow-hidden bg-zinc-950 text-white">
         {children}
       </body>
     </html>
