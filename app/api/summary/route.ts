@@ -71,12 +71,15 @@ export async function POST() {
 
 ${newsText}`,
       temperature: 0.2,
-      maxOutputTokens: 1200,
+      // Keep output short so the request finishes well within Vercel's 100s
+      // timeout. 3 categories x ~5 items x ~30 chars is well under 400 tokens.
+      maxOutputTokens: 400,
     });
 
     // Extract the JSON object from the AI's response. The model may wrap it
     // in markdown code fences or prepend text, so we find the first balanced
-    // { ... } block.
+    // { ... } block. If the JSON is truncated (no closing brace), we attempt
+    // to repair it by closing any open brackets/braces.
     let parsed: { domestic: string[]; international: string[]; economy: string[] };
     try {
       const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
@@ -91,8 +94,32 @@ ${newsText}`,
           if (depth === 0) { end = i; break; }
         }
       }
-      if (end === -1) throw new Error("Unbalanced JSON braces");
-      parsed = JSON.parse(cleaned.slice(start, end + 1));
+      let jsonStr: string;
+      if (end !== -1) {
+        jsonStr = cleaned.slice(start, end + 1);
+      } else {
+        // Truncated: close any open brackets and braces.
+        jsonStr = cleaned.slice(start);
+        // Remove any trailing incomplete string (unterminated ").
+        const quoteCount = (jsonStr.match(/"/g) || []).length;
+        if (quoteCount % 2 === 1) {
+          // Find the last complete string and cut after it.
+          const lastComplete = jsonStr.lastIndexOf('",');
+          if (lastComplete > 0) jsonStr = jsonStr.slice(0, lastComplete + 1);
+          else {
+            const lastBrace = jsonStr.lastIndexOf('"');
+            if (lastBrace > 0) jsonStr = jsonStr.slice(0, lastBrace);
+          }
+        }
+        // Count open [ and { and close them.
+        const openBrackets = (jsonStr.match(/\[/g) || []).length - (jsonStr.match(/\]/g) || []).length;
+        const openBraces = (jsonStr.match(/\{/g) || []).length - (jsonStr.match(/\}/g) || []).length;
+        // Remove trailing comma if present.
+        jsonStr = jsonStr.replace(/,\s*$/, "");
+        for (let i = 0; i < Math.max(0, openBrackets); i++) jsonStr += "]";
+        for (let i = 0; i < Math.max(0, openBraces); i++) jsonStr += "}";
+      }
+      parsed = JSON.parse(jsonStr);
     } catch {
       return NextResponse.json(
         { ok: false, error: "Failed to parse AI response as JSON.", raw: text },
