@@ -10,16 +10,37 @@ interface HoroscopeData {
   error?: string;
 }
 
+const SLIDE_MS = 10_000;
+
+/** Split 12 signs into 3 groups of 4. */
+const GROUPS = [
+  ZODIAC_SIGNS.slice(0, 4), // Aries - Cancer
+  ZODIAC_SIGNS.slice(4, 8), // Leo - Scorpio
+  ZODIAC_SIGNS.slice(8, 12), // Sagittarius - Pisces
+];
+
+const GROUP_LABELS = ["前半 (牡羊〜蟹)", "中盤 (獅子〜蠍)", "後半 (射手〜魚)"];
+
 export default function HoroscopePage() {
   const [data, setData] = useState<HoroscopeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clock, setClock] = useState<Date | null>(null);
+  const [slide, setSlide] = useState(0);
 
   // Live clock.
   useEffect(() => {
     setClock(new Date());
     const id = setInterval(() => setClock(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Auto-advance slide every 10s (3 pages = 30s full cycle).
+  useEffect(() => {
+    const id = setInterval(
+      () => setSlide((s) => (s + 1) % GROUPS.length),
+      SLIDE_MS,
+    );
     return () => clearInterval(id);
   }, []);
 
@@ -51,6 +72,7 @@ export default function HoroscopePage() {
   }, [fetchHoroscope]);
 
   const hoscopes = data?.horoscopes;
+  const currentGroup = GROUPS[slide];
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-slate-950 text-white">
@@ -64,77 +86,100 @@ export default function HoroscopePage() {
       />
 
       {/* Header. */}
-      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 px-10 py-3">
+      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 px-10 py-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xl">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-2xl">
             ✨
           </span>
           <div>
-            <p className="text-xl font-bold tracking-tight">
+            <p className="text-2xl font-bold tracking-tight">
               12星座占い
             </p>
-            <p className="text-xs text-white/50">
+            <p className="text-sm text-white/50">
               今日の運勢 · AI翻訳 · {data?.date ?? ""}
             </p>
           </div>
         </div>
-        {clock && (
-          <div className="text-right">
-            <p className="font-mono text-3xl font-light tabular-nums">
-              {clock.toLocaleTimeString("ja-JP", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-              })}
-            </p>
-            <p className="text-xs text-white/50">
-              {clock.toLocaleDateString("ja-JP", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                weekday: "long",
-              })}
-            </p>
+        <div className="flex items-center gap-4">
+          {/* Slide indicator (3 dots). */}
+          <div className="flex items-center gap-1.5">
+            {GROUPS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setSlide(i)}
+                aria-label={"page " + (i + 1)}
+                className={`h-2.5 w-2.5 rounded-full transition ${
+                  slide === i ? "bg-white/80" : "bg-white/20"
+                }`}
+              />
+            ))}
           </div>
-        )}
+          {clock && (
+            <div className="text-right">
+              <p className="font-mono text-3xl font-light tabular-nums">
+                {clock.toLocaleTimeString("ja-JP", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                })}
+              </p>
+              <p className="text-xs text-white/50">
+                {clock.toLocaleDateString("ja-JP", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  weekday: "long",
+                })}
+              </p>
+            </div>
+          )}
+        </div>
       </header>
 
-      {/* Main: 2 cols × 6 rows grid. */}
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col px-6 py-3">
+      {/* Main: 2×2 grid for current group (4 signs). */}
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col p-6">
+        {/* Group label. */}
+        {hoscopes && !loading && (
+          <p className="mb-3 text-center text-sm text-white/40">
+            {GROUP_LABELS[slide]} · {slide + 1}/3
+          </p>
+        )}
+
         {/* Error state. */}
         {error && (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-sm text-white/40">{error}</p>
+            <p className="text-white/40">{error}</p>
           </div>
         )}
 
         {/* Loading state. */}
         {loading && !error && (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-sm text-white/40">占いを読み込み中…</p>
+            <p className="text-white/40">占いを読み込み中…</p>
           </div>
         )}
 
-        {/* 12-sign grid: 2 cols × 6 rows. */}
+        {/* 2×2 grid for 4 signs. */}
         {hoscopes && !loading && (
-          <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-6 gap-2">
-            {ZODIAC_SIGNS.map((s) => (
+          <div
+            key={slide}
+            className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-4"
+          >
+            {currentGroup.map((s) => (
               <div
                 key={s.key}
-                className="flex min-h-0 flex-col rounded-lg border border-white/10 bg-white/5 px-4 py-2"
+                className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-white/5 p-5"
               >
-                {/* Sign header: symbol + name + date range. */}
-                <div className="mb-1 flex items-baseline gap-2">
-                  <span className="text-lg leading-none">{s.symbol}</span>
-                  <span className="text-sm font-bold leading-tight">
-                    {s.ja}
-                  </span>
-                  <span className="ml-auto text-[10px] text-white/40">
-                    {s.dateRange}
-                  </span>
+                {/* Sign header. */}
+                <div className="mb-2 flex items-center gap-3">
+                  <span className="text-3xl leading-none">{s.symbol}</span>
+                  <div>
+                    <p className="text-xl font-bold leading-tight">{s.ja}</p>
+                    <p className="text-xs text-white/40">{s.dateRange}</p>
+                  </div>
                 </div>
-                {/* Horoscope text (no scroll, truncates if overflow). */}
-                <p className="min-h-0 flex-1 overflow-hidden text-xs leading-snug text-white/80">
+                {/* Horoscope text (no scroll, fills remaining space). */}
+                <p className="min-h-0 flex-1 overflow-hidden text-sm leading-relaxed text-white/80">
                   {hoscopes[s.key]}
                 </p>
               </div>
@@ -144,7 +189,7 @@ export default function HoroscopePage() {
       </main>
 
       {/* Footer: navigation. */}
-      <footer className="relative z-10 flex shrink-0 items-center justify-between border-t border-white/10 px-10 py-2">
+      <footer className="relative z-10 flex shrink-0 items-center justify-between border-t border-white/10 px-10 py-3">
         <a
           href="/"
           className="text-sm text-white/40 transition hover:text-white/70"

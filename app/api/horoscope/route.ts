@@ -68,21 +68,22 @@ export async function POST(req: Request) {
     });
 
     // Step 2: Translate + summarize to Japanese via Gemini (single call).
-    // Keep each sign to 2 short sentences (~40-60 chars) so all 12 fit on one
-    // screen without scrolling.
+    // Each sign gets 3-4 sentences (~100-150 chars) — shown 4 signs per page
+    // in a 2x2 grid, so there's room for a fuller reading.
     const { text } = await generateText({
       model: getGemini(),
       system: `あなたは星座占い翻訳者です。12星座の今日の占いを日本語に翻訳・要約してください。
 出力はJSONのみ。各星座のキーに対応する日本語の文字列を値に持つオブジェクトを出力。
-例: {"aries":"今日の短い占い","taurus":"..."}
-※ 各星座は**2文以内・60文字以内**の短い要約にしてください。
+例: {"aries":"今日の占い","taurus":"..."}
+※ 各星座は**3〜4文・150文字以内**の要約にしてください。
+※ 仕事・恋愛・健康など、バランスよく触れてください。
 ※ 自然な日本語で、占いの雰囲気を保ってください。
 ※ 出力はJSONオブジェクトのみ。それ以外のテキストは含めないでください。`,
-      prompt: `以下の12星座の今日の占いを、各60文字以内の日本語要約にしてください:
+      prompt: `以下の12星座の今日の占いを、各150文字以内の日本語要約にしてください:
 
 ${lines.join("\n")}`,
       temperature: 0.3,
-      maxOutputTokens: 1200,
+      maxOutputTokens: 2000,
       maxRetries: 1,
       timeout: 60_000,
       providerOptions: {
