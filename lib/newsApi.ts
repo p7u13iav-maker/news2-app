@@ -145,17 +145,75 @@ async function fetchFeed(feed: {
 }
 
 /**
- * Fetch all configured RSS feeds in parallel. A failing feed is skipped so a
- * single broken source never takes down the whole page.
+ * Fetch the lead paragraph (body text) for an article by reading the
+ * <meta name="description"> from the article's HTML page. Nikkei articles
+ * expose the lead text here, which makes for a good signage preview.
+ *
+ * Returns null if the article can't be fetched or has no description.
+ */
+async function fetchArticleBody(url: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        accept: "text/html",
+      },
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    // Prefer og:description, then meta description.
+    const og = html.match(
+      /<meta[^>]+property="og:description"[^>]+content="([^"]+)"/,
+    );
+    const meta = html.match(
+      /<meta[^>]+name="description"[^>]+content="([^"]+)"/,
+    );
+    const raw = og?.[1] ?? meta?.[1] ?? null;
+    if (!raw) return null;
+    // Decode entities and cap the length for the signage display.
+    const plain = decodeEntities(raw).replace(/\s+/g, " ").trim();
+    return plain.length > 0 ? plain.slice(0, 240) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Fetch all configured RSS feeds in parallel, then enrich each article with
+ * its lead paragraph (body preview) by fetching the article page.
+ *
+ * A failing feed is skipped so a single broken source never takes down the
+ * whole page. Body fetches are best-effort: if one fails, the article is
+ * kept without a description.
  */
 export async function fetchHeadlines(): Promise<Article[]> {
-  const results = await Promise.allSettled(
-    FEEDS.map((f) => fetchFeed(f)),
-  );
+  const results = await Promise.allSettled(FEEDS.map((f) => fetchFeed(f)));
   const lists = results
-    .filter((r): r is PromiseFulfilledResult<Article[]> => r.status === "fulfilled")
+    .filter(
+      (r): r is PromiseFulfilledResult<Article[]> => r.status === "fulfilled",
+    )
     .map((r) => r.value);
-  return mergeArticles(lists);
+  const merged = mergeArticles(lists);
+
+  // Enrich with body text. Only fetch for the top items we will actually show,
+  // to limit outbound requests. All body fetches run in parallel.
+  const BODY_FETCH_LIMIT = 12;
+  const toEnrich = merged.slice(0, BODY_FETCH_LIMIT);
+  await Promise.all(
+    toEnrich.map(async (a) => {
+      if (a.description) return; // RSS already provided one.
+      const body = await fetchArticleBody(a.url);
+      if (body) a.description = body;
+    }),
+  );
+  return merged;
 }
 
 /**

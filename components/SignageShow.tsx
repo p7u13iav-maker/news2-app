@@ -159,15 +159,21 @@ export default function SignageShow({
           </div>
 
           {/* Headline (very large). */}
-          <h1 className="slide-title mb-8 text-6xl font-bold leading-tight tracking-tight md:text-7xl">
+          <h1 className="slide-title mb-10 text-6xl font-bold leading-tight tracking-tight md:text-7xl">
             {current.title}
           </h1>
 
-          {/* Description. */}
+          {/* Body / lead text. */}
           {current.description && (
-            <p className="slide-desc max-w-5xl text-3xl leading-relaxed text-white/70">
-              {current.description}
-            </p>
+            <div className="slide-desc relative max-w-6xl pl-8">
+              <span
+                aria-hidden
+                className="absolute left-0 top-1 h-[95%] w-1.5 rounded-full bg-gradient-to-b from-white/70 to-white/10"
+              />
+              <p className="text-3xl leading-relaxed text-white/80 md:text-4xl">
+                {current.description}
+              </p>
+            </div>
           )}
         </div>
       </main>
