@@ -1,13 +1,13 @@
 # 毎朝ニュース (Morning News)
 
-毎朝、日本のニュースを **NHK** と **GIGAZINE** の RSS から取得して表示する Next.js ページ。
+毎朝、日本のニュースを **日経新聞** と **日経ビジネス** の RSS から取得して表示する Next.js ページ。
 **Vercel** にデプロイし、**GitHub** をソースとしてプッシュで自動デプロイする。
 毎朝 **Vercel Cron** でニュースをリフレッシュする。
 
 ## 特徴
 
 - **Next.js 16 (App Router) + Tailwind CSS 4**
-- **NHK**(総合ニュース) と **GIGAZINE**(IT・科学) の RSS を直接取得
+- **日経新聞**(business、RDF 1.0) と **日経ビジネス**(RSS 2.0) を直接取得
 - **API キー不要**(RSS は公開フィードなので環境変数不要)
 - **Vercel Cron** が毎日朝 6:00 に `/api/cron` を叩き、`revalidateTag` でページを強制更新
 - `use cache` + `cacheLife('minutes')` で 1 分ごとに自動再検証
@@ -65,7 +65,7 @@ vercel.json           # cron 定義(毎日朝 6:00)
 ## 仕組み
 
 1. **毎朝**: Vercel Cron が `0 6 * * *` に `/api/cron` を呼ぶ
-2. **cron**: NHK + GIGAZINE の RSS を取得 → `revalidateTag("news", "max")`
+2. **cron**: 日経新聞 + 日経ビジネスの RSS を取得 → `revalidateTag("news", "max")`
 3. **ページ**: 次回のアクセス時に fresh なニュースで再レンダリング
 4. **通常時**: `cacheLife('minutes')` が 1 分ごとにバックグラウンド再検証
 
@@ -76,9 +76,17 @@ vercel.json           # cron 定義(毎日朝 6:00)
   `{ label: "サイト名", url: "https://..." }` を追加
 - **表示件数**: `lib/newsApi.ts` の `TOP_HEADLINES` / `mergeArticles` の `max`
 
+### 補足: RSS 形式について
+
+- **日経新聞**(`assets.wor.jp/rss/rdf/nikkei/business.rdf`)は **RDF 1.0** 形式
+  (`<item rdf:about="...">`、日付は `<dc:date>`)。
+- **日経ビジネス**(`business.nikkei.com/rss/sns/nb.rdf`)は **RSS 2.0** 形式
+  (`<item>`, `<dc:date>`)。
+- 両形式を `lib/newsApi.ts` のパーサーが自動判別・解析します。
+
 ### 補足: 画像について
 
-NHK と GIGAZINE の RSS は `<enclosure>` や `<img>` を含んでいないため、
+日経新聞・日経ビジネスの RSS は `<enclosure>` や `<img>` を含んでいないため、
 記事カードは**画像なし(テキストのみ)**で表示されます。
 画像付きにしたい RSS ソースを追加した場合、`<enclosure ... type="image/...">`
 や `<description>` 内の `<img src>` があれば自動的に表示されます。

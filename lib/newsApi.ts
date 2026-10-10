@@ -11,16 +11,18 @@ export const TOP_HEADLINES = 8;
 
 /**
  * RSS feed sources. Each is fetched directly over HTTPS (no API key required).
- * NHK provides general news, GIGAZINE provides tech/science news.
+ *
+ * - 日経新聞 (business): RDF 1.0 feed of Nikkei business news.
+ * - 日経ビジネス: RSS 2.0 feed of Nikkei Business electronic edition.
  */
 const FEEDS = [
   {
-    label: "NHK",
-    url: "https://www3.nhk.or.jp/rss/news/cat0.xml",
+    label: "日経新聞",
+    url: "https://assets.wor.jp/rss/rdf/nikkei/business.rdf",
   },
   {
-    label: "GIGAZINE",
-    url: "https://gigazine.net/news/rss_2.0/1/",
+    label: "日経ビジネス",
+    url: "https://business.nikkei.com/rss/sns/nb.rdf",
   },
 ];
 
@@ -121,9 +123,10 @@ async function fetchFeed(feed: {
       throw new Error(`HTTP ${res.status} from ${feed.url}`);
     }
     const xml = await res.text();
-    // Split into <item>...</item> blocks.
+    // Split into <item>...</item> blocks. Matches both RSS 2.0 (<item>) and
+    // RDF 1.0 (<item rdf:about="...">) item openings.
     const items = xml
-      .split(/<item[\s>]/)
+      .split(/<item(?:\s[^>]*)?[\s>]/)
       .slice(1)
       .map((block) => {
         // Re-attach the opening tag so tagValue works on the full item.

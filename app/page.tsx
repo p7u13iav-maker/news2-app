@@ -63,7 +63,7 @@ export default async function Home() {
 
       <footer className="border-t border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-2 px-6 py-4 text-xs text-zinc-400 sm:flex-row">
-          <span>ニュース提供: NHK / GIGAZINE (RSS)</span>
+          <span>ニュース提供: 日経新聞 / 日経ビジネス (RSS)</span>
           <span>1 分ごとに自動再検証 · 毎朝の Cron でリフレッシュ</span>
         </div>
       </footer>
