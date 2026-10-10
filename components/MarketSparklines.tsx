@@ -43,9 +43,17 @@ function buildPath(points: Point[], w: number, h: number, pad: number): string {
     .join(" ");
 }
 
-function Sparkline({ points, up }: { points: Point[]; up: boolean }) {
+function Sparkline({
+  points,
+  up,
+  height = 30,
+}: {
+  points: Point[];
+  up: boolean;
+  height?: number;
+}) {
   const W = 100;
-  const H = 30;
+  const H = height;
   const PAD = 2;
   const d = buildPath(points, W, H, PAD);
   if (!d) return null;
@@ -92,7 +100,12 @@ function fmtDate(t: number): string {
   return d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
 }
 
-export default function MarketSparklines() {
+export default function MarketSparklines({
+  size = "compact",
+}: {
+  size?: "compact" | "large";
+}) {
+  const large = size === "large";
   const [data, setData] = useState<MarketResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -137,26 +150,40 @@ export default function MarketSparklines() {
     return (
       <div
         key={m.key}
-        className="flex flex-col gap-1 rounded-xl border border-white/5 bg-slate-900/40 p-3"
+        className={`flex flex-col rounded-xl border border-white/5 bg-slate-900/40 ${
+          large ? "gap-3 p-6" : "gap-1 p-3"
+        }`}
       >
         <div className="flex items-baseline justify-between">
-          <span className="text-xs font-medium text-white/60">
+          <span
+            className={`font-medium text-white/60 ${
+              large ? "text-lg" : "text-xs"
+            }`}
+          >
             {m.label}
           </span>
           <span
-            className={`font-mono text-xs tabular-nums ${
-              up ? "text-emerald-400" : "text-red-400"
-            }`}
+            className={`font-mono tabular-nums ${
+              large ? "text-base" : "text-xs"
+            } ${up ? "text-emerald-400" : "text-red-400"}`}
           >
             {sign}
             {fmt(diff, INTEGER_KEYS.has(m.key))}
             {m.unit}
           </span>
         </div>
-        <div className="flex items-end justify-between gap-2">
-          <div className="h-8 w-20 shrink-0">
+        <div
+          className={`flex items-end justify-between ${
+            large ? "gap-6" : "gap-2"
+          }`}
+        >
+          <div
+            className={`shrink-0 ${
+              large ? "h-24 w-48" : "h-8 w-20"
+            }`}
+          >
             {m.ok && pts.length >= 2 ? (
-              <Sparkline points={pts} up={up} />
+              <Sparkline points={pts} up={up} height={large ? 96 : 30} />
             ) : (
               <div className="flex h-full items-center justify-center text-[10px] text-white/30">
                 -
@@ -164,12 +191,20 @@ export default function MarketSparklines() {
             )}
           </div>
           <div className="text-right">
-            <p className="font-mono text-lg font-semibold tabular-nums leading-none text-white">
+            <p
+              className={`font-mono font-semibold tabular-nums leading-none text-white ${
+                large ? "text-4xl" : "text-lg"
+              }`}
+            >
               {last != null ? fmt(last, INTEGER_KEYS.has(m.key)) : "-"}
               {m.unit}
             </p>
             {pts.length >= 2 && (
-              <p className="text-[10px] text-white/40">
+              <p
+                className={`text-white/40 ${
+                  large ? "mt-2 text-sm" : "text-[10px]"
+                }`}
+              >
                 {fmtDate(pts[0].t)}〜{fmtDate(pts[pts.length - 1].t)}
               </p>
             )}
@@ -180,12 +215,21 @@ export default function MarketSparklines() {
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-          <span className="text-lg">📊</span> 市場データ(3ヶ月)
+    <div
+      className={`rounded-2xl border border-white/10 bg-white/5 ${
+        large ? "p-6" : "p-4"
+      }`}
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <h2
+          className={`flex items-center gap-2 font-bold tracking-tight ${
+            large ? "text-2xl" : "text-base"
+          }`}
+        >
+          <span className={large ? "text-2xl" : "text-lg"}>📊</span> 市場データ
+          (3ヶ月)
         </h2>
-        <span className="text-xs text-white/40">
+        <span className={large ? "text-sm text-white/40" : "text-xs text-white/40"}>
           {data
             ? new Date(data.fetchedAt).toLocaleString("ja-JP", {
                 month: "numeric",
@@ -206,15 +250,25 @@ export default function MarketSparklines() {
       )}
 
       {data && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className={`grid grid-cols-3 ${large ? "gap-6" : "gap-3"}`}>
           {groups.map((g) => (
             <div
               key={g.title}
-              className="flex flex-col gap-2 rounded-xl border border-white/5 bg-white/5 p-2"
+              className={`flex flex-col rounded-xl border border-white/5 bg-white/5 ${
+                large ? "gap-4 p-4" : "gap-2 p-2"
+              }`}
             >
-              <div className="flex items-center gap-1.5 px-1 pt-0.5">
-                <span className="text-xs">{g.icon}</span>
-                <span className="text-xs font-semibold tracking-wide text-white/70">
+              <div
+                className={`flex items-center gap-1.5 ${
+                  large ? "px-2 pt-1" : "px-1 pt-0.5"
+                }`}
+              >
+                <span className={large ? "text-base" : "text-xs"}>{g.icon}</span>
+                <span
+                  className={`font-semibold tracking-wide text-white/70 ${
+                    large ? "text-base" : "text-xs"
+                  }`}
+                >
                   {g.title}
                 </span>
               </div>

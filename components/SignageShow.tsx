@@ -119,6 +119,12 @@ export default function SignageShow({
           >
             📋 ニュースサマリー
           </a>
+          <a
+            href="/market"
+            className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur transition hover:bg-white/20"
+          >
+            📊 市場データ
+          </a>
           {clock && (
             <div className="text-right">
               <p className="font-mono text-3xl font-light tabular-nums">

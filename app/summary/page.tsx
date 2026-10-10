@@ -195,13 +195,19 @@ export default function SummaryPage() {
         </div>
       </main>
 
-      {/* Footer: back to main page. */}
-      <footer className="relative z-10 shrink-0 border-t border-white/10 px-10 py-3">
+      {/* Footer: navigation. */}
+      <footer className="relative z-10 flex shrink-0 items-center justify-between border-t border-white/10 px-10 py-3">
         <a
           href="/"
           className="text-sm text-white/40 transition hover:text-white/70"
         >
           ← メインニュースに戻る
+        </a>
+        <a
+          href="/market"
+          className="text-sm text-white/40 transition hover:text-white/70"
+        >
+          📊 市場データ →
         </a>
       </footer>
     </div>
