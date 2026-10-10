@@ -203,12 +203,20 @@ export default function SummaryPage() {
         >
           ← メインニュースに戻る
         </a>
-        <a
-          href="/market"
-          className="text-sm text-white/40 transition hover:text-white/70"
-        >
-          📊 市場データ →
-        </a>
+        <div className="flex items-center gap-4">
+          <a
+            href="/market"
+            className="text-sm text-white/40 transition hover:text-white/70"
+          >
+            📊 市場データ
+          </a>
+          <a
+            href="/horoscope"
+            className="text-sm text-white/40 transition hover:text-white/70"
+          >
+            ✨ 12星座占い →
+          </a>
+        </div>
       </footer>
     </div>
   );

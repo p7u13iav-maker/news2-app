@@ -125,6 +125,12 @@ export default function SignageShow({
           >
             📊 市場データ
           </a>
+          <a
+            href="/horoscope"
+            className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur transition hover:bg-white/20"
+          >
+            ✨ 12星座占い
+          </a>
           {clock && (
             <div className="text-right">
               <p className="font-mono text-3xl font-light tabular-nums">

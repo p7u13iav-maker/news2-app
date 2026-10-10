@@ -99,9 +99,17 @@ export default function MarketPage() {
         >
           ← メインニュースに戻る
         </a>
-        <span className="text-xs text-white/30">
-          60秒ごとに自動更新 · 出典: Yahoo Finance
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-white/30">
+            60秒ごとに自動更新 · 出典: Yahoo Finance
+          </span>
+          <a
+            href="/horoscope"
+            className="text-sm text-white/40 transition hover:text-white/70"
+          >
+            ✨ 12星座占い →
+          </a>
+        </div>
       </footer>
     </div>
   );

@@ -4,7 +4,10 @@ import { fetchHeadlines } from "@/lib/newsApi";
 import { NextResponse } from "next/server";
 
 // In-memory cache for daily summaries (avoids re-calling Gemini on every load).
+// Keyed by JST date — the summary is generated once per day (at 6:30 via cron
+// or on first page load), then served from cache for the rest of the day.
 const summaryCache = new Map<string, { ts: number; data: object }>();
+const DAILY_CACHE_MS = 24 * 60 * 60 * 1000;
 
 /**
  * POST /api/summary
@@ -26,12 +29,12 @@ export async function POST() {
     );
   }
 
-  // Simple in-memory cache: key by date so we don't re-summarize the same
-  // day's news on every page load. Cache for 30 minutes.
+  // Daily cache: key by JST date so we only call Gemini once per day.
+  // The cron at 6:30 triggers the first generation; subsequent loads hit cache.
   const cacheKey = "summary-" +
     new Date().toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" });
   const cached = summaryCache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < 30 * 60 * 1000) {
+  if (cached && Date.now() - cached.ts < DAILY_CACHE_MS) {
     return NextResponse.json(cached.data);
   }
 
@@ -142,7 +145,7 @@ ${newsText}`,
         economy: parsed.economy || [],
       },
     };
-    // Cache the result for 30 minutes.
+    // Cache the result for the rest of the day.
     summaryCache.set(cacheKey, { ts: Date.now(), data: result });
     return NextResponse.json(result);
   } catch (e) {
