@@ -13,7 +13,7 @@ const apiKey =
   "";
 
 export const geminiModel =
-  process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 /** Check if Gemini is configured (has an API key). */
 export function isGeminiConfigured(): boolean {
