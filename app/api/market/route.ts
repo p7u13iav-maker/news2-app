@@ -24,7 +24,7 @@ const MARKET: MarketItem[] = [
   { key: "sp500", label: "S&P 500", unit: "", symbol: "^GSPC" },
   { key: "nasdaq", label: "NASDAQ", unit: "", symbol: "^IXIC" },
   { key: "nikkei", label: "日経平均", unit: "", symbol: "^N225" },
-  { key: "topix", label: "TOPIX", unit: "", symbol: "9010.T" },
+  { key: "jfe", label: "JFE Holdings (5411)", unit: "", symbol: "5411.T" },
 ];
 
 const FETCH_TIMEOUT_MS = 12_000;

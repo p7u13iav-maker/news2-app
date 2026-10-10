@@ -70,8 +70,8 @@ function Sparkline({ points, up }: { points: Point[]; up: boolean }) {
   );
 }
 
-// Indexes that should be shown as whole numbers (no decimals).
-const INTEGER_KEYS = new Set(["sp500", "nasdaq", "topix"]);
+// Indexes / stocks that should be shown as whole numbers (no decimals).
+const INTEGER_KEYS = new Set(["sp500", "nasdaq", "nikkei", "jfe"]);
 
 function fmt(v: number, integer = false): string {
   if (!Number.isFinite(v)) return "-";
@@ -122,7 +122,7 @@ export default function MarketSparklines() {
   const groups: { title: string; icon: string; keys: string[] }[] = [
     { title: "金利", icon: "🇺🇸", keys: ["us10y", "us2y"] },
     { title: "米国株", icon: "🇺🇸", keys: ["sp500", "nasdaq"] },
-    { title: "日本株", icon: "🇯🇵", keys: ["nikkei", "topix"] },
+    { title: "日本株", icon: "🇯🇵", keys: ["nikkei", "jfe"] },
   ];
   const byKey: Record<string, MarketData> = {};
   for (const m of markets) byKey[m.key] = m;
