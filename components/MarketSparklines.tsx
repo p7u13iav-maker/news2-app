@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { buildMarketComment } from "@/lib/marketComment";
 
 interface Point {
   t: number;
@@ -130,6 +131,12 @@ export default function MarketSparklines({
 
   const markets = data?.markets ?? [];
 
+  // Rule-based commentary derived from the fetched series (no AI).
+  const comment = useMemo(
+    () => (data && markets.length > 0 ? buildMarketComment(markets) : ""),
+    [data, markets],
+  );
+
   // Group the 6 series into 3 columns (yields / US stocks / JP stocks),
   // each column holding two cards stacked vertically.
   const groups: { title: string; icon: string; keys: string[] }[] = [
@@ -247,6 +254,17 @@ export default function MarketSparklines({
 
       {!data && !error && (
         <p className="py-4 text-center text-sm text-white/40">読み込み中…</p>
+      )}
+
+      {data && comment && (
+        <div
+          className={`mb-4 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 ${
+            large ? "text-lg leading-relaxed" : "text-sm leading-relaxed"
+          }`}
+        >
+          <span className="mr-2">💬</span>
+          <span className="text-white/85">{comment}</span>
+        </div>
       )}
 
       {data && (
