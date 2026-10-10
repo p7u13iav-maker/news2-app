@@ -327,14 +327,6 @@ export default function UnifiedSignage({
         }}
       />
 
-      {/* Progress bar across the top. */}
-      <div className="absolute inset-x-0 top-0 z-20 h-1.5 bg-white/10">
-        <div
-          className="h-full bg-white/80"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-
       {/* Header. */}
       <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-10 pt-8">
         <div className="flex items-center gap-3">
@@ -402,23 +394,33 @@ export default function UnifiedSignage({
         </div>
       </main>
 
-      {/* Footer: slide dots. */}
-      <footer className="absolute inset-x-0 bottom-8 z-10 flex items-center justify-center gap-2">
-        {slides.map((s, i) => (
-          <span
-            key={i}
-            className="h-2 rounded-full transition-all duration-500"
-            style={{
-              width: i === index ? "2rem" : "0.5rem",
-              background:
-                i === index
-                  ? "#fff"
-                  : s.kind === current.kind
-                    ? "rgba(255,255,255,0.4)"
-                    : "rgba(255,255,255,0.15)",
-            }}
+      {/* Footer: slide dots + progress bar (same width). */}
+      <footer className="absolute inset-x-0 bottom-8 z-10 flex flex-col items-center gap-2">
+        {/* Dots row. */}
+        <div className="flex items-center gap-2">
+          {slides.map((s, i) => (
+            <span
+              key={i}
+              className="h-2 rounded-full transition-all duration-500"
+              style={{
+                width: i === index ? "2rem" : "0.5rem",
+                background:
+                  i === index
+                    ? "#fff"
+                    : s.kind === current.kind
+                      ? "rgba(255,255,255,0.4)"
+                      : "rgba(255,255,255,0.15)",
+              }}
+            />
+          ))}
+        </div>
+        {/* Progress bar — same width as the dots row. */}
+        <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full bg-white/60 transition-none"
+            style={{ width: `${progress}%` }}
           />
-        ))}
+        </div>
       </footer>
     </div>
   );
