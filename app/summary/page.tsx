@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import MarketSparklines from "@/components/MarketSparklines";
 
 interface Summary {
   domestic: string[];
@@ -117,36 +118,38 @@ export default function SummaryPage() {
         </div>
       </header>
 
-      {/* Content: 3 columns side by side, fills the remaining height with no scroll. */}
-      <main className="relative z-10 flex min-h-0 flex-1 gap-5 overflow-hidden p-6">
-        {loading && !data && (
-          <div className="flex h-full w-full items-center justify-center">
-            <div className="text-center">
-              <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-blue-400" />
-              <p className="text-lg text-white/60">
-                AI がニュースを要約しています…
-              </p>
+      {/* Content: 3 columns of news summary (top) + market data (bottom), no page scroll. */}
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-6">
+        {/* News summary section (fills available height). */}
+        <div className="relative min-h-0 flex-1">
+          {loading && !data && (
+            <div className="flex h-full w-full items-center justify-center">
+              <div className="text-center">
+                <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-blue-400" />
+                <p className="text-lg text-white/60">
+                  AI がニュースを要約しています…
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {error && (
-          <div className="flex h-full w-full items-center justify-center">
-            <div className="max-w-md rounded-2xl border border-red-500/30 bg-red-500/10 p-8 text-center">
-              <p className="mb-2 text-2xl">⚠️</p>
-              <p className="mb-4 text-red-300">{error}</p>
-              <button
-                onClick={fetchSummary}
-                className="rounded-full bg-white/10 px-5 py-2 text-sm font-semibold hover:bg-white/20"
-              >
-                再試行
-              </button>
+          {error && (
+            <div className="flex h-full w-full items-center justify-center">
+              <div className="max-w-md rounded-2xl border border-red-500/30 bg-red-500/10 p-8 text-center">
+                <p className="mb-2 text-2xl">⚠️</p>
+                <p className="mb-4 text-red-300">{error}</p>
+                <button
+                  onClick={fetchSummary}
+                  className="rounded-full bg-white/10 px-5 py-2 text-sm font-semibold hover:bg-white/20"
+                >
+                  再試行
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {data?.summary && !loading && (
-          <div className="grid h-full w-full grid-cols-3 gap-5">
+          {data?.summary && !loading && (
+            <div className="grid h-full w-full grid-cols-3 gap-5">
             {CATEGORIES.map((cat) => {
               const items = data.summary![cat.key] ?? [];
               return (
@@ -184,6 +187,12 @@ export default function SummaryPage() {
             })}
           </div>
         )}
+        </div>
+
+        {/* Market data section (fixed height, no scroll). */}
+        <div className="shrink-0">
+          <MarketSparklines />
+        </div>
       </main>
 
       {/* Footer: back to main page. */}
