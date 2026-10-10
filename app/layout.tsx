@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "毎朝ニュース | サイネージ",
   description:
-    "日本の朝のニュース(NHK NEWS WEB の RSS)を、最新10件を10秒間隔のスライドショーで表示するデジタルサイネージ。",
+    "日本の朝のニュース(NHK・日経新聞の RSS)を、最新10件を10秒間隔のスライドショーで表示するデジタルサイネージ。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

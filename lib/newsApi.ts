@@ -12,13 +12,19 @@ export const TOP_HEADLINES = 10;
 /**
  * RSS feed sources. Each is fetched directly over HTTPS (no API key required).
  *
- * NHK NEWS WEB (new domain, effective 2025-10-01): RSS 2.0 feeds under
- * news.web.nhk. Each feed's <description> already contains the article's lead
- * paragraph (full free body text), so no per-article fetch is needed for the
- * body. The image (og:image) is still fetched per article.
- *
- * Several category feeds are combined so we reliably have 10+ fresh items:
+ * - NHK NEWS WEB (new domain, effective 2025-10-01): RSS 2.0 feeds under
+ *   news.web.nhk. Each feed's <description> already contains the article's
+ *   lead paragraph (full free body text), so no per-article fetch is needed
+ *   for the body. The image (og:image) is still fetched per article.
+ *   Several category feeds are combined so we reliably have 10+ fresh items:
  *   cat0 = 主要ニュース, cat1 = 社会, cat5 = 経済, cat6 = 国際
+ *
+ * - 日経新聞 (business): RDF 1.0 feed of Nikkei business news.
+ * - 日経ビジネス: RSS 2.0 feed of Nikkei Business electronic edition.
+ *   The body text (lead paragraph) and image (og:image) are fetched per
+ *   article from the article's HTML page, since the RSS feeds do not include
+ *   them. Nikkei's lead text is longer, so we trim it to the first sentence
+ *   (up to the second "。") to keep the signage display clean.
  */
 const FEEDS = [
   {
@@ -37,7 +43,21 @@ const FEEDS = [
     label: "NHK",
     url: "https://news.web.nhk/n-data/conf/na/rss/cat6.xml",
   },
+  {
+    label: "日経新聞",
+    url: "https://assets.wor.jp/rss/rdf/nikkei/business.rdf",
+  },
+  {
+    label: "日経ビジネス",
+    url: "https://business.nikkei.com/rss/sns/nb.rdf",
+  },
 ];
+
+/**
+ * Sources whose body text is longer and should be trimmed to the first
+ * sentence (up to the second "。").
+ */
+const TRIM_TO_FIRST_SENTENCE_SOURCES = new Set(["日経新聞", "日経ビジネス"]);
 
 const FETCH_TIMEOUT_MS = 10_000;
 
@@ -163,6 +183,23 @@ interface ArticleMeta {
 }
 
 /**
+ * Trim a lead paragraph to its first sentence (up to and including the second
+ * "。"). Used for Nikkei, whose og:description is often a full multi-sentence
+ * lead. Keeps the signage display concise while still conveying the gist.
+ *
+ *   "AAA。BBB。CCC。" -> "AAA。BBB。"
+ *   "AAA。"           -> "AAA。"
+ *   "AAA"             -> "AAA"   (no "。" at all, unchanged)
+ */
+function trimToSecondPeriod(s: string): string {
+  const first = s.indexOf("。");
+  if (first === -1) return s;
+  const second = s.indexOf("。", first + 1);
+  if (second === -1) return s.slice(0, first + 1);
+  return s.slice(0, second + 1);
+}
+
+/**
  * Extract a <meta> tag's content attribute by name/property, regardless of
  * attribute order in the tag.
  */
@@ -179,13 +216,20 @@ function metaContent(html: string, name: string): string | null {
 }
 
 /**
- * Fetch the article image (og:image) for an article by reading its <meta> tag
- * from the HTML page. The body text already comes from the RSS <description>,
- * so only the image is needed here.
+ * Fetch the lead paragraph (body text) and article image for an article by
+ * reading its <meta> tags from the HTML page. Used for Nikkei, whose RSS does
+ * not include the body text. The image (og:image) is also used for NHK, whose
+ * RSS does include the body text but not the image.
+ *
+ * When `trimDescription` is true (Nikkei), the lead text is trimmed to the
+ * first sentence (up to the second "。").
  *
  * Returns null if the article can't be fetched at all.
  */
-async function fetchArticleMeta(url: string): Promise<ArticleMeta | null> {
+async function fetchArticleMeta(
+  url: string,
+  trimDescription = false,
+): Promise<ArticleMeta | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -205,9 +249,11 @@ async function fetchArticleMeta(url: string): Promise<ArticleMeta | null> {
       metaContent(html, "og:description") ?? metaContent(html, "description");
     let description: string | null = null;
     if (rawDesc) {
-      const plain = decodeEntities(rawDesc).replace(/\s+/g, " ").trim();
-      // Keep the full lead paragraph; Nikkei's og:description is the lead text.
-      if (plain.length > 0) description = plain.slice(0, 400);
+      let plain = decodeEntities(rawDesc).replace(/\s+/g, " ").trim();
+      if (plain.length > 0) {
+        if (trimDescription) plain = trimToSecondPeriod(plain);
+        description = plain.slice(0, 400);
+      }
     }
 
     // Image: og:image (twitter:image fallback).
@@ -227,13 +273,18 @@ async function fetchArticleMeta(url: string): Promise<ArticleMeta | null> {
 }
 
 /**
- * Fetch all configured RSS feeds in parallel, then enrich each article with
- * its image (og:image) by fetching the article page.
+ * Fetch all configured RSS feeds in parallel, then enrich each article from
+ * its article page.
+ *
+ * - NHK: body text already comes from the RSS <description>, so only the
+ *   image (og:image) is fetched.
+ * - Nikkei: neither the body text nor the image is in the RSS, so both are
+ *   fetched. The lead text is trimmed to the first sentence (up to the second
+ *   "。") because Nikkei's og:description is longer.
  *
  * A failing feed is skipped so a single broken source never takes down the
- * whole page. Image fetches are best-effort: if one fails, the article is
- * kept without an image. The body text already comes from the RSS
- * <description>, so it is never overridden here.
+ * whole page. Fetches are best-effort: if one fails, the article is kept
+ * without that field.
  */
 export async function fetchHeadlines(): Promise<Article[]> {
   const results = await Promise.allSettled(FEEDS.map((f) => fetchFeed(f)));
@@ -244,16 +295,20 @@ export async function fetchHeadlines(): Promise<Article[]> {
     .map((r) => r.value);
   const merged = mergeArticles(lists);
 
-  // Enrich with the article image (og:image). Only fetch for the top items we
-  // will actually show, to limit outbound requests. All fetches run in
-  // parallel.
-  const ENRICH_LIMIT = 12;
+  // Enrich from the article page. Only fetch for the top items we will
+  // actually show, to limit outbound requests. All fetches run in parallel.
+  const ENRICH_LIMIT = 14;
   const toEnrich = merged.slice(0, ENRICH_LIMIT);
   await Promise.all(
     toEnrich.map(async (a) => {
-      if (a.urlToImage) return; // RSS already provided one.
-      const meta = await fetchArticleMeta(a.url);
-      if (meta?.image) a.urlToImage = meta.image;
+      const isNikkei = TRIM_TO_FIRST_SENTENCE_SOURCES.has(a.source);
+      const needsDesc = isNikkei && !a.description;
+      const needsImg = !a.urlToImage;
+      if (!needsDesc && !needsImg) return; // Nothing to fetch.
+      const meta = await fetchArticleMeta(a.url, isNikkei);
+      if (!meta) return;
+      if (needsDesc && meta.description) a.description = meta.description;
+      if (needsImg && meta.image) a.urlToImage = meta.image;
     }),
   );
   return merged;
