@@ -136,7 +136,7 @@ export function buildMarketComment(markets: MarketSeries[]): string {
       `日本株は${nj}で、日経平均は${fmtNum(
         nk.last,
         true,
-      )}(3ヶ月で${nk.diff >= 0 ? "+" : ""}${fmtNum(nk.diff, true)}円)、JFEは${fmtNum(
+      )}円(3ヶ月で${nk.diff >= 0 ? "+" : ""}${fmtNum(nk.diff, true)}円)、JFEは${fmtNum(
         jfe.last,
         true,
       )}円です。`,
