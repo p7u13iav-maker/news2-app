@@ -1,24 +1,16 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { ZODIAC_SIGNS, type Period, type ZodiacKey } from "@/lib/zodiac";
+import { ZODIAC_SIGNS, type ZodiacKey } from "@/lib/zodiac";
 
 interface HoroscopeData {
   ok: boolean;
   date?: string;
-  period?: Period;
   horoscopes?: Record<ZodiacKey, string>;
   error?: string;
 }
 
-const PERIODS: { key: Period; label: string }[] = [
-  { key: "daily", label: "今日" },
-  { key: "weekly", label: "今週" },
-  { key: "monthly", label: "今月" },
-];
-
 export default function HoroscopePage() {
-  const [period, setPeriod] = useState<Period>("daily");
   const [data, setData] = useState<HoroscopeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,14 +23,14 @@ export default function HoroscopePage() {
     return () => clearInterval(id);
   }, []);
 
-  const fetchHoroscope = useCallback(async (p: Period) => {
+  const fetchHoroscope = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/horoscope", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ period: p }),
+        body: JSON.stringify({ period: "daily" }),
       });
       const json = await res.json();
       if (json.ok) {
@@ -53,10 +45,10 @@ export default function HoroscopePage() {
     }
   }, []);
 
-  // Fetch on mount + when period changes.
+  // Fetch on mount (daily only, cached server-side for the day).
   useEffect(() => {
-    fetchHoroscope(period);
-  }, [period, fetchHoroscope]);
+    fetchHoroscope();
+  }, [fetchHoroscope]);
 
   const hoscopes = data?.horoscopes;
 
@@ -72,105 +64,77 @@ export default function HoroscopePage() {
       />
 
       {/* Header. */}
-      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 px-10 py-4">
+      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 px-10 py-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-2xl">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xl">
             ✨
           </span>
           <div>
-            <p className="text-2xl font-bold tracking-tight">
+            <p className="text-xl font-bold tracking-tight">
               12星座占い
             </p>
-            <p className="text-sm text-white/50">
-              {period === "daily"
-                ? "今日の運勢"
-                : period === "weekly"
-                  ? "今週の運勢"
-                  : "今月の運勢"}{" "}
-              · AI翻訳
+            <p className="text-xs text-white/50">
+              今日の運勢 · AI翻訳 · {data?.date ?? ""}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          {/* Period tabs. */}
-          <div className="flex gap-1 rounded-full bg-white/5 p-1">
-            {PERIODS.map((p) => (
-              <button
-                key={p.key}
-                onClick={() => setPeriod(p.key)}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                  period === p.key
-                    ? "bg-white/20 text-white"
-                    : "text-white/50 hover:text-white/80"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
+        {clock && (
+          <div className="text-right">
+            <p className="font-mono text-3xl font-light tabular-nums">
+              {clock.toLocaleTimeString("ja-JP", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })}
+            </p>
+            <p className="text-xs text-white/50">
+              {clock.toLocaleDateString("ja-JP", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                weekday: "long",
+              })}
+            </p>
           </div>
-          {clock && (
-            <div className="text-right">
-              <p className="font-mono text-3xl font-light tabular-nums">
-                {clock.toLocaleTimeString("ja-JP", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                })}
-              </p>
-              <p className="text-xs text-white/50">
-                {clock.toLocaleDateString("ja-JP", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  weekday: "long",
-                })}
-              </p>
-            </div>
-          )}
-        </div>
+        )}
       </header>
 
-      {/* Main: 12-sign grid (4 cols × 3 rows). */}
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col p-6">
-        {/* Date line. */}
-        {hoscopes && (
-          <p className="mb-3 text-center text-sm text-white/40">
-            更新日: {data?.date} · 出典: freehoroscopeapi.com
-          </p>
-        )}
-
+      {/* Main: 2 cols × 6 rows grid. */}
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col px-6 py-3">
         {/* Error state. */}
         {error && (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-white/40">{error}</p>
+            <p className="text-sm text-white/40">{error}</p>
           </div>
         )}
 
         {/* Loading state. */}
         {loading && !error && (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-white/40">占いを読み込み中…</p>
+            <p className="text-sm text-white/40">占いを読み込み中…</p>
           </div>
         )}
 
-        {/* 12-sign grid. */}
+        {/* 12-sign grid: 2 cols × 6 rows. */}
         {hoscopes && !loading && (
-          <div className="grid min-h-0 flex-1 grid-cols-4 grid-rows-3 gap-3">
+          <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-6 gap-2">
             {ZODIAC_SIGNS.map((s) => (
               <div
                 key={s.key}
-                className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-white/5 p-4"
+                className="flex min-h-0 flex-col rounded-lg border border-white/10 bg-white/5 px-4 py-2"
               >
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-2xl">{s.symbol}</span>
-                  <div className="min-w-0">
-                    <p className="truncate text-base font-bold leading-tight">
-                      {s.ja}
-                    </p>
-                    <p className="text-[10px] text-white/40">{s.dateRange}</p>
-                  </div>
+                {/* Sign header: symbol + name + date range. */}
+                <div className="mb-1 flex items-baseline gap-2">
+                  <span className="text-lg leading-none">{s.symbol}</span>
+                  <span className="text-sm font-bold leading-tight">
+                    {s.ja}
+                  </span>
+                  <span className="ml-auto text-[10px] text-white/40">
+                    {s.dateRange}
+                  </span>
                 </div>
-                <p className="min-h-0 flex-1 overflow-y-auto text-xs leading-relaxed text-white/80">
+                {/* Horoscope text (no scroll, truncates if overflow). */}
+                <p className="min-h-0 flex-1 overflow-hidden text-xs leading-snug text-white/80">
                   {hoscopes[s.key]}
                 </p>
               </div>
@@ -180,7 +144,7 @@ export default function HoroscopePage() {
       </main>
 
       {/* Footer: navigation. */}
-      <footer className="relative z-10 flex shrink-0 items-center justify-between border-t border-white/10 px-10 py-3">
+      <footer className="relative z-10 flex shrink-0 items-center justify-between border-t border-white/10 px-10 py-2">
         <a
           href="/"
           className="text-sm text-white/40 transition hover:text-white/70"
@@ -188,7 +152,7 @@ export default function HoroscopePage() {
           ← メインニュースに戻る
         </a>
         <span className="text-xs text-white/30">
-          毎朝 6:30 に更新 · AI: Gemini
+          毎朝 6:30 に更新 · 出典: freehoroscopeapi.com
         </span>
       </footer>
     </div>
