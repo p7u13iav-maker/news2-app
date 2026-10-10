@@ -10,6 +10,9 @@ const summarySchema = z.object({
   economy: z.array(z.string()),
 });
 
+// In-memory cache for daily summaries (avoids re-calling Gemini on every load).
+const summaryCache = new Map<string, { ts: number; data: object }>();
+
 /**
  * POST /api/summary
  *
@@ -28,6 +31,15 @@ export async function POST() {
       { ok: false, error: "GEMINI_API_KEY is not set." },
       { status: 500 },
     );
+  }
+
+  // Simple in-memory cache: key by date so we don't re-summarize the same
+  // day's news on every page load. Cache for 30 minutes.
+  const cacheKey = "summary-" +
+    new Date().toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" });
+  const cached = summaryCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 30 * 60 * 1000) {
+    return NextResponse.json(cached.data);
   }
 
   try {
@@ -63,6 +75,7 @@ export async function POST() {
 ${newsText}`,
       temperature: 0.2,
       maxOutputTokens: 600,
+      maxRetries: 3,
       providerOptions: {
         google: {
           thinkingConfig: {
@@ -92,7 +105,7 @@ ${newsText}`,
       weekday: "long",
     });
 
-    return NextResponse.json({
+    const result = {
       ok: true,
       date: dateStr,
       summary: {
@@ -100,7 +113,10 @@ ${newsText}`,
         international: parsed.international || [],
         economy: parsed.economy || [],
       },
-    });
+    };
+    // Cache the result for 30 minutes.
+    summaryCache.set(cacheKey, { ts: Date.now(), data: result });
+    return NextResponse.json(result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
