@@ -7,19 +7,35 @@ export interface Article {
   publishedAt: string;
 }
 
-export const TOP_HEADLINES = 8;
+export const TOP_HEADLINES = 10;
 
 /**
  * RSS feed sources. Each is fetched directly over HTTPS (no API key required).
  *
- * NHK NEWS WEB: RSS 2.0 feeds. Each feed's <description> already contains the
- * article's lead paragraph (full free body text), so no per-article fetch is
- * needed for the body. The image (og:image) is still fetched per article.
+ * NHK NEWS WEB (new domain, effective 2025-10-01): RSS 2.0 feeds under
+ * news.web.nhk. Each feed's <description> already contains the article's lead
+ * paragraph (full free body text), so no per-article fetch is needed for the
+ * body. The image (og:image) is still fetched per article.
+ *
+ * Several category feeds are combined so we reliably have 10+ fresh items:
+ *   cat0 = 主要ニュース, cat1 = 社会, cat5 = 経済, cat6 = 国際
  */
 const FEEDS = [
   {
     label: "NHK",
-    url: "https://www3.nhk.or.jp/rss/news/cat0.xml",
+    url: "https://news.web.nhk/n-data/conf/na/rss/cat0.xml",
+  },
+  {
+    label: "NHK",
+    url: "https://news.web.nhk/n-data/conf/na/rss/cat1.xml",
+  },
+  {
+    label: "NHK",
+    url: "https://news.web.nhk/n-data/conf/na/rss/cat5.xml",
+  },
+  {
+    label: "NHK",
+    url: "https://news.web.nhk/n-data/conf/na/rss/cat6.xml",
   },
 ];
 
