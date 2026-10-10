@@ -158,7 +158,7 @@ export default function MarketSparklines({
       <div
         key={m.key}
         className={`flex flex-col justify-center rounded-xl border border-white/5 bg-slate-900/40 ${
-          large ? "min-h-0 flex-1 gap-2 p-4" : "gap-1 p-3"
+          large ? "gap-2 p-4" : "gap-1 p-3"
         }`}
       >
         <div className="flex items-baseline justify-between">
@@ -180,15 +180,15 @@ export default function MarketSparklines({
           </span>
         </div>
         <div
-          className={`flex flex-1 items-center justify-between ${
-            large ? "gap-6" : "gap-2"
+          className={`flex items-center justify-between ${
+            large ? "gap-4" : "gap-2"
           }`}
         >
           <div
-            className={`shrink-0 ${large ? "h-24 w-[55%]" : "h-8 w-20"}`}
+            className={`shrink-0 ${large ? "h-14 w-1/2" : "h-8 w-20"}`}
           >
             {m.ok && pts.length >= 2 ? (
-              <Sparkline points={pts} up={up} height={large ? 96 : 30} />
+              <Sparkline points={pts} up={up} height={large ? 56 : 30} />
             ) : (
               <div className="flex h-full items-center justify-center text-[10px] text-white/30">
                 -
@@ -198,7 +198,7 @@ export default function MarketSparklines({
           <div className="text-right">
             <p
               className={`font-mono font-semibold tabular-nums leading-none text-white ${
-                large ? "text-3xl" : "text-lg"
+                large ? "text-2xl" : "text-lg"
               }`}
             >
               {last != null ? fmt(last, INTEGER_KEYS.has(m.key)) : "-"}
@@ -267,13 +267,13 @@ export default function MarketSparklines({
 
       {data && (
         <div
-          className={`grid grid-cols-3 ${large ? "min-h-0 flex-1 gap-6" : "gap-3"}`}
+          className={`grid grid-cols-3 ${large ? "gap-4" : "gap-3"}`}
         >
           {groups.map((g) => (
             <div
               key={g.title}
-              className={`flex min-h-0 flex-col rounded-xl border border-white/5 bg-white/5 ${
-                large ? "gap-4 p-4" : "gap-2 p-2"
+              className={`flex flex-col rounded-xl border border-white/5 bg-white/5 ${
+                large ? "gap-3 p-3" : "gap-2 p-2"
               }`}
             >
               <div
