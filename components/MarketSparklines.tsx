@@ -49,25 +49,6 @@ function buildPath(
     .join(" ");
 }
 
-/** Compute the total path length in viewBox units from a path string. */
-function pathLength(d: string): number {
-  const coords: [number, number][] = d
-    .replace(/[ML]/g, "|")
-    .split("|")
-    .filter(Boolean)
-    .map((s) => {
-      const [x, y] = s.split(",").map(Number);
-      return [x, y] as [number, number];
-    });
-  let len = 0;
-  for (let i = 1; i < coords.length; i++) {
-    const dx = coords[i][0] - coords[i - 1][0];
-    const dy = coords[i][1] - coords[i - 1][1];
-    len += Math.sqrt(dx * dx + dy * dy);
-  }
-  return len;
-}
-
 function Sparkline({
   points,
   up,
@@ -90,46 +71,15 @@ function Sparkline({
   const range = max - min || 1;
   const lastV = lastVals[lastVals.length - 1];
   const lastY = H - PAD - ((H - 2 * PAD) * (lastV - min)) / range;
-  const fillD = `${d} L${W - PAD},${H} L${PAD},${H} Z`;
-  // Compute exact path length in viewBox units + buffer for round linecap
-  const len = pathLength(d) + 2;
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
       className="h-full w-full"
-      style={{ overflow: "visible" }}
     >
-      {/* Fill fades in */}
-      <path
-        d={fillD}
-        fill={fill}
-        stroke="none"
-        className="animate-[sparkline-fill_1s_ease-out_0.1s_both]"
-      />
-      {/* Line draws from left to right */}
-      <path
-        d={d}
-        fill="none"
-        stroke={stroke}
-        strokeWidth={1.5}
-        vectorEffect="non-scaling-stroke"
-        strokeLinecap="round"
-        style={{
-          strokeDasharray: len,
-          strokeDashoffset: len,
-          animation: "sparkline-draw 1s ease-out forwards",
-        }}
-      />
-      {/* Dot appears at end */}
-      <circle
-        cx={W - PAD}
-        cy={lastY}
-        r={2}
-        fill={stroke}
-        className="animate-[sparkline-dot_0.3s_ease-out_0.9s_both]"
-        style={{ transformOrigin: `${W - PAD}px ${lastY}px` }}
-      />
+      <path d={`${d} L${W - PAD},${H} L${PAD},${H} Z`} fill={fill} stroke="none" />
+      <path d={d} fill="none" stroke={stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+      <circle cx={W - PAD} cy={lastY} r={2} fill={stroke} />
     </svg>
   );
 }
