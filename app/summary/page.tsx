@@ -216,7 +216,13 @@ export default function SummaryPage() {
             href="/horoscope"
             className="text-sm text-white/40 transition hover:text-white/70"
           >
-            ✨ 12星座占い →
+            ✨ 12星座占い
+          </a>
+          <a
+            href="/weather"
+            className="text-sm text-white/40 transition hover:text-white/70"
+          >
+            ⛅ 天気 →
           </a>
         </div>
       </footer>

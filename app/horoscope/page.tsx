@@ -196,9 +196,17 @@ export default function HoroscopePage() {
         >
           ← メインニュースに戻る
         </a>
-        <span className="text-xs text-white/30">
-          毎朝 6:30 に更新 · 出典: freehoroscopeapi.com
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-white/30">
+            毎朝 6:30 に更新 · 出典: freehoroscopeapi.com
+          </span>
+          <a
+            href="/weather"
+            className="text-sm text-white/40 transition hover:text-white/70"
+          >
+            ⛅ 天気 →
+          </a>
+        </div>
       </footer>
     </div>
   );
