@@ -112,25 +112,33 @@ export default function SignageShow({
             <p className="text-sm text-white/50">NHK / 日経新聞</p>
           </div>
         </div>
-        {clock && (
-          <div className="text-right">
-            <p className="font-mono text-3xl font-light tabular-nums">
-              {clock.toLocaleTimeString("ja-JP", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-              })}
-            </p>
-            <p className="text-xs text-white/50">
-              {clock.toLocaleDateString("ja-JP", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                weekday: "long",
-              })}
-            </p>
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          <a
+            href="/summary"
+            className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur transition hover:bg-white/20"
+          >
+            📋 ニュースサマリー
+          </a>
+          {clock && (
+            <div className="text-right">
+              <p className="font-mono text-3xl font-light tabular-nums">
+                {clock.toLocaleTimeString("ja-JP", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                })}
+              </p>
+              <p className="text-xs text-white/50">
+                {clock.toLocaleDateString("ja-JP", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  weekday: "long",
+                })}
+              </p>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Slide content. Keyed by index so the whole block re-mounts and re-animates. */}

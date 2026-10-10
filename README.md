@@ -26,6 +26,25 @@
    - 例: Chrome の `--kiosk --start-fullscreen` 起動
 3. 10秒ごとに次のニュースへ自動切替、10件で一周
 
+## ニュースサマリー(AI 要約)
+
+`/summary` ページは、**OITOMA AI**(岡山大学の OpenAI 互換モデル)を使って
+その日のニュースを 3 つのカテゴリに分類して箇条書きで要約します:
+
+- 🇯🇵 **国内の出来事**: 日本の国内で起きた出来事
+- 🌍 **国外の出来事**: 海外・国際で起きた出来事
+- 📈 **経済ニュース**: 日本を含む世界の経済ニュース
+
+メインページのヘッダーにある「📋 ニュースサマリー」ボタンから移動できます。
+
+### 設定(必要な場合)
+
+AI 要約機能を使うには `OITOMA_API_KEY` が必要です:
+
+1. https://ironical.okayama-u.ac.jp/ai/keys で API キーを発行
+2. Vercel: Project Settings → Environment Variables に `OITOMA_API_KEY` を追加
+3. ローカル: `.env.local` に `OITOMA_API_KEY=sk-...` を記入
+
 ## セットアップ
 
 ### ローカルで試す
