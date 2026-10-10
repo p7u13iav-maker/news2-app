@@ -1,14 +1,7 @@
 import { getGemini, geminiModel, isGeminiConfigured } from "@/lib/gemini";
-import { generateText, Output } from "ai";
-import { z } from "zod";
+import { generateText } from "ai";
 import { fetchHeadlines } from "@/lib/newsApi";
 import { NextResponse } from "next/server";
-
-const summarySchema = z.object({
-  domestic: z.array(z.string()),
-  international: z.array(z.string()),
-  economy: z.array(z.string()),
-});
 
 // In-memory cache for daily summaries (avoids re-calling Gemini on every load).
 const summaryCache = new Map<string, { ts: number; data: object }>();
@@ -57,39 +50,60 @@ export async function POST() {
       .map((a, i) => `${i + 1}. [${a.source}] ${a.title}`)
       .join("\n");
 
-    // Ask the AI to categorize and summarize. We use Output.object with a Zod
-    // schema to force structured JSON output, which is the most reliable way
-    // to get valid JSON from any model (including thinking models that ignore
-    // plain-text "output JSON only" instructions).
-    // Ask the AI to categorize and summarize. We use Output.object with a Zod
-    // schema to force structured JSON output. We also disable thinking
-    // (thinkingBudget: 0) since structured output requires the model to
-    // produce direct JSON rather than reasoning first.
+    // Ask the AI to categorize and summarize. We use structuredOutputs: true
+    // (Gemini's native structured output) + thinkingBudget: 0 (no thinking)
+    // to get fast, reliable JSON output. We then robustly extract the JSON
+    // from the response text.
     const { text } = await generateText({
       model: getGemini(),
-      output: Output.object({ schema: summarySchema }),
-      system: `ニュース見出しを3カテゴリに分類し、各カテゴリ2〜4項目の短い要約(20〜40文字)を作成してください。
-カテゴリ: domestic(国内), international(国外), economy(経済)`,
+      system: `ニュース見出しを3カテゴリに分類し、JSONで出力してください。
+各カテゴリ2〜4項目、1項目20〜40文字の短い要約。
+カテゴリ: domestic(国内), international(国外), economy(経済)
+出力はJSONのみ。`,
       prompt: `以下の見出しを要約してください:
 
 ${newsText}`,
       temperature: 0.2,
       maxOutputTokens: 600,
       maxRetries: 1,
-      timeout: 60_000, // 60s timeout per attempt (Vercel function limit is 100s)
+      timeout: 50_000,
       providerOptions: {
         google: {
-          thinkingConfig: {
-            thinkingBudget: 0,
-          },
+          thinkingConfig: { thinkingBudget: 0 },
+          structuredOutputs: true,
         },
       },
     });
 
-    // Parse the JSON (Output.object guarantees valid JSON in `text`).
+    // Extract the JSON object from the response (may be wrapped in code fences).
     let parsed: { domestic: string[]; international: string[]; economy: string[] };
     try {
-      parsed = JSON.parse(text);
+      const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const start = cleaned.indexOf("{");
+      if (start === -1) throw new Error("No JSON object found");
+      let depth = 0, end = -1;
+      for (let i = start; i < cleaned.length; i++) {
+        if (cleaned[i] === "{") depth++;
+        else if (cleaned[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+      }
+      let jsonStr: string;
+      if (end !== -1) {
+        jsonStr = cleaned.slice(start, end + 1);
+      } else {
+        // Truncated: repair by closing open brackets/braces.
+        jsonStr = cleaned.slice(start);
+        const qCount = (jsonStr.match(/"/g) || []).length;
+        if (qCount % 2 === 1) {
+          const lc = jsonStr.lastIndexOf('",');
+          if (lc > 0) jsonStr = jsonStr.slice(0, lc + 1);
+        }
+        jsonStr = jsonStr.replace(/,\s*$/, "");
+        const ob = (jsonStr.match(/\[/g) || []).length - (jsonStr.match(/\]/g) || []).length;
+        const oc = (jsonStr.match(/\{/g) || []).length - (jsonStr.match(/\}/g) || []).length;
+        for (let i = 0; i < Math.max(0, ob); i++) jsonStr += "]";
+        for (let i = 0; i < Math.max(0, oc); i++) jsonStr += "}";
+      }
+      parsed = JSON.parse(jsonStr);
     } catch {
       return NextResponse.json(
         { ok: false, error: "Failed to parse AI response as JSON.", raw: text },
