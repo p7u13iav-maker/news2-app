@@ -1,24 +1,22 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
-import { fetchHeadlines, mergeArticles } from "@/lib/newsApi";
+import { fetchHeadlines } from "@/lib/newsApi";
 import { NEWS_TAG } from "@/lib/news";
 
 /**
  * Vercel Cron target (see vercel.json). Runs once every morning and:
  *
- *  1. Forces a fresh fetch from NewsAPI (bypasses any caching).
+ *  1. Forces a fresh fetch of the RSS feeds (NHK + GIGAZINE), bypassing cache.
  *  2. Calls revalidateTag("news") so the next page request re-renders with the
  *     fresh headlines (stale-while-revalidate).
  *
  * The tag invalidation is what keeps the page current; the fetch above is a
- * cheap "warm-up" that also surfaces API errors in the cron logs.
+ * cheap "warm-up" that also surfaces feed errors in the cron logs.
  */
 export async function GET() {
   const started = Date.now();
   try {
-    // 日本語のトップニュース(jp)を取得
-    const japan = await fetchHeadlines();
-    const count = mergeArticles([japan]).length;
+    const count = (await fetchHeadlines()).length;
     revalidateTag(NEWS_TAG, "max");
     return NextResponse.json({
       ok: true,

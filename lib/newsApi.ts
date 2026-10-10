@@ -9,68 +9,150 @@ export interface Article {
 
 export const TOP_HEADLINES = 8;
 
-const BASE = "https://gnews.io/api/v4";
+/**
+ * RSS feed sources. Each is fetched directly over HTTPS (no API key required).
+ * NHK provides general news, GIGAZINE provides tech/science news.
+ */
+const FEEDS = [
+  {
+    label: "NHK",
+    url: "https://www3.nhk.or.jp/rss/news/cat0.xml",
+  },
+  {
+    label: "GIGAZINE",
+    url: "https://gigazine.net/news/rss_2.0/1/",
+  },
+];
+
+const FETCH_TIMEOUT_MS = 10_000;
+
+/** Decode common HTML entities that appear in RSS (e.g. &amp; &#45; &lt;). */
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) =>
+      String.fromCodePoint(parseInt(n, 16)),
+    )
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/** Unwrap CDATA if present, then decode entities. */
+function unwrapCdata(s: string): string {
+  const m = s.match(/<!\[CDATA\[([\s\S]*?)\]\]>/);
+  return m ? m[1] : s;
+}
+
+/** Extract a single XML tag value from a string (non-greedy). */
+function tagValue(xml: string, tag: string): string | null {
+  const re = new RegExp("<" + tag + "(?:\\s[^>]*)?>([\\s\\S]*?)</" + tag + ">");
+  const m = xml.match(re);
+  return m ? m[1].trim() : null;
+}
+
+/** Parse one RSS <item> block into an Article. Returns null on bad items. */
+function parseItem(itemXml: string, source: string): Article | null {
+  const rawTitle = tagValue(itemXml, "title");
+  if (!rawTitle) return null;
+  const title = decodeEntities(unwrapCdata(rawTitle)).trim();
+  if (!title) return null;
+
+  const rawLink = tagValue(itemXml, "link") ?? "";
+  let url = decodeEntities(unwrapCdata(rawLink)).trim();
+  // Normalise http -> https and drop stray whitespace.
+  if (url.startsWith("http://")) url = url.replace("http://", "https://");
+  if (!url.startsWith("http")) return null;
+
+  const rawDesc = tagValue(itemXml, "description");
+  let description: string | null = null;
+  if (rawDesc) {
+    const plain = decodeEntities(unwrapCdata(rawDesc)).replace(/<[^>]+>/g, " ");
+    description = plain.replace(/\s+/g, " ").trim().slice(0, 220) || null;
+  }
+
+  // Image: prefer <enclosure ... type="image/...">, then <img src> in description.
+  let urlToImage: string | null = null;
+  const enc = itemXml.match(
+    /<enclosure[^>]+url="([^"]+)"[^>]+type="image\/[^"]*"/,
+  );
+  if (enc) urlToImage = decodeEntities(enc[1]);
+  if (!urlToImage && rawDesc) {
+    const img = rawDesc.match(/<img[^>]+src="([^"]+)"/);
+    if (img) urlToImage = decodeEntities(img[1]);
+  }
+
+  const rawDate =
+    tagValue(itemXml, "pubDate") ?? tagValue(itemXml, "dc:date") ?? "";
+  const publishedAt =
+    rawDate && !Number.isNaN(new Date(rawDate).getTime())
+      ? new Date(rawDate).toISOString()
+      : new Date().toISOString();
+
+  return {
+    source,
+    title,
+    description,
+    url,
+    urlToImage,
+    publishedAt,
+  };
+}
+
+/** Fetch and parse a single RSS feed into an Article list. */
+async function fetchFeed(feed: {
+  label: string;
+  url: string;
+}): Promise<Article[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(feed.url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; MorningNewsBot/1.0; +https://news2-app-p7u13iav.vercel.app)",
+        accept: "application/rss+xml, application/xml, text/xml",
+      },
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} from ${feed.url}`);
+    }
+    const xml = await res.text();
+    // Split into <item>...</item> blocks.
+    const items = xml
+      .split(/<item[\s>]/)
+      .slice(1)
+      .map((block) => {
+        // Re-attach the opening tag so tagValue works on the full item.
+        const closeIdx = block.indexOf("</item>");
+        return "<item>" + (closeIdx >= 0 ? block.slice(0, closeIdx) : block);
+      });
+    const out: Article[] = [];
+    for (const item of items) {
+      const a = parseItem(item, feed.label);
+      if (a) out.push(a);
+    }
+    return out;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
- * Fetch Japanese top headlines from GNews (https://gnews.io).
- *
- * GNews key is read from the GNEWS_KEY env var, set as a project-level
- * environment variable on Vercel.
- *
- * We use the /top-headlines endpoint with lang=ja & country=jp, which is
- * reliable for Japanese news (unlike NewsAPI, where country=jp returns 0).
+ * Fetch all configured RSS feeds in parallel. A failing feed is skipped so a
+ * single broken source never takes down the whole page.
  */
 export async function fetchHeadlines(): Promise<Article[]> {
-  const key = process.env.GNEWS_KEY;
-  if (!key) {
-    // No key configured. Return an empty list; the UI shows a hint.
-    return [];
-  }
-
-  const params = new URLSearchParams({
-    lang: "ja",
-    country: "jp",
-    max: "20",
-    apikey: key,
-  });
-
-  const res = await fetch(`${BASE}/top-headlines?${params.toString()}`, {
-    headers: { accept: "application/json" },
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(
-      `GNews request failed: ${res.status} ${body.slice(0, 200)}`,
-    );
-  }
-  const json = (await res.json()) as {
-    articles?: Array<{
-      title: string | null;
-      description: string | null;
-      url: string | null;
-      image: string | null;
-      publishedAt: string | null;
-      source?: { name: string | null };
-    }>;
-    errors?: string[];
-  };
-
-  // GNews returns { errors: [...] } on rate-limit or quota issues.
-  if (json.errors && json.errors.length > 0) {
-    throw new Error(`GNews error: ${json.errors.join(", ")}`);
-  }
-  if (!json.articles || json.articles.length === 0) return [];
-
-  return json.articles
-    .filter((a) => a.title && a.url)
-    .map((a) => ({
-      source: a.source?.name ?? "Unknown",
-      title: a.title as string,
-      description: a.description,
-      url: a.url as string,
-      urlToImage: a.image,
-      publishedAt: a.publishedAt ?? new Date().toISOString(),
-    }));
+  const results = await Promise.allSettled(
+    FEEDS.map((f) => fetchFeed(f)),
+  );
+  const lists = results
+    .filter((r): r is PromiseFulfilledResult<Article[]> => r.status === "fulfilled")
+    .map((r) => r.value);
+  return mergeArticles(lists);
 }
 
 /**

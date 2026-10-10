@@ -1,9 +1,5 @@
 import { cacheLife, cacheTag } from "next/cache";
-import {
-  fetchHeadlines,
-  mergeArticles,
-  type Article,
-} from "./newsApi";
+import { fetchHeadlines, type Article } from "./newsApi";
 
 /**
  * Cache tag used to invalidate the news cache on-demand. The morning cron
@@ -15,8 +11,8 @@ export const NEWS_TAG = "news";
 /**
  * Cached access to the morning news.
  *
- * - `cacheLife('minutes')` keeps the page fresh without hammering NewsAPI on
- *   every request (1 min revalidate / 5 min stale / 1 h expire).
+ * - `cacheLife('minutes')` keeps the page fresh without re-fetching the RSS
+ *   feeds on every request (1 min revalidate / 5 min stale / 1 h expire).
  * - `cacheTag(NEWS_TAG)` lets the cron force an on-demand invalidation every
  *   morning so the very first visitor of the day gets the freshest batch.
  *
@@ -28,17 +24,11 @@ export async function getMorningNews(): Promise<Article[]> {
   cacheLife("minutes");
   cacheTag(NEWS_TAG);
 
-  const hasKey = Boolean(process.env.GNEWS_KEY);
-  if (!hasKey) return [];
-
   try {
-    // 日本語のトップニュース(jp)を取得
-    const japan = await fetchHeadlines();
-    return mergeArticles([japan]);
+    // Fetch NHK + GIGAZINE RSS feeds (no API key required).
+    return await fetchHeadlines();
   } catch {
-    // On any upstream failure, return whatever the last successful fetch
-    // cached. If there is nothing cached, an empty list is returned and the
-    // page shows a friendly hint.
+    // On any upstream failure, return an empty list; the page shows a hint.
     return [];
   }
 }
