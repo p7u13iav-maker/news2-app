@@ -10,6 +10,7 @@ import {
   fetchOrderStatistics,
   type OrderMonth,
 } from "@/lib/orderStatistics";
+import { fetchJisfComment, type JisfComment } from "@/lib/jisfComment";
 
 /**
  * GET /api/steel
@@ -161,7 +162,7 @@ export async function GET() {
 
   try {
     // Fetch all data sources in parallel.
-    const [production, worldSteel, supplyDemand, orders, stockResults] =
+    const [production, worldSteel, supplyDemand, orders, jisfComment, stockResults] =
       await Promise.all([
         fetchJisfProduction(12).catch(() => []),
         fetchWorldSteelProduction(12).catch(() => []),
@@ -169,6 +170,7 @@ export async function GET() {
           () => ({ summary: null, trend: [] }),
         ),
         fetchOrderStatistics(12).catch(() => []),
+        fetchJisfComment().catch(() => null),
         Promise.all(
           STOCKS.map(async (s) => {
             const points = await fetchStock(s.symbol);
@@ -196,6 +198,7 @@ export async function GET() {
       worldSteel,
       supplyDemand,
       orders,
+      jisfComment,
       stocks: stockResults,
       comment,
     };
