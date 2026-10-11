@@ -564,6 +564,7 @@ function TideWidget({ tide }: { tide: TideData }) {
 export default function WeatherPage() {
   const [clock, setClock] = useState<Date | null>(null);
   const [data, setData] = useState<WeatherData | null>(null);
+  const [tide, setTide] = useState<TideData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Live clock.
@@ -582,6 +583,7 @@ export default function WeatherPage() {
         if (cancelled) return;
         if (j.ok && j.weather) {
           setData(j.weather);
+          setTide(j.tide ?? null);
         } else {
           setError(j.error ?? "天気データを取得できませんでした。");
         }
@@ -757,6 +759,12 @@ export default function WeatherPage() {
                     </div>
                   </div>
                 </div>
+                {/* Tide (Mizushima, Kurashiki) — full/low tide times + tide name. */}
+                {tide && (
+                  <div className="mt-3 rounded-xl border border-sky-300/20 bg-sky-950/20 p-3">
+                    <TideWidget tide={tide} />
+                  </div>
+                )}
               </div>
 
               {/* Cell 4 (bottom-right): Rule-based one-line summary. */}
