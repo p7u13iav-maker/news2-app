@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Article } from "@/lib/newsApi";
 import MarketSparklines from "@/components/MarketSparklines";
-import { WeatherSlide, type WeatherData, type TideData } from "@/components/WeatherSlide";
+import {
+  WeatherSlide,
+  skyGradient,
+  type WeatherData,
+  type TideData,
+} from "@/components/WeatherSlide";
 import SteelSlide, { type SteelData } from "@/components/SteelSlide";
 import { ZODIAC_SIGNS, type ZodiacKey } from "@/lib/zodiac";
 
@@ -255,6 +260,14 @@ export default function UnifiedSignage({
 
   const current = slides[index];
 
+  // Whole-signage background: on the weather slide it adopts the
+  // weather-dependent gradient (same as /weather) so the full screen shifts
+  // with the weather; every other slide keeps the neutral slate gradient.
+  const signageBackground =
+    current.kind === "weather" && weatherData
+      ? skyGradient(weatherData.current.weatherCode)
+      : "radial-gradient(120% 120% at 15% 10%, #1e293b 0%, #0b1120 45%, #020617 100%)";
+
   // Section label shown as a small badge (title is unified across pages).
   const sectionLabel =
     current.kind === "steel"
@@ -269,13 +282,11 @@ export default function UnifiedSignage({
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-zinc-950 text-white">
-      {/* Background gradient. */}
+      {/* Background gradient. On the weather slide the weather-dependent
+          sky gradient (same as /weather) extends across the whole screen. */}
       <div
         className="absolute inset-0 opacity-90 transition-all duration-1000"
-        style={{
-          background:
-            "radial-gradient(120% 120% at 15% 10%, #1e293b 0%, #0b1120 45%, #020617 100%)",
-        }}
+        style={{ background: signageBackground }}
       />
       {/* Accent glow that shifts hue per slide. */}
       <div

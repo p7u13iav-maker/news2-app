@@ -94,7 +94,7 @@ function fmtTime(iso: string): string {
 }
 
 /** Background gradient based on weather type. */
-function skyGradient(code: number): string {
+export function skyGradient(code: number): string {
   const isRain = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
   const isSnow = (code >= 71 && code <= 77) || (code >= 85 && code <= 86);
   const isCloud = code === 2 || code === 3;
@@ -1079,12 +1079,9 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
 
   if (embedded) {
     return (
-      <div className="relative flex h-full flex-col overflow-hidden bg-slate-950 text-white">
-        {/* Background gradient (changes with the weather). */}
-        <div
-          className="absolute inset-0 opacity-90"
-          style={{ background: bg }}
-        />
+      <div className="relative flex h-full flex-col overflow-hidden text-white">
+        {/* Sky gradient is carried by the signage background in embedded mode,
+            so it isn't painted here (only the slide area would be covered). */}
         {main}
       </div>
     );
