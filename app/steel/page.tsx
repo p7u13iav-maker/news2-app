@@ -467,11 +467,13 @@ function ValueRow({
   unit,
   change,
   changeLabel,
+  period,
 }: {
   value: string;
   unit: string;
   change?: number | null;
   changeLabel?: string;
+  period?: string;
 }) {
   const up = (change ?? 0) >= 0;
   return (
@@ -479,6 +481,9 @@ function ValueRow({
       <p className="font-mono text-lg font-bold leading-tight tabular-nums text-white">
         {value}
         <span className="ml-1 text-xs font-normal text-white/40">{unit}</span>
+        {period && (
+          <span className="ml-1.5 text-[10px] font-normal text-white/35">{period}</span>
+        )}
       </p>
       {change !== undefined && change !== null && (
         <span
@@ -661,6 +666,7 @@ export default function SteelPage() {
                           unit="万トン"
                           change={data.production[data.production.length - 1].yoy}
                           changeLabel="前年比"
+                          period={`${data.production[data.production.length - 1].month}月`}
                         />
                       </div>
                     )}
@@ -686,6 +692,7 @@ export default function SteelPage() {
                           unit="万トン"
                           change={data.worldSteel[data.worldSteel.length - 1].yoy}
                           changeLabel="前年比"
+                          period={`${data.worldSteel[data.worldSteel.length - 1].month}月`}
                         />
                       </div>
                     )}
@@ -792,6 +799,7 @@ export default function SteelPage() {
                           unit="万トン"
                           change={sdMom("carbonSteel")}
                           changeLabel="前月比"
+                          period={`${sdTrend[sdTrend.length - 1].month}月`}
                         />
                       </div>
                     )}
@@ -818,6 +826,7 @@ export default function SteelPage() {
                           unit="万トン"
                           change={sdMom("shipmentsTotal")}
                           changeLabel="前月比"
+                          period={`${sdTrend[sdTrend.length - 1].month}月`}
                         />
                       </div>
                     )}
@@ -860,6 +869,7 @@ export default function SteelPage() {
                           unit="万トン"
                           change={sdMom("inventory")}
                           changeLabel="前月比"
+                          period={`${sdTrend[sdTrend.length - 1].month}月`}
                         />
                       </div>
                     )}
@@ -890,6 +900,7 @@ export default function SteelPage() {
                         <ValueRow
                           value={orderLatest.total.toFixed(1)}
                           unit="万トン"
+                          period={`${orderLatest.month}月`}
                         />
                       </div>
                     )}
