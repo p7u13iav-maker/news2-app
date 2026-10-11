@@ -958,20 +958,25 @@ export default function SteelPage() {
                     受注量合計
                   </p>
                   {(() => {
-                    const missing = orders
-                      .slice(1)
-                      .filter((o, i) => {
-                        const prev = orders[i];
-                        const expected =
-                          prev.month === 12
-                            ? { y: prev.year + 1, m: 1 }
-                            : { y: prev.year, m: prev.month + 1 };
-                        return o.year !== expected.y || o.month !== expected.m;
-                      })
-                      .map((o) => `前月${o.month}月`);
+                    const missing: string[] = [];
+                    for (let i = 0; i < orders.length - 1; i++) {
+                      const prev = orders[i];
+                      const next = orders[i + 1];
+                      const expected =
+                        prev.month === 12
+                          ? { y: prev.year + 1, m: 1 }
+                          : { y: prev.year, m: prev.month + 1 };
+                      // Missing month = the month right after prev.
+                      if (
+                        next.year !== expected.y ||
+                        next.month !== expected.m
+                      ) {
+                        missing.push(`${expected.y}年${expected.m}月`);
+                      }
+                    }
                     return missing.length > 0 ? (
                       <p className="mt-0.5 text-[10px] text-amber-300/80">
-                        ※ {missing.join("、")}のデータなし（0として表示）
+                        ※ {missing.join("、")}のデータなし
                       </p>
                     ) : null;
                   })()}
