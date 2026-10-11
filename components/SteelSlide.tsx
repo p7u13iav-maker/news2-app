@@ -1086,7 +1086,7 @@ function SteelSlide({
 
   if (embedded) {
     return (
-      <div className="flex h-full w-full flex-col overflow-hidden bg-slate-950 text-white">
+      <div className="flex h-full w-full flex-col overflow-hidden text-white">
         {content}
       </div>
     );
