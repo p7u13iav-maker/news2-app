@@ -75,7 +75,7 @@ export function buildMarketComment(markets: MarketSeries[]): string[] {
   const line1Parts: string[] = [];
   if (fx) {
     const dir = fx.diff >= 0 ? "円安" : "円高";
-    const pctStr = Math.abs(fx.pct) >= 0.5 ? ` (${fx.pct >= 0 ? "+" : ""}${fmtNum(fx.pct, false)}%)` : "";
+    const pctStr = Math.abs(fx.pct) >= 0.5 ? ` (3ヶ月${fx.pct >= 0 ? "+" : ""}${fmtNum(fx.pct, false)}%)` : "";
     line1Parts.push(`円/ドルは${fmtNum(fx.last, false)}円${pctStr}の${dir}傾向`);
   }
   if (y10) {
@@ -128,7 +128,7 @@ export function buildMarketComment(markets: MarketSeries[]): string[] {
               ? "下落"
               : "下落基調";
     lines.push(
-      `日本: 日経平均は${nj}(3ヶ月${nk.diff >= 0 ? "+" : ""}${fmtNum(nk.diff, INTEGER_KEYS.has("nikkei"))}円)、JFEは${fmtNum(jfe.last, true)}円。`,
+      `日本株: 日経平均は${nj}(3ヶ月${nk.pct >= 0 ? "+" : ""}${fmtNum(nk.pct, false)}%)、JFEは${fmtNum(jfe.last, true)}円。`,
     );
   }
 

@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { fetchJisfProduction } from "@/lib/jisfProduction";
+import { fetchWorldSteelProduction } from "@/lib/worldSteel";
 
 /**
  * GET /api/steel
  *
  * Fetches steel industry indicators:
  *   1. Japan crude steel & pig iron production (JISF monthly Excel)
- *   2. Related stock prices (Nippon Steel, JFE, Daido Steel, Nikkei 225)
- *   3. WTI crude oil price
+ *   2. World crude steel production (worldsteel via statorigin.org, CC BY 4.0)
+ *   3. Related stock prices (Nippon Steel, JFE, Daido Steel, Nikkei 225)
+ *   4. WTI crude oil price
  *
  * Returns JSON with production data, stock prices, and a rule-based comment.
  */
@@ -94,11 +96,12 @@ function todayKey(): string {
 /** Build a rule-based comment from the data. */
 function buildComment(
   production: { year: number; month: number; pigIron: number; crudeSteel: number; yoy: number }[],
+  worldSteel: { year: number; month: number; worldCrudeSteel: number; yoy: number }[],
   stocks: StockData[],
-): string {
+): string[] {
   const lines: string[] = [];
 
-  // Production comment.
+  // Japan production comment.
   if (production.length >= 2) {
     const latest = production[production.length - 1];
     const prev = production[production.length - 2];
@@ -106,9 +109,16 @@ function buildComment(
       prev.crudeSteel > 0
         ? ((latest.crudeSteel - prev.crudeSteel) / prev.crudeSteel) * 100
         : 0;
-    const momStr = mom >= 0 ? "増" : "減";
     lines.push(
       `日本粗鋼生産は${latest.year}年${latest.month}月に${latest.crudeSteel.toFixed(1)}万トン(前月比${mom >= 0 ? "+" : ""}${mom.toFixed(1)}%、前年同月比${latest.yoy >= 0 ? "+" : ""}${latest.yoy.toFixed(1)}%)。`,
+    );
+  }
+
+  // World production comment.
+  if (worldSteel.length >= 1) {
+    const latest = worldSteel[worldSteel.length - 1];
+    lines.push(
+      `世界粗鋼生産は${latest.year}年${latest.month}月に${latest.worldCrudeSteel.toFixed(1)}百万トン(前年同月比${latest.yoy >= 0 ? "+" : ""}${latest.yoy.toFixed(1)}%)。`,
     );
   }
 
@@ -130,7 +140,7 @@ function buildComment(
     lines.push(`WTI原油は${wtiDir}(${wti.last.toFixed(1)}ドル)。`);
   }
 
-  return lines.join("") || "データを取得中です。";
+  return lines.length > 0 ? lines : ["データを取得中です。"];
 }
 
 export async function GET() {
@@ -142,8 +152,9 @@ export async function GET() {
 
   try {
     // Fetch production and stocks in parallel.
-    const [production, stockResults] = await Promise.all([
+    const [production, worldSteel, stockResults] = await Promise.all([
       fetchJisfProduction(12).catch(() => []),
+      fetchWorldSteelProduction(12).catch(() => []),
       Promise.all(
         STOCKS.map(async (s) => {
           const points = await fetchStock(s.symbol);
@@ -162,12 +173,13 @@ export async function GET() {
       ),
     ]);
 
-    const comment = buildComment(production, stockResults);
+    const comment = buildComment(production, worldSteel, stockResults);
 
     const data = {
       ok: true,
       fetchedAt: Date.now(),
       production,
+      worldSteel,
       stocks: stockResults,
       comment,
     };

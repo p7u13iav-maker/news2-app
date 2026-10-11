@@ -10,6 +10,15 @@ interface ProductionMonth {
   yoy: number;
 }
 
+interface WorldSteelMonth {
+  year: number;
+  month: number;
+  period: string;
+  worldCrudeSteel: number;
+  japanCrudeSteel?: number;
+  yoy: number;
+}
+
 interface StockPoint {
   t: number;
   v: number;
@@ -29,8 +38,9 @@ interface SteelData {
   ok: boolean;
   fetchedAt: number;
   production: ProductionMonth[];
+  worldSteel: WorldSteelMonth[];
   stocks: StockData[];
-  comment: string;
+  comment: string[];
   error?: string;
 }
 
@@ -77,10 +87,10 @@ function Sparkline({
   );
 }
 
-/** Monthly production bar chart (last 12 months). */
-function ProductionChart({ data }: { data: ProductionMonth[] }) {
+/** Monthly production bar chart. */
+function ProductionChart({ data, unit }: { data: { month: number; value: number }[]; unit: string }) {
   if (data.length === 0) return null;
-  const vals = data.map((d) => d.crudeSteel);
+  const vals = data.map((d) => d.value);
   const min = Math.min(...vals) * 0.95;
   const max = Math.max(...vals) * 1.05;
   const range = max - min || 1;
@@ -94,7 +104,7 @@ function ProductionChart({ data }: { data: ProductionMonth[] }) {
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: "120px" }}>
         {data.map((d, i) => {
           const x = PAD + (i * (W - 2 * PAD)) / data.length + 1;
-          const barH = ((d.crudeSteel - min) / range) * (H - 20);
+          const barH = ((d.value - min) / range) * (H - 20);
           const y = H - 16 - barH;
           const isLatest = i === data.length - 1;
           return (
@@ -107,7 +117,6 @@ function ProductionChart({ data }: { data: ProductionMonth[] }) {
                 rx={2}
                 fill={isLatest ? "#38bdf8" : "rgba(56,189,248,0.4)"}
               />
-              {/* Month label. */}
               <text
                 x={x + barW / 2}
                 y={H - 4}
@@ -117,7 +126,6 @@ function ProductionChart({ data }: { data: ProductionMonth[] }) {
               >
                 {d.month}月
               </text>
-              {/* Value on top. */}
               {isLatest && (
                 <text
                   x={x + barW / 2}
@@ -127,7 +135,7 @@ function ProductionChart({ data }: { data: ProductionMonth[] }) {
                   fontSize="9"
                   fontWeight="bold"
                 >
-                  {d.crudeSteel.toFixed(0)}
+                  {d.value.toFixed(0)}
                 </text>
               )}
             </g>
@@ -241,19 +249,26 @@ export default function SteelPage() {
             {/* Comment box. */}
             <div className="shrink-0 rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm leading-relaxed">
               <span className="mr-2">💬</span>
-              <span className="text-white/85">{data.comment}</span>
+              <div className="space-y-1">
+                {data.comment.map((line, i) => (
+                  <p key={i} className="text-white/85">{line}</p>
+                ))}
+              </div>
             </div>
 
-            {/* 3-column grid: Production | Stocks | (empty or extra). */}
-            <div className="grid min-h-0 flex-1 grid-cols-2 gap-4">
-              {/* Left: Production. */}
+            {/* 3-column grid: Japan Production | World Production | Stocks. */}
+            <div className="grid min-h-0 flex-1 grid-cols-3 gap-4">
+              {/* Left: Japan Production. */}
               <div className="flex min-h-0 flex-col rounded-xl border border-white/5 bg-white/5 p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="text-lg">📊</span>
-                  <h2 className="text-lg font-bold">日本粗鋼生産 (月次)</h2>
+                  <span className="text-lg">🇯🇵</span>
+                  <h2 className="text-lg font-bold">日本粗鋼生産 (JISF)</h2>
                 </div>
                 <div className="min-h-0 flex-1">
-                  <ProductionChart data={data.production} />
+                  <ProductionChart
+                    data={data.production.map((p) => ({ month: p.month, value: p.crudeSteel }))}
+                    unit="万トン"
+                  />
                 </div>
                 {data.production.length > 0 && (
                   <div className="mt-3 grid grid-cols-3 gap-2 text-center">
@@ -271,6 +286,41 @@ export default function SteelPage() {
                         >
                           {p.yoy >= 0 ? "+" : ""}
                           {p.yoy.toFixed(1)}%
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Center: World Production. */}
+              <div className="flex min-h-0 flex-col rounded-xl border border-white/5 bg-white/5 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="text-lg">🌍</span>
+                  <h2 className="text-lg font-bold">世界粗鋼生産 (worldsteel)</h2>
+                </div>
+                <div className="min-h-0 flex-1">
+                  <ProductionChart
+                    data={data.worldSteel.map((w) => ({ month: w.month, value: w.worldCrudeSteel }))}
+                    unit="百万トン"
+                  />
+                </div>
+                {data.worldSteel.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    {data.worldSteel.slice(-3).map((w, i) => (
+                      <div key={i} className="rounded-lg bg-white/5 p-2">
+                        <p className="text-xs text-white/40">
+                          {w.year}年{w.month}月
+                        </p>
+                        <p className="font-mono text-sm font-semibold text-emerald-300">
+                          {w.worldCrudeSteel.toFixed(1)}
+                          <span className="ml-0.5 text-xs text-white/40">Mt</span>
+                        </p>
+                        <p
+                          className={`text-xs ${w.yoy >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                        >
+                          {w.yoy >= 0 ? "+" : ""}
+                          {w.yoy.toFixed(1)}%
                         </p>
                       </div>
                     ))}
@@ -367,6 +417,9 @@ export default function SteelPage() {
             ⛅ 天気 →
           </a>
         </div>
+        <p className="text-xs text-white/30">
+          出典: JISF, worldsteel (CC BY 4.0)
+        </p>
       </footer>
     </div>
   );
