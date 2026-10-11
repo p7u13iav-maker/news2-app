@@ -18,6 +18,8 @@ export interface WeatherCurrent {
   weatherCode: number;
   windSpeed: number;
   windDirection: number;
+  pressureMsl: number;
+  cloudCover: number;
 }
 
 export interface WeatherHourly {
@@ -36,6 +38,9 @@ export interface WeatherDaily {
   weatherCode: number;
   sunrise: string;
   sunset: string;
+  uvIndexMax: number;
+  precipitationSum: number;
+  windGustsMax: number;
 }
 
 export interface WeatherData {
@@ -71,9 +76,9 @@ function windDirectionJa(deg: number): string {
 export async function fetchWeather(): Promise<WeatherData> {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
-    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m` +
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl,cloud_cover` +
     `&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m` +
-    `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,sunrise,sunset` +
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,sunrise,sunset,uv_index_max,precipitation_sum,wind_gusts_10m_max` +
     `&timezone=${TIMEZONE}&forecast_days=1`;
 
   const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
@@ -88,6 +93,8 @@ export async function fetchWeather(): Promise<WeatherData> {
     weatherCode: json.current.weather_code,
     windSpeed: json.current.wind_speed_10m,
     windDirection: json.current.wind_direction_10m,
+    pressureMsl: json.current.pressure_msl,
+    cloudCover: json.current.cloud_cover,
   };
 
   const hourly: WeatherHourly[] = json.hourly.time.map(
@@ -108,6 +115,9 @@ export async function fetchWeather(): Promise<WeatherData> {
     weatherCode: json.daily.weather_code[0],
     sunrise: json.daily.sunrise[0],
     sunset: json.daily.sunset[0],
+    uvIndexMax: json.daily.uv_index_max[0] ?? 0,
+    precipitationSum: json.daily.precipitation_sum[0] ?? 0,
+    windGustsMax: json.daily.wind_gusts_10m_max[0] ?? 0,
   };
 
   return { current, hourly, daily };

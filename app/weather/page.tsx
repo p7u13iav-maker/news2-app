@@ -19,6 +19,8 @@ interface WeatherCurrent {
   weatherCode: number;
   windSpeed: number;
   windDirection: number;
+  pressureMsl: number;
+  cloudCover: number;
   label: string;
   emoji: string;
   windDirectionLabel: string;
@@ -42,6 +44,9 @@ interface WeatherDaily {
   weatherCode: number;
   sunrise: string;
   sunset: string;
+  uvIndexMax: number;
+  precipitationSum: number;
+  windGustsMax: number;
   label: string;
   emoji: string;
 }
@@ -148,7 +153,10 @@ function weatherSummary(c: WeatherCurrent, d: WeatherDaily): string {
   else if (d.maxTemp >= 10) parts.push("肌寒い一日、羽織ものがあると安心です");
   else parts.push("厳しい寒さ、防寒着を忘れずに");
 
-  if (c.windSpeed >= 20) parts.push("強めの風が吹く見込み、小物や帽子に注意を");
+  if (c.windSpeed >= 20 || d.windGustsMax >= 25) parts.push("強めの風が吹く見込み、小物や帽子に注意を");
+
+  if (d.uvIndexMax >= 8) parts.push("紫外線が非常に強い、日焼け対策を");
+  else if (d.uvIndexMax >= 6) parts.push("紫外線が強い、日焼け止めをおすすめします");
 
   return parts.join("。") + "。";
 }
@@ -690,80 +698,119 @@ export default function WeatherPage() {
                 </p>
               </div>
 
-              {/* Cell 2 (top-right): Today overview (max/min/precip). */}
+              {/* Cell 2 (top-right): Today overview (max/min/precip/UV/precip amount). */}
               <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
                 <p className="text-sm font-medium text-white/50">
                   今日の天気
                 </p>
-                <div className="mt-3 grid grid-cols-3 gap-3">
+                <div className="mt-3 grid grid-cols-5 gap-2">
                   <div className="flex flex-col">
-                    <p className="text-xs font-medium text-white/50">
+                    <p className="text-[11px] font-medium text-white/50">
                       最高気温
                     </p>
-                    <p className="mt-1 font-mono text-4xl font-bold tabular-nums text-orange-300">
+                    <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-orange-300">
                       {Math.round(d!.maxTemp)}
-                      <span className="text-lg font-medium">°C</span>
+                      <span className="text-sm font-medium">°C</span>
                     </p>
                   </div>
                   <div className="flex flex-col">
-                    <p className="text-xs font-medium text-white/50">
+                    <p className="text-[11px] font-medium text-white/50">
                       最低気温
                     </p>
-                    <p className="mt-1 font-mono text-4xl font-bold tabular-nums text-sky-300">
+                    <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-sky-300">
                       {Math.round(d!.minTemp)}
-                      <span className="text-lg font-medium">°C</span>
+                      <span className="text-sm font-medium">°C</span>
                     </p>
                   </div>
                   <div className="flex flex-col">
-                    <p className="text-xs font-medium text-white/50">
+                    <p className="text-[11px] font-medium text-white/50">
                       降水確率
                     </p>
-                    <p className="mt-1 font-mono text-4xl font-bold tabular-nums text-blue-200">
+                    <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-blue-200">
                       {d!.maxPrecipProb}
-                      <span className="text-lg font-medium">%</span>
+                      <span className="text-sm font-medium">%</span>
+                    </p>
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-[11px] font-medium text-white/50">
+                      紫外線
+                    </p>
+                    <p className={`mt-1 font-mono text-3xl font-bold tabular-nums ${
+                      d!.uvIndexMax >= 8 ? "text-rose-300" :
+                      d!.uvIndexMax >= 6 ? "text-amber-300" :
+                      d!.uvIndexMax >= 3 ? "text-yellow-200" : "text-emerald-300"
+                    }`}>
+                      {d!.uvIndexMax.toFixed(0)}
+                    </p>
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-[11px] font-medium text-white/50">
+                      降水量
+                    </p>
+                    <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-blue-200">
+                      {d!.precipitationSum.toFixed(1)}
+                      <span className="text-sm font-medium">mm</span>
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Cell 3 (bottom-left): Details (humidity/wind/sunrise/sunset). */}
+              {/* Cell 3 (bottom-left): Details (humidity/wind/sunrise/sunset/pressure/cloud). */}
               <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
                 <p className="text-sm font-medium text-white/50">
                   詳細
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <div className="rounded-xl bg-white/5 p-3">
-                    <p className="text-[11px] text-white/50">湿度</p>
-                    <p className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="rounded-xl bg-white/5 p-2.5">
+                    <p className="text-[10px] text-white/50">湿度</p>
+                    <p className="mt-0.5 font-mono text-xl font-bold tabular-nums">
                       {c!.humidity}%
                     </p>
                   </div>
-                  <div className="rounded-xl bg-white/5 p-3">
-                    <p className="text-[11px] text-white/50">風</p>
-                    <p className="mt-1 font-mono text-2xl font-bold tabular-nums">
+                  <div className="rounded-xl bg-white/5 p-2.5">
+                    <p className="text-[10px] text-white/50">風</p>
+                    <p className="mt-0.5 font-mono text-xl font-bold tabular-nums">
                       {c!.windDirectionLabel} {c!.windSpeed.toFixed(1)}
-                      <span className="ml-0.5 text-xs font-normal text-white/40">
+                      <span className="ml-0.5 text-[10px] font-normal text-white/40">
                         m/s
                       </span>
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-                    <span className="text-xl">🌅</span>
+                  <div className="rounded-xl bg-white/5 p-2.5">
+                    <p className="text-[10px] text-white/50">気圧</p>
+                    <p className="mt-0.5 font-mono text-xl font-bold tabular-nums">
+                      {Math.round(c!.pressureMsl)}
+                      <span className="ml-0.5 text-[10px] font-normal text-white/40">
+                        hPa
+                      </span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-xl bg-white/5 p-2.5">
+                    <span className="text-lg">🌅</span>
                     <div>
-                      <p className="text-[11px] text-white/50">日の出</p>
-                      <p className="font-mono text-lg font-bold tabular-nums">
+                      <p className="text-[10px] text-white/50">日の出</p>
+                      <p className="font-mono text-base font-bold tabular-nums">
                         {fmtTime(d!.sunrise)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-                    <span className="text-xl">🌇</span>
+                  <div className="flex items-center gap-2 rounded-xl bg-white/5 p-2.5">
+                    <span className="text-lg">🌇</span>
                     <div>
-                      <p className="text-[11px] text-white/50">日の入り</p>
-                      <p className="font-mono text-lg font-bold tabular-nums">
+                      <p className="text-[10px] text-white/50">日の入り</p>
+                      <p className="font-mono text-base font-bold tabular-nums">
                         {fmtTime(d!.sunset)}
                       </p>
                     </div>
+                  </div>
+                  <div className="rounded-xl bg-white/5 p-2.5">
+                    <p className="text-[10px] text-white/50">雲量</p>
+                    <p className="mt-0.5 font-mono text-xl font-bold tabular-nums">
+                      {c!.cloudCover}
+                      <span className="ml-0.5 text-[10px] font-normal text-white/40">
+                        %
+                      </span>
+                    </p>
                   </div>
                 </div>
               </div>
