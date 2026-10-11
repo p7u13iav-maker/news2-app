@@ -42,7 +42,7 @@ function tideNameFromRange(range: number): string {
 }
 
 /** Parse one fixed-width line (136 chars) into a TideDay. */
-function parseLine(line: string, index: number): TideDay | null {
+function parseLine(line: string): TideDay | null {
   if (line.length < 136) return null;
 
   const ym = line.slice(72, 78).replace(/\s/g, "");
@@ -111,7 +111,7 @@ export async function fetchTideForDay(dateStr: string): Promise<TideDay | null> 
     const text = await res.text();
     const lines = text.split(/\r?\n/).filter((l) => l.length >= 136);
     for (const line of lines) {
-      const parsed = parseLine(line, 0);
+      const parsed = parseLine(line);
       if (parsed && parsed.date === dateStr) {
         return parsed;
       }

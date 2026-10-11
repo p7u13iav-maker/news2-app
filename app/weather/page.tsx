@@ -52,11 +52,30 @@ interface WeatherData {
   daily: WeatherDaily;
 }
 
+interface TideEvent {
+  time: string;
+  level: number;
+}
+
+interface TideData {
+  date: string;
+  tideName: string;
+  maxRange: number;
+  high: TideEvent[];
+  low: TideEvent[];
+}
+
 interface WeatherResponse {
   ok: boolean;
   fetchedAt?: number;
   weather?: WeatherData;
+  tide?: TideData | null;
   error?: string;
+}
+
+/** Compact HH:MM from a tide event time. */
+function fmtTideTime(time: string): string {
+  return time;
 }
 
 function fmtTime(iso: string): string {
@@ -491,6 +510,54 @@ function WeatherIcon({
         </>
       )}
     </g>
+  );
+}
+
+/**
+ * Compact tide widget: tide name (大潮/中潮/…), high/low tide times and
+ * levels. Fetched from JMA 潮位表 (Mizushima, Kurashiki) on the server.
+ */
+function TideWidget({ tide }: { tide: TideData }) {
+  return (
+    <div className="flex h-full flex-col justify-center gap-1.5">
+      {/* Tide name + range. */}
+      <div className="flex items-center justify-between">
+        <span className="rounded-md bg-sky-400/15 px-2 py-0.5 text-sm font-bold text-sky-200">
+          {tide.tideName}
+        </span>
+        <span className="font-mono text-[11px] tabular-nums text-white/40">
+          潮差 {tide.maxRange}cm
+        </span>
+      </div>
+      {/* High tides. */}
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-[11px] font-semibold text-rose-300">
+          満潮
+        </span>
+        <div className="flex flex-wrap gap-x-2">
+          {tide.high.map((h, i) => (
+            <span key={i} className="font-mono text-sm tabular-nums text-white/85">
+              {fmtTideTime(h.time)}
+              <span className="ml-1 text-[10px] text-white/40">{h.level}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+      {/* Low tides. */}
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-[11px] font-semibold text-sky-300">
+          干潮
+        </span>
+        <div className="flex flex-wrap gap-x-2">
+          {tide.low.map((l, i) => (
+            <span key={i} className="font-mono text-sm tabular-nums text-white/85">
+              {fmtTideTime(l.time)}
+              <span className="ml-1 text-[10px] text-white/40">{l.level}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 

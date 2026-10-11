@@ -5,6 +5,7 @@ import {
   windDirectionJa,
   type WeatherData,
 } from "@/lib/weather";
+import { fetchTideForDay, type TideDay } from "@/lib/tide";
 
 /**
  * GET /api/weather
@@ -40,7 +41,11 @@ export async function GET() {
   }
 
   try {
-    const data = await fetchWeatherWithLabels();
+    // Weather + tide are independent; fetch both in parallel.
+    const [data, tide] = await Promise.all([
+      fetchWeatherWithLabels(),
+      fetchTideForDay(todayKey()),
+    ]);
 
     // Annotate with Japanese labels so the client doesn't need to know
     // Open-Meteo's code scheme.
@@ -75,7 +80,13 @@ export async function GET() {
       dailyLabel: { label: string; emoji: string };
     };
 
-    const payload = { ok: true, fetchedAt: Date.now(), weather };
+    const payload = {
+      ok: true,
+      fetchedAt: Date.now(),
+      weather,
+      // Tide data (Mizushima, Kurashiki) — may be null if fetch failed.
+      tide: tide as TideDay | null,
+    };
     weatherCache.set(cacheKey, { ts: Date.now(), data: payload });
     return NextResponse.json(payload);
   } catch (e) {

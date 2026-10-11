@@ -469,17 +469,6 @@ export default function SteelPage() {
       ? ((orderLatest.total - orderPrev.total) / orderPrev.total) * 100
       : 0;
 
-  // Supply-demand comment (rule-based from inventory ratio + trends).
-  function sdComment(): string {
-    if (!sd?.summary) return "";
-    const s = sd.summary;
-    const ratio = s.inventoryRatio;
-    const ratioText =
-      ratio >= 120 ? "在庫が積み上がり需給はやや逼迫気味" : ratio >= 100 ? "在庫率は100%超え、需給はやや逼迫" : "在庫率は100%未満、需給はやや緩";
-    const prodDir = s.productionMom >= 100 ? "前月比増" : "前月比減";
-    return `${ratioText}(在庫率${ratio.toFixed(0)}%)。生産は${prodDir}。`;
-  }
-
   // Month-over-month change (%) for the latest vs previous trend entry.
   function sdMom(
     key: "carbonSteel" | "shipmentsTotal" | "inventory",
@@ -861,9 +850,6 @@ export default function SteelPage() {
                             );
                           })()}
                         </div>
-                        <p className="mt-0.5 text-[9px] leading-snug text-white/55">
-                          {sdComment()}
-                        </p>
                       </div>
                     )}
                   </Panel>
@@ -878,7 +864,7 @@ export default function SteelPage() {
                   <Panel className="row-span-2 flex flex-col overflow-hidden">
                     <div className="mb-0.5 flex shrink-0 items-center justify-between">
                       <p className="text-[11px] font-semibold text-white/80">
-                        受注 品目別（積み上げ）
+                        受注量合計
                       </p>
                       {orderLatest && (
                         <p className="font-mono text-base font-bold tabular-nums text-white">
@@ -962,7 +948,7 @@ export default function SteelPage() {
                   </Panel>
 
                   {/* Orders table by sector (bottom, 1 row). */}
-                  <Panel className="flex flex-col overflow-hidden">
+                  <Panel title="受注品目別" className="flex flex-col overflow-hidden">
                     <div className="min-h-0 flex-1">
                       <table className="w-full text-[11px]">
                         <thead>
