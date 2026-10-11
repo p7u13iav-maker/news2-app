@@ -3,9 +3,22 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Article } from "@/lib/newsApi";
 import MarketSparklines from "@/components/MarketSparklines";
+import { WeatherSlide, type WeatherData, type TideData } from "@/components/WeatherSlide";
+import SteelSlide, { type SteelData } from "@/components/SteelSlide";
 import { ZODIAC_SIGNS, type ZodiacKey } from "@/lib/zodiac";
 
-const SLIDE_MS = 10_000;
+/** Per-kind slide durations (ms). */
+const SLIDE_DURATIONS: Record<SlideKind, number> = {
+  steel: 15_000,
+  market: 10_000,
+  weather: 10_000,
+  news: 10_000,
+  horoscope: 10_000,
+};
+
+function slideDuration(kind: SlideKind): number {
+  return SLIDE_DURATIONS[kind];
+}
 
 /* ---------- Types ---------- */
 
@@ -18,7 +31,7 @@ interface HoroscopeData {
 
 /* ---------- Slide definitions ---------- */
 
-type SlideKind = "market" | "news" | "horoscope";
+type SlideKind = "steel" | "market" | "weather" | "news" | "horoscope";
 
 interface SlideDef {
   kind: SlideKind;
@@ -28,11 +41,13 @@ interface SlideDef {
 
 /**
  * Build the slide sequence:
- *   1 market, N news, 3 horoscope
+ *   1 steel, 1 market, 1 weather, N news, 3 horoscope
  */
 function buildSlides(newsCount: number): SlideDef[] {
   const slides: SlideDef[] = [];
+  slides.push({ kind: "steel" });
   slides.push({ kind: "market" });
+  slides.push({ kind: "weather" });
   for (let i = 0; i < newsCount; i++) slides.push({ kind: "news", sub: i });
   for (let i = 0; i < 3; i++) slides.push({ kind: "horoscope", sub: i });
   return slides;
@@ -146,9 +161,15 @@ export default function UnifiedSignage({
   const [progress, setProgress] = useState(0);
   const raf = useRef<number | null>(null);
   const start = useRef<number>(0);
+  const indexRef = useRef(0);
+  indexRef.current = index;
 
   // Data fetching (client-side, cached server-side for the day).
   const [horoscopeData, setHoroscopeData] = useState<HoroscopeData | null>(null);
+  const [steelData, setSteelData] = useState<SteelData | null>(null);
+  const [steelLoading, setSteelLoading] = useState(true);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [tideData, setTideData] = useState<TideData | null>(null);
   const [clock, setClock] = useState<Date | null>(null);
 
   // Live clock.
@@ -175,6 +196,23 @@ export default function UnifiedSignage({
     return () => clearTimeout(id);
   }, []);
 
+  // Fetch steel + weather on mount (parallel; server caches for the day).
+  useEffect(() => {
+    let cancelled = false;
+    // Steel
+    fetch("/api/steel")
+      .then((r) => r.json())
+      .then((j) => { if (!cancelled && j.ok) setSteelData(j); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setSteelLoading(false); });
+    // Weather
+    fetch("/api/weather")
+      .then((r) => r.json())
+      .then((j) => { if (!cancelled && j.ok && j.weather) { setWeatherData(j.weather); setTideData(j.tide ?? null); } })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   // Drive the slide + progress animation.
   useEffect(() => {
     if (total === 0) return;
@@ -182,9 +220,10 @@ export default function UnifiedSignage({
 
     const tick = (now: number) => {
       const elapsed = now - start.current;
-      const pct = Math.min(100, (elapsed / SLIDE_MS) * 100);
+      const dur = slideDuration(slides[indexRef.current].kind);
+      const pct = Math.min(100, (elapsed / dur) * 100);
       setProgress(pct);
-      if (elapsed >= SLIDE_MS) {
+      if (elapsed >= dur) {
         start.current = now;
         setProgress(0);
         setIndex((i) => (i + 1) % total);
@@ -212,11 +251,15 @@ export default function UnifiedSignage({
 
   // Section label shown as a small badge (title is unified across pages).
   const sectionLabel =
-    current.kind === "market"
-      ? "📊 市場データ"
-      : current.kind === "news"
-        ? "📰 ニューストピック"
-        : "✨ 今日の運勢";
+    current.kind === "steel"
+      ? "🏭 鉄鋼業インデックス"
+      : current.kind === "market"
+        ? "📊 市場データ"
+        : current.kind === "weather"
+          ? "⛅ 倉敷の天気"
+          : current.kind === "news"
+            ? "📰 ニューストピック"
+            : "✨ 今日の運勢";
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-zinc-950 text-white">
@@ -280,6 +323,24 @@ export default function UnifiedSignage({
         className="relative z-10 flex h-full min-h-0 flex-col px-14 pb-16 pt-24"
       >
         <div className="slide-enter h-full min-h-0 w-full">
+          {current.kind === "steel" &&
+            (steelData ? (
+              <SteelSlide data={steelData} loading={steelLoading} embedded />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-xl text-white/40">鉄鋼データを取得中…</p>
+              </div>
+            ))}
+
+          {current.kind === "weather" &&
+            (weatherData ? (
+              <WeatherSlide data={weatherData} tide={tideData} embedded />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-xl text-white/40">天気を取得中…</p>
+              </div>
+            ))}
+
           {current.kind === "market" && <MarketSparklines size="large" />}
 
           {current.kind === "news" && current.sub != null && (
