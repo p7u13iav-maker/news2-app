@@ -410,9 +410,9 @@ function StackedBarChart({
                       color:
                         labelColorMap?.[ls.name] ??
                         (ls.name === "中国"
-                          ? "#fca5a5"
+                          ? "#7f1d1d"
                           : ls.name === "インド"
-                            ? "#fdba74"
+                            ? "#7c2d12"
                             : "rgba(255,255,255,0.85)"),
                     }}
                   >
@@ -704,7 +704,7 @@ export default function SteelPage() {
                     <div className="min-h-0 flex-1">
                       <StackedBarChart
                         labelKeys={["普通鋼", "特殊鋼"]}
-                        labelColorMap={{ 普通鋼: "#7dd3fc", 特殊鋼: "#c4b5fd" }}
+                        labelColorMap={{ 普通鋼: "#0c4a6e", 特殊鋼: "#4c1d95" }}
                         paletteOverride={{ 普通鋼: "#38bdf8", 特殊鋼: "#a78bfa" }}
                         data={data.production.map((p) => ({
                           label: `${p.month}月`,
@@ -1002,11 +1002,11 @@ export default function SteelPage() {
                         <StackedBarChart
                           labelKeys={["建設", "自動車", "機械", "船舶", "輸出"]}
                           labelColorMap={{
-                            建設: "#7dd3fc",
-                            自動車: "#fcd34d",
-                            機械: "#c4b5fd",
-                            船舶: "#f9a8d4",
-                            輸出: "#6ee7b7",
+                            建設: "#0c4a6e",
+                            自動車: "#78350f",
+                            機械: "#4c1d95",
+                            船舶: "#831843",
+                            輸出: "#064e3b",
                           }}
                           data={chartData}
                           paletteOverride={{
