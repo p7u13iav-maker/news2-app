@@ -952,25 +952,6 @@ export default function WeatherPage() {
                   </p>
                 </div>
                 <div className="flex flex-col items-center">
-                  <p className="text-[10px] font-medium text-white/50">紫外線</p>
-                  <p className={`mt-0.5 font-mono text-3xl font-bold tabular-nums ${
-                    d!.uvIndexMax >= 8 ? "text-rose-300" :
-                    d!.uvIndexMax >= 6 ? "text-amber-300" :
-                    d!.uvIndexMax >= 3 ? "text-yellow-200" : "text-emerald-300"
-                  }`}>
-                    {d!.uvIndexMax.toFixed(0)}
-                  </p>
-                  <p className={`text-[9px] font-medium ${
-                    d!.uvIndexMax >= 8 ? "text-rose-300/70" :
-                    d!.uvIndexMax >= 6 ? "text-amber-300/70" :
-                    d!.uvIndexMax >= 3 ? "text-yellow-200/70" : "text-emerald-300/70"
-                  }`}>
-                    {d!.uvIndexMax >= 8 ? "非常に強い" :
-                     d!.uvIndexMax >= 6 ? "強い" :
-                     d!.uvIndexMax >= 3 ? "やや強い" : "弱"}
-                  </p>
-                </div>
-                <div className="flex flex-col items-center">
                   <p className="text-[10px] font-medium text-white/50">降水量</p>
                   <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums text-blue-200">
                     {d!.precipitationSum.toFixed(1)}
@@ -981,7 +962,7 @@ export default function WeatherPage() {
             </div>
 
             {/* Middle row: summary (left) + other weather data (right). */}
-            <div className="grid min-h-0 flex-1 grid-cols-2 gap-4">
+            <div className="grid shrink-0 grid-cols-2 gap-4" style={{ height: "22%" }}>
               {/* Summary. */}
               <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
                 <p className="text-sm font-semibold text-sky-200">
@@ -1015,15 +996,6 @@ export default function WeatherPage() {
                       </span>
                     </p>
                   </div>
-                  <div className="rounded-xl bg-white/5 p-2.5">
-                    <p className="text-[10px] text-white/50">気圧</p>
-                    <p className="mt-0.5 font-mono text-xl font-bold tabular-nums">
-                      {Math.round(c!.pressureMsl)}
-                      <span className="ml-0.5 text-[10px] font-normal text-white/40">
-                        hPa
-                      </span>
-                    </p>
-                  </div>
                   <div className="flex items-center gap-2 rounded-xl bg-white/5 p-2.5">
                     <span className="text-lg">🌅</span>
                     <div>
@@ -1042,21 +1014,12 @@ export default function WeatherPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-xl bg-white/5 p-2.5">
-                    <p className="text-[10px] text-white/50">雲量</p>
-                    <p className="mt-0.5 font-mono text-xl font-bold tabular-nums">
-                      {c!.cloudCover}
-                      <span className="ml-0.5 text-[10px] font-normal text-white/40">
-                        %
-                      </span>
-                    </p>
-                  </div>
                 </div>
               </div>
             </div>
 
             {/* Bottom: temperature chart (left) + tide chart (right). */}
-            <div className="flex shrink-0 gap-4" style={{ height: "32%" }}>
+            <div className="flex min-h-0 flex-1 gap-4">
               <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="mb-1 text-sm font-medium text-white/50">
                   気温の推移（毎時予報）
