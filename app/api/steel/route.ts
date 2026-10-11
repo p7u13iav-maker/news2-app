@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { fetchJisfProduction } from "@/lib/jisfProduction";
 import { fetchWorldSteelProduction } from "@/lib/worldSteel";
+import {
+  fetchSupplyDemand,
+  type SupplyDemandSummary,
+  type SupplyDemandMonth,
+} from "@/lib/supplyDemand";
+import {
+  fetchOrderStatistics,
+  type OrderMonth,
+} from "@/lib/orderStatistics";
 
 /**
  * GET /api/steel
@@ -151,27 +160,32 @@ export async function GET() {
   }
 
   try {
-    // Fetch production and stocks in parallel.
-    const [production, worldSteel, stockResults] = await Promise.all([
-      fetchJisfProduction(12).catch(() => []),
-      fetchWorldSteelProduction(12).catch(() => []),
-      Promise.all(
-        STOCKS.map(async (s) => {
-          const points = await fetchStock(s.symbol);
-          const last = points?.[points.length - 1]?.v ?? 0;
-          const first = points?.[0]?.v ?? 0;
-          return {
-            key: s.key,
-            label: s.label,
-            unit: s.unit,
-            ok: Boolean(points && points.length > 1),
-            last,
-            diff: last - first,
-            points: points ?? [],
-          } as StockData;
-        }),
-      ),
-    ]);
+    // Fetch all data sources in parallel.
+    const [production, worldSteel, supplyDemand, orders, stockResults] =
+      await Promise.all([
+        fetchJisfProduction(12).catch(() => []),
+        fetchWorldSteelProduction(12).catch(() => []),
+        fetchSupplyDemand(12).catch(
+          () => ({ summary: null, trend: [] }),
+        ),
+        fetchOrderStatistics(12).catch(() => []),
+        Promise.all(
+          STOCKS.map(async (s) => {
+            const points = await fetchStock(s.symbol);
+            const last = points?.[points.length - 1]?.v ?? 0;
+            const first = points?.[0]?.v ?? 0;
+            return {
+              key: s.key,
+              label: s.label,
+              unit: s.unit,
+              ok: Boolean(points && points.length > 1),
+              last,
+              diff: last - first,
+              points: points ?? [],
+            } as StockData;
+          }),
+        ),
+      ]);
 
     const comment = buildComment(production, worldSteel, stockResults);
 
@@ -180,6 +194,8 @@ export async function GET() {
       fetchedAt: Date.now(),
       production,
       worldSteel,
+      supplyDemand,
+      orders,
       stocks: stockResults,
       comment,
     };
