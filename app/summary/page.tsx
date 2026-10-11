@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import MarketSparklines from "@/components/MarketSparklines";
 
 interface Summary {
   domestic: string[];
@@ -17,9 +16,9 @@ interface SummaryData {
 }
 
 const CATEGORIES: { key: keyof Summary; label: string; icon: string; accent: string; dot: string }[] = [
-  { key: "domestic", label: "国内の出来事", icon: "🇯🇵", accent: "from-blue-500/20 to-blue-500/5 border-blue-500/30", dot: "bg-blue-400" },
-  { key: "international", label: "国外の出来事", icon: "🌍", accent: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/30", dot: "bg-emerald-400" },
-  { key: "economy", label: "経済ニュース", icon: "📈", accent: "from-amber-500/20 to-amber-500/5 border-amber-500/30", dot: "bg-amber-400" },
+  { key: "domestic", label: "国内の動き", icon: "🇯🇵", accent: "from-blue-500/20 to-blue-500/5 border-blue-500/30", dot: "bg-blue-400" },
+  { key: "international", label: "国外の動き", icon: "🌍", accent: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/30", dot: "bg-emerald-400" },
+  { key: "economy", label: "経済の動き", icon: "📈", accent: "from-amber-500/20 to-amber-500/5 border-amber-500/30", dot: "bg-amber-400" },
 ];
 
 export default function SummaryPage() {
@@ -80,7 +79,7 @@ export default function SummaryPage() {
               製銑部 朝会前のひととき
             </p>
             <p className="text-sm text-white/50">
-              国内 / 国際 / 経済 のひとまとめ · AI 要約
+              過去24時間のニュースひとまとめ
             </p>
           </div>
         </div>
@@ -129,7 +128,7 @@ export default function SummaryPage() {
               <div className="text-center">
                 <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-blue-400" />
                 <p className="text-lg text-white/60">
-                  AI がニュースを要約しています…
+                  ニュースを読み込み中…
                 </p>
               </div>
             </div>
@@ -191,10 +190,6 @@ export default function SummaryPage() {
         )}
         </div>
 
-        {/* Market data section (fixed height, no scroll). */}
-        <div className="shrink-0">
-          <MarketSparklines />
-        </div>
       </main>
 
       {/* Footer: navigation. */}
