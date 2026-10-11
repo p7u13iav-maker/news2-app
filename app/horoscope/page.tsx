@@ -100,13 +100,32 @@ export default function HoroscopePage() {
     { top: "35%", left: "70%", size: 12, o: 0.3 },
   ];
 
+  // Shooting stars: each is a thin streak that sweeps across the background.
+  // (top/left = start point, angle = direction of travel, dur/delay = timing.)
+  const shootingStars = [
+    { top: "8%", left: "72%", angle: 215, dur: 5.5, delay: 0 },
+    { top: "18%", left: "28%", angle: 220, dur: 7, delay: 2.5 },
+    { top: "5%", left: "45%", angle: 210, dur: 6, delay: 5 },
+    { top: "30%", left: "85%", angle: 225, dur: 8, delay: 1.5 },
+  ];
+
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-slate-950 text-white">
-      {/* Card entrance animation (staggered per sign). */}
+      {/* Card entrance + shooting-star animations. */}
       <style>{`
         @keyframes signIn {
           from { opacity: 0; transform: translateY(10px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        /* Shooting star: a streak that fades in, sweeps along its angle, then
+           fades out. 707px @ 45deg => travel 500px in x and 500px in y, so
+           each sweep is consistent regardless of the start position. */
+        @keyframes shoot {
+          0%   { transform: translate(0, 0) rotate(var(--angle)); opacity: 0; }
+          12%  { opacity: 0; }
+          30%  { opacity: 1; }
+          75%  { opacity: 0.9; }
+          100% { transform: translate(-500px, 500px) rotate(var(--angle)); opacity: 0; }
         }
       `}</style>
       {/* Deep-space gradient background. */}
@@ -133,6 +152,24 @@ export default function HoroscopePage() {
           className="absolute"
           color="#fff"
           style={{ top: s.top, left: s.left, width: s.size, height: s.size, opacity: s.o }}
+        />
+      ))}
+      {/* Shooting stars sweeping across the background. */}
+      {shootingStars.map((s, i) => (
+        <span
+          key={"ss" + i}
+          className="pointer-events-none absolute h-px w-40"
+          style={
+            {
+              top: s.top,
+              left: s.left,
+              background:
+                "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.9) 80%, #fff 100%)",
+              boxShadow: "0 0 6px rgba(255,255,255,0.6)",
+              "--angle": `${s.angle}deg`,
+              animation: `shoot ${s.dur}s ease-in ${s.delay}s infinite`,
+            } as React.CSSProperties
+          }
         />
       ))}
 
