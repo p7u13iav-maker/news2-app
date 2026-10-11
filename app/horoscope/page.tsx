@@ -120,11 +120,11 @@ export default function HoroscopePage() {
            element is oriented along the 45deg travel line while the translate
            axis stays screen-aligned (x to the right, y down). */
         @keyframes shoot {
-          0%   { transform: rotate(45deg) translate(0, 0); opacity: 0; }
+          0%   { transform: translate(0, 0) rotate(45deg); opacity: 0; }
           12%  { opacity: 0; }
           30%  { opacity: 1; }
           75%  { opacity: 0.9; }
-          100% { transform: rotate(45deg) translate(500px, 500px); opacity: 0; }
+          100% { transform: translate(500px, 500px) rotate(45deg); opacity: 0; }
         }
       `}</style>
       {/* Deep-space gradient background. */}
