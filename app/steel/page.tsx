@@ -699,6 +699,7 @@ export default function SteelPage() {
                     )}
                     <div className="min-h-0 flex-1">
                       <StackedBarChart
+                        labelKeys={["普通鋼", "特殊鋼"]}
                         paletteOverride={{ 普通鋼: "#38bdf8", 特殊鋼: "#a78bfa" }}
                         data={data.production.map((p) => ({
                           label: `${p.month}月`,

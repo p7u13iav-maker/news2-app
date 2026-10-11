@@ -916,9 +916,6 @@ export default function WeatherPage() {
                 <span className="text-5xl leading-none">{c!.emoji}</span>
                 <div>
                   <p className="text-lg font-bold leading-tight">{c!.label}</p>
-                  <p className="text-xs text-white/50">
-                    {fmtTime(c!.time)} 現在 · 体感 {Math.round(c!.apparentTemperature)}°C
-                  </p>
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5">
@@ -990,22 +987,8 @@ export default function WeatherPage() {
               </div>
             </div>
 
-            {/* Middle row: today's summary only. */}
-            <div className="shrink-0" style={{ height: "18%" }}>
-              <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
-                <p className="shrink-0 text-sm font-semibold text-sky-200">
-                  今日の一言
-                </p>
-                <div className="mt-2 flex min-h-0 flex-1 items-center">
-                  <p className="text-lg leading-relaxed text-white/85">
-                    {weatherSummary(c!, d!)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom: temperature chart (left) + tide chart (right). */}
-            <div className="flex min-h-0 flex-1 gap-4">
+            {/* Middle row: temperature chart (left) + tide chart (right). */}
+            <div className="flex shrink-0 gap-4" style={{ height: "34%" }}>
               <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="mb-1 text-sm font-medium text-white/50">
                   気温の推移（毎時予報）
@@ -1041,6 +1024,20 @@ export default function WeatherPage() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Bottom row: today's summary only. */}
+            <div className="min-h-0 flex-1">
+              <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="shrink-0 text-sm font-semibold text-sky-200">
+                  今日の一言
+                </p>
+                <div className="mt-2 flex min-h-0 flex-1 items-center">
+                  <p className="text-lg leading-relaxed text-white/85">
+                    {weatherSummary(c!, d!)}
+                  </p>
+                </div>
+              </div>
             </div>
           </>
         )}
