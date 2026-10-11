@@ -34,6 +34,46 @@ interface HoroscopeData {
   error?: string;
 }
 
+/* ---------- Horoscope (astro) styling ---------- */
+
+/** Element per sign: fire / earth / air / water (shared with /horoscope). */
+const HORO_ELEMENTS: Record<
+  ZodiacKey,
+  { label: string; color: string; glow: string; ring: string }
+> = {
+  aries: { label: "火", color: "#fca5a5", glow: "rgba(239,68,68,0.30)", ring: "rgba(252,165,165,0.45)" },
+  taurus: { label: "地", color: "#6ee7b7", glow: "rgba(16,185,129,0.30)", ring: "rgba(110,231,183,0.45)" },
+  gemini: { label: "風", color: "#fcd34d", glow: "rgba(245,158,11,0.30)", ring: "rgba(252,211,77,0.45)" },
+  cancer: { label: "水", color: "#7dd3fc", glow: "rgba(14,165,233,0.30)", ring: "rgba(125,211,252,0.45)" },
+  leo: { label: "火", color: "#fdba74", glow: "rgba(249,115,22,0.30)", ring: "rgba(253,186,116,0.45)" },
+  virgo: { label: "地", color: "#5eead4", glow: "rgba(20,184,166,0.30)", ring: "rgba(94,234,212,0.45)" },
+  libra: { label: "風", color: "#fde047", glow: "rgba(234,179,8,0.30)", ring: "rgba(253,224,71,0.45)" },
+  scorpio: { label: "水", color: "#93c5fd", glow: "rgba(59,130,246,0.30)", ring: "rgba(147,197,253,0.45)" },
+  sagittarius: { label: "火", color: "#fdba74", glow: "rgba(249,115,22,0.30)", ring: "rgba(253,186,116,0.45)" },
+  capricorn: { label: "地", color: "#86efac", glow: "rgba(34,197,94,0.30)", ring: "rgba(134,239,172,0.45)" },
+  aquarius: { label: "風", color: "#fef08a", glow: "rgba(250,204,21,0.30)", ring: "rgba(254,240,138,0.45)" },
+  pisces: { label: "水", color: "#a5b4fc", glow: "rgba(99,102,241,0.30)", ring: "rgba(165,180,252,0.45)" },
+};
+
+/** Sunrise gradient for the horoscope slide (same as /horoscope). */
+const HORO_BG =
+  "radial-gradient(130% 120% at 82% 8%, #fdba74 0%, #f9a8d4 26%, #c4b5fd 52%, #6d28d9 82%, #4c1d95 100%)";
+
+/** A small four-pointed star glyph used for decoration. */
+const Star = ({
+  className = "",
+  color = "#fff",
+  style,
+}: {
+  className?: string;
+  color?: string;
+  style?: React.CSSProperties;
+}) => (
+  <svg viewBox="0 0 24 24" className={className} style={style} fill={color} aria-hidden>
+    <path d="M12 0c.6 6.5 4.9 10.8 12 12-7.1 1.2-11.4 5.5-12 12-.6-6.5-4.9-10.8-12-12C7.1 10.8 11.4 6.5 12 0z" />
+  </svg>
+);
+
 /* ---------- Slide definitions ---------- */
 
 type SlideKind = "steel" | "market" | "weather" | "news" | "horoscope";
@@ -46,7 +86,7 @@ interface SlideDef {
 
 /**
  * Build the slide sequence:
- *   1 steel, 1 market, 1 weather, N news, 3 horoscope
+ *   1 steel, 1 market, 1 weather, N news, 1 horoscope (all 12 signs)
  */
 function buildSlides(newsCount: number): SlideDef[] {
   const slides: SlideDef[] = [];
@@ -54,17 +94,11 @@ function buildSlides(newsCount: number): SlideDef[] {
   slides.push({ kind: "market" });
   slides.push({ kind: "weather" });
   for (let i = 0; i < newsCount; i++) slides.push({ kind: "news", sub: i });
-  for (let i = 0; i < 3; i++) slides.push({ kind: "horoscope", sub: i });
+  slides.push({ kind: "horoscope" });
   return slides;
 }
 
 /* ---------- Sub-components ---------- */
-
-const HOROSCOPE_GROUPS = [
-  ZODIAC_SIGNS.slice(0, 4),
-  ZODIAC_SIGNS.slice(4, 8),
-  ZODIAC_SIGNS.slice(8, 12),
-];
 
 function NewsSlide({ article, index }: { article: Article; index: number }) {
   const time = new Date(article.publishedAt);
@@ -113,13 +147,8 @@ function NewsSlide({ article, index }: { article: Article; index: number }) {
   );
 }
 
-function HoroscopeSlide({
-  data,
-  groupIndex,
-}: {
-  data: HoroscopeData | null;
-  groupIndex: number;
-}) {
+/** All 12 signs on one screen (4×3 grid), matching the /horoscope page. */
+function HoroscopeSlide({ data }: { data: HoroscopeData | null }) {
   if (!data?.horoscopes) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -127,26 +156,106 @@ function HoroscopeSlide({
       </div>
     );
   }
-  const group = HOROSCOPE_GROUPS[groupIndex];
   return (
-    <div className="flex h-full w-full flex-col gap-3">
-      {group.map((s) => (
-        <div
-          key={s.key}
-          className="flex min-h-0 flex-1 items-center gap-5 rounded-xl border border-white/10 bg-white/5 px-6 py-3"
-        >
-          <div className="flex w-[220px] shrink-0 items-center gap-3">
-            <span className="text-4xl leading-none">{s.symbol}</span>
-            <div>
-              <p className="text-xl font-bold leading-tight">{s.ja}</p>
-              <p className="text-xs text-white/40">{s.dateRange}</p>
+    <div className="relative h-full w-full">
+      {/* Deep-space background + nebula glows. */}
+      <div
+        className="absolute inset-0"
+        style={{ background: HORO_BG }}
+      />
+      <div
+        className="absolute -left-40 -top-40 h-[55vh] w-[55vh] rounded-full opacity-30 blur-3xl"
+        style={{ background: "radial-gradient(circle, #fbbf24 0%, transparent 70%)" }}
+      />
+      <div
+        className="absolute -bottom-40 -right-40 h-[60vh] w-[60vh] rounded-full opacity-35 blur-3xl"
+        style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }}
+      />
+      {/* Card entrance + shooting-star animations. */}
+      <style>{`
+        @keyframes hSignIn {
+          from { opacity: 0; transform: translateY(10px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes hShoot {
+          0%   { transform: translate(0, 0) rotate(45deg); opacity: 0; }
+          12%  { opacity: 0; }
+          30%  { opacity: 1; }
+          75%  { opacity: 0.9; }
+          100% { transform: translate(500px, 500px) rotate(45deg); opacity: 0; }
+        }
+      `}</style>
+      {/* Shooting star (upper-left -> lower-right). */}
+      <span
+        className="pointer-events-none absolute h-px w-40"
+        style={
+          {
+            top: "6%",
+            left: "10%",
+            background:
+              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.9) 80%, #fff 100%)",
+            boxShadow: "0 0 6px rgba(255,255,255,0.6)",
+            animation: "hShoot 10s ease-in 0s infinite",
+          } as React.CSSProperties
+        }
+      />
+      {/* 4 columns × 3 rows grid of all 12 signs. */}
+      <div className="relative z-10 grid h-full w-full grid-cols-4 grid-rows-3 gap-3">
+        {ZODIAC_SIGNS.map((s, i) => {
+          const el = HORO_ELEMENTS[s.key];
+          return (
+            <div
+              key={s.key}
+              className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border p-3 backdrop-blur-sm"
+              style={{
+                borderColor: el.ring,
+                background: `radial-gradient(140% 120% at 0% 0%, ${el.glow} 0%, rgba(15,10,30,0.55) 55%, rgba(10,7,24,0.8) 100%)`,
+                animation: `hSignIn 0.5s ease ${i * 40}ms both`,
+              }}
+            >
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 h-px"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${el.color}, transparent)`,
+                }}
+              />
+              <div className="mb-2 flex shrink-0 items-center gap-2.5">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl leading-none"
+                  style={{
+                    color: el.color,
+                    backgroundColor: "rgba(255,255,255,0.06)",
+                    boxShadow: `0 0 14px ${el.glow}`,
+                  }}
+                >
+                  {s.symbol}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[15px] font-bold leading-tight text-white">
+                    {s.ja}
+                  </p>
+                  <p className="font-mono text-[10px] tabular-nums text-white/40">
+                    {s.dateRange}
+                  </p>
+                </div>
+                <span
+                  className="shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold"
+                  style={{
+                    color: el.color,
+                    borderColor: el.ring,
+                    backgroundColor: "rgba(255,255,255,0.04)",
+                  }}
+                >
+                  {el.label}
+                </span>
+              </div>
+              <p className="min-h-0 flex-1 overflow-hidden text-[11px] leading-snug text-white/75">
+                {data.horoscopes![s.key]}
+              </p>
             </div>
-          </div>
-          <p className="min-h-0 flex-1 text-base leading-snug text-white/85">
-            {data.horoscopes![s.key]}
-          </p>
-        </div>
-      ))}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -367,34 +476,31 @@ export default function UnifiedSignage({
             />
           )}
 
-          {current.kind === "horoscope" && current.sub != null && (
-            <HoroscopeSlide
-              data={horoscopeData}
-              groupIndex={current.sub}
-            />
+          {current.kind === "horoscope" && (
+            <HoroscopeSlide data={horoscopeData} />
           )}
         </div>
       </main>
 
       {/* Footer: slide dots + progress bar (same width).
-          Dots row is 12×0.5rem (inactive) + 1×2rem (active) + 12×0.5rem gaps
-          = 8rem + 3rem + 3rem = 14rem fixed width, so the progress bar
+          11 slides: 10×0.4rem (inactive) + 1×1.2rem (active) + 10×0.4rem gaps
+          = 4rem + 1.2rem + 4rem = 9.2rem fixed width, so the progress bar
           below it can use the exact same width without jittering. */}
       <footer className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2">
         <div className="flex items-center gap-3">
-          {/* Dots + progress bar (fixed 14rem width, aligned). */}
+          {/* Dots + progress bar (fixed 9.2rem width, aligned). */}
           <div
             className="flex flex-col items-stretch gap-2"
-            style={{ width: "14rem" }}
+            style={{ width: "9.2rem" }}
           >
             {/* Dots row (fixed width). */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {slides.map((s, i) => (
                 <span
                   key={i}
-                  className="h-2 rounded-full transition-all duration-500"
+                  className="h-1.5 rounded-full transition-all duration-500"
                   style={{
-                    width: i === index ? "2rem" : "0.5rem",
+                    width: i === index ? "1.2rem" : "0.4rem",
                     background:
                       i === index
                         ? "#fff"

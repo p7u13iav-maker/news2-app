@@ -127,22 +127,22 @@ export default function HoroscopePage() {
           100% { transform: translate(500px, 500px) rotate(45deg); opacity: 0; }
         }
       `}</style>
-      {/* Deep-space gradient background. */}
+      {/* Sunrise gradient background (morning sky: dawn purple -> peach -> gold). */}
       <div
         className="absolute inset-0 opacity-95"
         style={{
           background:
-            "radial-gradient(120% 120% at 15% 10%, #2e1065 0%, #1e1b4b 30%, #0f0a1e 60%, #020617 100%)",
+            "radial-gradient(130% 120% at 82% 8%, #fdba74 0%, #f9a8d4 26%, #c4b5fd 52%, #6d28d9 82%, #4c1d95 100%)",
         }}
       />
-      {/* Soft nebula glows. */}
+      {/* Soft morning glows. */}
       <div
         className="absolute -left-40 -top-40 h-[55vh] w-[55vh] rounded-full opacity-30 blur-3xl"
-        style={{ background: "radial-gradient(circle, #7c3aed 0%, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, #fbbf24 0%, transparent 70%)" }}
       />
       <div
-        className="absolute -bottom-40 -right-40 h-[55vh] w-[55vh] rounded-full opacity-25 blur-3xl"
-        style={{ background: "radial-gradient(circle, #db2777 0%, transparent 70%)" }}
+        className="absolute -bottom-40 -right-40 h-[60vh] w-[60vh] rounded-full opacity-35 blur-3xl"
+        style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }}
       />
       {/* Scattered stars. */}
       {bgStars.map((s, i) => (
@@ -174,11 +174,11 @@ export default function HoroscopePage() {
       {/* Header. */}
       <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 px-10 py-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-purple-500/30 to-pink-500/30 text-2xl shadow-[0_0_20px_rgba(168,85,247,0.35)]">
-            ✨
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-amber-400/40 to-rose-400/40 text-2xl shadow-[0_0_20px_rgba(251,146,60,0.45)]">
+            🌅
           </span>
           <div>
-            <p className="bg-gradient-to-r from-purple-200 via-pink-100 to-amber-100 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+            <p className="bg-gradient-to-r from-amber-100 via-rose-100 to-white bg-clip-text text-2xl font-bold tracking-tight text-transparent">
               朝会前のひととき
             </p>
             <p className="text-sm text-white/50">
@@ -220,7 +220,7 @@ export default function HoroscopePage() {
         {loading && !error && (
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
-              <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-purple-400" />
+              <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-amber-400" />
               <p className="text-white/40">占いを読み込み中…</p>
             </div>
           </div>
