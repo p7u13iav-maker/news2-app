@@ -519,40 +519,47 @@ function WeatherIcon({
  */
 function TideWidget({ tide }: { tide: TideData }) {
   return (
-    <div className="flex h-full flex-col justify-center gap-1.5">
-      {/* Tide name + range. */}
+    <div className="flex h-full flex-col justify-center gap-2.5">
+      {/* Header: tide name badge + range. */}
       <div className="flex items-center justify-between">
-        <span className="rounded-md bg-sky-400/15 px-2 py-0.5 text-sm font-bold text-sky-200">
-          {tide.tideName}
-        </span>
-        <span className="font-mono text-[11px] tabular-nums text-white/40">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🌊</span>
+          <span className="rounded-lg bg-sky-400/20 px-2.5 py-1 text-base font-bold text-sky-200">
+            {tide.tideName}
+          </span>
+        </div>
+        <span className="font-mono text-[11px] tabular-nums text-white/45">
           潮差 {tide.maxRange}cm
         </span>
       </div>
       {/* High tides. */}
-      <div className="flex items-center gap-2">
-        <span className="shrink-0 text-[11px] font-semibold text-rose-300">
+      <div className="flex items-center gap-3">
+        <span className="w-8 shrink-0 text-xs font-semibold text-rose-300">
           満潮
         </span>
-        <div className="flex flex-wrap gap-x-2">
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
           {tide.high.map((h, i) => (
-            <span key={i} className="font-mono text-sm tabular-nums text-white/85">
+            <span key={i} className="font-mono text-base tabular-nums text-white/90">
               {fmtTideTime(h.time)}
-              <span className="ml-1 text-[10px] text-white/40">{h.level}</span>
+              <span className="ml-1.5 text-[10px] text-white/40">
+                {h.level}cm
+              </span>
             </span>
           ))}
         </div>
       </div>
       {/* Low tides. */}
-      <div className="flex items-center gap-2">
-        <span className="shrink-0 text-[11px] font-semibold text-sky-300">
+      <div className="flex items-center gap-3">
+        <span className="w-8 shrink-0 text-xs font-semibold text-sky-300">
           干潮
         </span>
-        <div className="flex flex-wrap gap-x-2">
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
           {tide.low.map((l, i) => (
-            <span key={i} className="font-mono text-sm tabular-nums text-white/85">
+            <span key={i} className="font-mono text-base tabular-nums text-white/90">
               {fmtTideTime(l.time)}
-              <span className="ml-1 text-[10px] text-white/40">{l.level}</span>
+              <span className="ml-1.5 text-[10px] text-white/40">
+                {l.level}cm
+              </span>
             </span>
           ))}
         </div>
@@ -759,12 +766,6 @@ export default function WeatherPage() {
                     </div>
                   </div>
                 </div>
-                {/* Tide (Mizushima, Kurashiki) — full/low tide times + tide name. */}
-                {tide && (
-                  <div className="mt-3 rounded-xl border border-sky-300/20 bg-sky-950/20 p-3">
-                    <TideWidget tide={tide} />
-                  </div>
-                )}
               </div>
 
               {/* Cell 4 (bottom-right): Rule-based one-line summary. */}
@@ -780,12 +781,22 @@ export default function WeatherPage() {
               </div>
             </div>
 
-            {/* Bottom: hourly temperature chart (smooth spline + now marker). */}
-            <div className="shrink-0 rounded-2xl border border-white/10 bg-white/5 p-4" style={{ height: "36%" }}>
-              <HourlyChart
-                hourly={data.hourly}
-                weatherCode={c!.weatherCode}
-              />
+            {/* Bottom: hourly chart (left) + tide panel (right). */}
+            <div className="flex shrink-0 gap-4" style={{ height: "32%" }}>
+              <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 p-4">
+                <HourlyChart
+                  hourly={data.hourly}
+                  weatherCode={c!.weatherCode}
+                />
+              </div>
+              {tide && (
+                <div className="flex w-[34%] flex-col overflow-hidden rounded-2xl border border-sky-300/20 bg-sky-950/20 p-5">
+                  <p className="mb-2 text-sm font-semibold text-sky-200">
+                    潮汐（水島・倉敷）
+                  </p>
+                  <TideWidget tide={tide} />
+                </div>
+              )}
             </div>
           </>
         )}

@@ -477,37 +477,32 @@ function ValueRow({
 }) {
   const up = (change ?? 0) >= 0;
   return (
-    <div className="flex shrink-0 items-center justify-between gap-2">
-      {/* Left: big number + unit. */}
-      <div className="flex items-baseline">
-        <span className="font-mono text-xl font-bold leading-none tabular-nums text-white">
-          {value}
-        </span>
+    <div className="flex shrink-0 items-baseline gap-2">
+      {/* Big number + unit (primary). */}
+      <span className="font-mono text-xl font-bold leading-none tabular-nums text-white">
+        {value}
         <span className="ml-1 text-[11px] font-medium text-white/45">{unit}</span>
-      </div>
-      {/* Right: period pill + change pill. */}
-      <div className="flex items-center gap-1.5">
-        {period && (
-          <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-white/60">
-            {period}
+      </span>
+      {/* Period, close to the number. */}
+      {period && (
+        <span className="font-mono text-[10px] tabular-nums text-white/45">
+          {period}
+        </span>
+      )}
+      {/* Change badge, tucked right next to the period. */}
+      {change !== undefined && change !== null && (
+        <span
+          className={`font-mono text-[11px] font-semibold tabular-nums ${
+            up ? "text-emerald-400" : "text-rose-400"
+          }`}
+        >
+          <span className="text-[9px]">{up ? "▲" : "▼"}</span>
+          {Math.abs(change).toFixed(1)}%
+          <span className="ml-0.5 font-sans text-[9px] font-normal text-white/35">
+            {changeLabel}
           </span>
-        )}
-        {change !== undefined && change !== null && (
-          <span
-            className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold leading-none tabular-nums ${
-              up
-                ? "bg-emerald-400/15 text-emerald-300"
-                : "bg-rose-400/15 text-rose-300"
-            }`}
-          >
-            <span className="text-[9px]">{up ? "▲" : "▼"}</span>
-            {Math.abs(change).toFixed(1)}%
-            <span className="ml-0.5 font-sans text-[9px] font-normal opacity-70">
-              {changeLabel}
-            </span>
-          </span>
-        )}
-      </div>
+        </span>
+      )}
     </div>
   );
 }
@@ -690,7 +685,7 @@ export default function SteelPage() {
                           unit="万トン"
                           change={data.production[data.production.length - 1].yoy}
                           changeLabel="前年比"
-                          period={`${data.production[data.production.length - 1].month}月`}
+                          period={`${data.production[data.production.length - 1].year}年${data.production[data.production.length - 1].month}月`}
                         />
                       </div>
                     )}
@@ -716,7 +711,7 @@ export default function SteelPage() {
                           unit="万トン"
                           change={data.worldSteel[data.worldSteel.length - 1].yoy}
                           changeLabel="前年比"
-                          period={`${data.worldSteel[data.worldSteel.length - 1].month}月`}
+                          period={`${data.worldSteel[data.worldSteel.length - 1].year}年${data.worldSteel[data.worldSteel.length - 1].month}月`}
                         />
                       </div>
                     )}
@@ -800,7 +795,7 @@ export default function SteelPage() {
                           unit="万トン"
                           change={sdMom("carbonSteel")}
                           changeLabel="前月比"
-                          period={`${sdTrend[sdTrend.length - 1].month}月`}
+                          period={`${sdTrend[sdTrend.length - 1].year}年${sdTrend[sdTrend.length - 1].month}月`}
                         />
                       </div>
                     )}
@@ -827,7 +822,7 @@ export default function SteelPage() {
                           unit="万トン"
                           change={sdMom("shipmentsTotal")}
                           changeLabel="前月比"
-                          period={`${sdTrend[sdTrend.length - 1].month}月`}
+                          period={`${sdTrend[sdTrend.length - 1].year}年${sdTrend[sdTrend.length - 1].month}月`}
                         />
                       </div>
                     )}
@@ -870,7 +865,7 @@ export default function SteelPage() {
                           unit="万トン"
                           change={sdMom("inventory")}
                           changeLabel="前月比"
-                          period={`${sdTrend[sdTrend.length - 1].month}月`}
+                          period={`${sdTrend[sdTrend.length - 1].year}年${sdTrend[sdTrend.length - 1].month}月`}
                         />
                       </div>
                     )}
@@ -903,7 +898,7 @@ export default function SteelPage() {
                           unit="万トン"
                           change={orderYoy}
                           changeLabel="前年同月比"
-                          period={`${orderLatest.month}月`}
+                          period={`${orderLatest.year}年${orderLatest.month}月`}
                         />
                       </div>
                     )}
