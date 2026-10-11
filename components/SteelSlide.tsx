@@ -648,38 +648,6 @@ function SteelSlide({
 
       {data && (
         <>
-          {/* Top banner: JISF qualitative comment. */}
-          <div
-            className={`shrink-0 rounded-lg border border-sky-300/40 bg-sky-900/30 ${kBanner}`}
-          >
-            <p className={`${kBannerTitle} font-semibold text-sky-200`}>
-              鉄鋼連盟の最新月の定性コメント
-              {data.jisfComment?.period && (
-                <span className="ml-2 font-normal text-white/50">
-                  ({data.jisfComment.period}・{data.jisfComment.published}発表)
-                </span>
-              )}
-            </p>
-            {data.jisfComment && (
-              <div className={embedded ? "mt-0.5" : "mt-1"}>
-                {data.jisfComment.headline && (
-                  <p className={`${kBannerHeadline} font-bold text-white`}>
-                    {data.jisfComment.headline}
-                  </p>
-                )}
-                <div
-                  className={`${embedded ? "mt-0.5" : "mt-0.5"} flex flex-wrap gap-x-5 gap-y-0.5`}
-                >
-                  {data.jisfComment.bullets.slice(0, 3).map((b, i) => (
-                    <p key={i} className={`${kBannerBullet} text-white/70`}>
-                      ○ {b}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* 3-column grid. */}
           <div
             className={`grid min-h-0 flex-1 grid-cols-3 ${
