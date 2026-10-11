@@ -465,7 +465,7 @@ function ColHeader({ children }: { children: React.ReactNode }) {
 
 /**
  * Big latest-value row: value + unit on the left, an optional change badge
- * (前年比 / 前月比) on the right. Placed directly under the panel subtitle so
+ * (前年同月比 / 前月比) on the right. Placed directly under the panel subtitle so
  * the number is always the most legible element of the panel.
  */
 function ValueRow({
@@ -740,7 +740,7 @@ export default function SteelPage() {
                             value={Math.round(latest.worldCrudeSteel * 100).toLocaleString("ja-JP")}
                             unit="万トン"
                             change={latest.yoy}
-                            changeLabel="前年比"
+                            changeLabel="前年同月比"
                             period={`${latest.year}年${latest.month}月`}
                           />
                           <div className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5">
