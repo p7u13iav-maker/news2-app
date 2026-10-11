@@ -496,7 +496,7 @@ function ValueRow({
             up ? "text-emerald-400" : "text-rose-400"
           }`}
         >
-          <span className="text-[9px]">{up ? "▲" : "▼"}</span>
+          <span className="text-[9px]">{up ? "+" : "−"}</span>
           {Math.abs(change).toFixed(1)}%
           <span className="ml-0.5 font-sans text-[9px] font-normal text-white/35">
             {changeLabel}
