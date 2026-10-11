@@ -5,7 +5,7 @@ import {
   windDirectionJa,
   type WeatherData,
 } from "@/lib/weather";
-import { fetchTideForDay, lastTideError, type TideDay } from "@/lib/tide";
+import { fetchTideForDay, type TideDay } from "@/lib/tide";
 
 /**
  * GET /api/weather
@@ -24,6 +24,7 @@ const weatherCache = new Map<
 >();
 const DAILY_CACHE_MS = 24 * 60 * 60 * 1000;
 
+/** Today in JST, formatted YYYY/MM/DD. */
 function todayKey(): string {
   return new Date().toLocaleDateString("ja-JP", {
     timeZone: "Asia/Tokyo",
@@ -31,6 +32,11 @@ function todayKey(): string {
     month: "2-digit",
     day: "2-digit",
   });
+}
+
+/** Today in JST, formatted YYYY-MM-DD (for the JMA tide parser). */
+function todayISO(): string {
+  return todayKey().replace(/\//g, "-");
 }
 
 export async function GET() {
@@ -44,7 +50,7 @@ export async function GET() {
     // Weather + tide are independent; fetch both in parallel.
     const [data, tide] = await Promise.all([
       fetchWeatherWithLabels(),
-      fetchTideForDay(todayKey()),
+      fetchTideForDay(todayISO()),
     ]);
 
     // Annotate with Japanese labels so the client doesn't need to know
@@ -86,8 +92,6 @@ export async function GET() {
       weather,
       // Tide data (Mizushima, Kurashiki) — may be null if fetch failed.
       tide: tide as TideDay | null,
-      // Temporary: debug why tide is null.
-      tideDebug: lastTideError ?? "ok",
     };
     weatherCache.set(cacheKey, { ts: Date.now(), data: payload });
     return NextResponse.json(payload);

@@ -477,23 +477,37 @@ function ValueRow({
 }) {
   const up = (change ?? 0) >= 0;
   return (
-    <div className="flex shrink-0 items-end justify-between">
-      <p className="font-mono text-lg font-bold leading-tight tabular-nums text-white">
-        {value}
-        <span className="ml-1 text-xs font-normal text-white/40">{unit}</span>
-        {period && (
-          <span className="ml-1.5 text-[10px] font-normal text-white/35">{period}</span>
-        )}
-      </p>
-      {change !== undefined && change !== null && (
-        <span
-          className={`font-mono text-xs leading-tight tabular-nums ${up ? "text-emerald-400" : "text-red-400"}`}
-        >
-          {up ? "+" : ""}
-          {change.toFixed(1)}%
-          <span className="ml-0.5 text-[9px] text-white/30">{changeLabel}</span>
+    <div className="flex shrink-0 items-center justify-between gap-2">
+      {/* Left: big number + unit. */}
+      <div className="flex items-baseline">
+        <span className="font-mono text-xl font-bold leading-none tabular-nums text-white">
+          {value}
         </span>
-      )}
+        <span className="ml-1 text-[11px] font-medium text-white/45">{unit}</span>
+      </div>
+      {/* Right: period pill + change pill. */}
+      <div className="flex items-center gap-1.5">
+        {period && (
+          <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-white/60">
+            {period}
+          </span>
+        )}
+        {change !== undefined && change !== null && (
+          <span
+            className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold leading-none tabular-nums ${
+              up
+                ? "bg-emerald-400/15 text-emerald-300"
+                : "bg-rose-400/15 text-rose-300"
+            }`}
+          >
+            <span className="text-[9px]">{up ? "▲" : "▼"}</span>
+            {Math.abs(change).toFixed(1)}%
+            <span className="ml-0.5 font-sans text-[9px] font-normal opacity-70">
+              {changeLabel}
+            </span>
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -533,6 +547,16 @@ export default function SteelPage() {
     orderPrev && orderLatest
       ? ((orderLatest.total - orderPrev.total) / orderPrev.total) * 100
       : 0;
+
+  // Year-over-year for the latest order month (needs the same month 12 months back).
+  const orderYoy = (() => {
+    if (!orderLatest) return null;
+    const sameMonth = orders.find(
+      (o) => o.year === orderLatest.year - 1 && o.month === orderLatest.month,
+    );
+    if (!sameMonth || sameMonth.total <= 0) return null;
+    return ((orderLatest.total - sameMonth.total) / sameMonth.total) * 100;
+  })();
 
   // Month-over-month change (%) for the latest vs previous trend entry.
   function sdMom(
@@ -662,7 +686,7 @@ export default function SteelPage() {
                     {data.production.length > 0 && (
                       <div className="mt-0.5">
                         <ValueRow
-                          value={data.production[data.production.length - 1].crudeSteel.toFixed(1)}
+                          value={Math.round(data.production[data.production.length - 1].crudeSteel).toString()}
                           unit="万トン"
                           change={data.production[data.production.length - 1].yoy}
                           changeLabel="前年比"
@@ -688,7 +712,7 @@ export default function SteelPage() {
                     {data.worldSteel.length > 0 && (
                       <div className="mt-0.5">
                         <ValueRow
-                          value={(data.worldSteel[data.worldSteel.length - 1].worldCrudeSteel * 100).toFixed(0)}
+                          value={Math.round(data.worldSteel[data.worldSteel.length - 1].worldCrudeSteel * 100).toLocaleString("ja-JP")}
                           unit="万トン"
                           change={data.worldSteel[data.worldSteel.length - 1].yoy}
                           changeLabel="前年比"
@@ -756,29 +780,6 @@ export default function SteelPage() {
                         </div>
                       );
                     })()}
-                    {data.worldSteel.length > 0 && (
-                      <div className="mt-0.5 flex shrink-0 items-end justify-between">
-                        <p className="font-mono text-lg font-bold tabular-nums text-white">
-                          {data.worldSteel[data.worldSteel.length - 1].worldCrudeSteel.toFixed(1)}
-                          <span className="ml-0.5 text-xs font-normal text-white/40">
-                            百万トン
-                          </span>
-                        </p>
-                        <span
-                          className={`font-mono text-xs tabular-nums ${
-                            data.worldSteel[data.worldSteel.length - 1].yoy >= 0
-                              ? "text-emerald-400"
-                              : "text-red-400"
-                          }`}
-                        >
-                          {data.worldSteel[data.worldSteel.length - 1].yoy >= 0
-                            ? "+"
-                            : ""}
-                          {data.worldSteel[data.worldSteel.length - 1].yoy.toFixed(1)}%
-                          <span className="ml-0.5 text-[9px] text-white/30">前年比</span>
-                        </span>
-                      </div>
-                    )}
                   </Panel>
                 </div>
               </div>
@@ -795,7 +796,7 @@ export default function SteelPage() {
                     {sdTrend.length > 0 && (
                       <div className="mt-0.5">
                         <ValueRow
-                          value={sdTrend[sdTrend.length - 1].carbonSteel.toFixed(1)}
+                          value={Math.round(sdTrend[sdTrend.length - 1].carbonSteel).toString()}
                           unit="万トン"
                           change={sdMom("carbonSteel")}
                           changeLabel="前月比"
@@ -822,7 +823,7 @@ export default function SteelPage() {
                     {sdTrend.length > 0 && (
                       <div className="mt-0.5">
                         <ValueRow
-                          value={sdTrend[sdTrend.length - 1].shipmentsTotal.toFixed(1)}
+                          value={Math.round(sdTrend[sdTrend.length - 1].shipmentsTotal).toString()}
                           unit="万トン"
                           change={sdMom("shipmentsTotal")}
                           changeLabel="前月比"
@@ -865,7 +866,7 @@ export default function SteelPage() {
                     {sdTrend.length > 0 && (
                       <div className="mt-0.5">
                         <ValueRow
-                          value={sdTrend[sdTrend.length - 1].inventory.toFixed(1)}
+                          value={Math.round(sdTrend[sdTrend.length - 1].inventory).toString()}
                           unit="万トン"
                           change={sdMom("inventory")}
                           changeLabel="前月比"
@@ -898,8 +899,10 @@ export default function SteelPage() {
                     {orderLatest && (
                       <div className="mt-0.5">
                         <ValueRow
-                          value={orderLatest.total.toFixed(1)}
+                          value={Math.round(orderLatest.total).toString()}
                           unit="万トン"
+                          change={orderYoy}
+                          changeLabel="前年同月比"
                           period={`${orderLatest.month}月`}
                         />
                       </div>
@@ -1051,14 +1054,14 @@ export default function SteelPage() {
                                     {r.label}
                                   </td>
                                   <td className="py-0.5 text-right font-mono tabular-nums text-white/50">
-                                    {r.pp > 0 ? r.pp.toFixed(1) : "-"}
+                                    {r.pp > 0 ? Math.round(r.pp).toString() : "-"}
                                   </td>
                                   <td className="py-0.5 text-right font-mono tabular-nums text-white/70">
-                                    {r.pv > 0 ? r.pv.toFixed(1) : "-"}
+                                    {r.pv > 0 ? Math.round(r.pv).toString() : "-"}
                                   </td>
                                   <td className="py-0.5 text-right font-mono tabular-nums">
                                     <span className="font-bold text-white">
-                                      {r.lt > 0 ? r.lt.toFixed(1) : "-"}
+                                      {r.lt > 0 ? Math.round(r.lt).toString() : "-"}
                                     </span>
                                     <span
                                       className={`ml-1 text-[9px] ${mom >= 0 ? "text-emerald-400" : "text-red-400"}`}
