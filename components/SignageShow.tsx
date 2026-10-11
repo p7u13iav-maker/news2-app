@@ -126,6 +126,12 @@ export default function SignageShow({
             ✨ 12星座占い
           </a>
           <a
+            href="/steel"
+            className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur transition hover:bg-white/20"
+          >
+            🏭 鉄鋼業
+          </a>
+          <a
             href="/weather"
             className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur transition hover:bg-white/20"
           >

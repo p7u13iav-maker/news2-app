@@ -604,7 +604,13 @@ export default function WeatherPage() {
             href="/market"
             className="text-sm text-white/40 transition hover:text-white/70"
           >
-            📈 市場データ →
+            📈 市場データ
+          </a>
+          <a
+            href="/steel"
+            className="text-sm text-white/40 transition hover:text-white/70"
+          >
+            🏭 鉄鋼業 →
           </a>
         </div>
       </footer>

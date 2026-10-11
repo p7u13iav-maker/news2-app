@@ -88,6 +88,12 @@ export default function MarketPage() {
             毎朝 6:30 に更新 · 出典: Yahoo Finance
           </span>
           <a
+            href="/steel"
+            className="text-sm text-white/40 transition hover:text-white/70"
+          >
+            🏭 鉄鋼業
+          </a>
+          <a
             href="/horoscope"
             className="text-sm text-white/40 transition hover:text-white/70"
           >
