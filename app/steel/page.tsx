@@ -704,17 +704,27 @@ export default function SteelPage() {
                     <p className="shrink-0 text-xs font-semibold text-white/80">
                       世界の粗鋼生産（国・地域別）
                     </p>
-                    {data.worldSteel.length > 0 && (
-                      <div className="mt-0.5">
-                        <ValueRow
-                          value={Math.round(data.worldSteel[data.worldSteel.length - 1].worldCrudeSteel * 100).toLocaleString("ja-JP")}
-                          unit="万トン"
-                          change={data.worldSteel[data.worldSteel.length - 1].yoy}
-                          changeLabel="前年比"
-                          period={`${data.worldSteel[data.worldSteel.length - 1].year}年${data.worldSteel[data.worldSteel.length - 1].month}月`}
-                        />
-                      </div>
-                    )}
+                    {data.worldSteel.length > 0 && (() => {
+                      const latest = data.worldSteel[data.worldSteel.length - 1];
+                      const india = latest.byCountry.find((s) => s.name === "インド");
+                      return (
+                        <div className="mt-0.5">
+                          <ValueRow
+                            value={Math.round(latest.worldCrudeSteel * 100).toLocaleString("ja-JP")}
+                            unit="万トン"
+                            change={latest.yoy}
+                            changeLabel="前年比"
+                            period={`${latest.year}年${latest.month}月`}
+                          />
+                          {india && (
+                            <p className="mt-0.5 font-mono text-[11px] font-semibold tabular-nums text-[#fb923c]">
+                              インド {Math.round(india.value * 100).toLocaleString("ja-JP")}
+                              <span className="ml-1 text-[9px] font-medium text-[#fb923c]/70">万トン</span>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div className="min-h-0 flex-1">
                       <StackedBarChart
                         data={data.worldSteel.map((w) => ({
