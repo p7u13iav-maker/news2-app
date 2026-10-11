@@ -8,8 +8,7 @@ import MarketSparklines from "@/components/MarketSparklines";
  *
  * Shows the 3-month sparklines (yields / US stocks / JP stocks) full-screen
  * with a large layout and a live clock. Data is refreshed once daily at 6:30
- * via the cron (same as news/summary/horoscope). No AI involved, so it works
- * even while Gemini is rate-limited.
+ * via the cron (same as news/summary/horoscope). No AI involved.
  */
 export default function MarketPage() {
   const [clock, setClock] = useState<Date | null>(null);

@@ -9,14 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@ai-sdk/google": "^4.0.93",
-    "@ai-sdk/openai-compatible": "^3.0.67",
-    "ai": "^7.0.137",
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "xlsx": "^0.18.5",
-    "zod": "^4.6.5"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

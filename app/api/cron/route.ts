@@ -12,9 +12,8 @@ import { todayKey } from "@/lib/zodiac";
  *  3. Warms the horoscope raw-data path (fetches all 12 signs).
  *  4. Warms the market data path (fetches all 6 Yahoo Finance series).
  *
- * The Gemini translations (summary/horoscope) happen lazily on first page
- * load of the day. Market data is cached in-memory for 24h per instance,
- * so the first page load after 6:30 triggers a fresh Yahoo fetch.
+ * Market data is cached in-memory for 24h per instance, so the first page
+ * load after 6:30 triggers a fresh Yahoo fetch.
  */
 export async function GET() {
   const started = Date.now();
