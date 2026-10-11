@@ -79,9 +79,8 @@ const CATEGORIES: {
 ];
 
 const HOROSCOPE_GROUPS = [
-  ZODIAC_SIGNS.slice(0, 4),
-  ZODIAC_SIGNS.slice(4, 8),
-  ZODIAC_SIGNS.slice(8, 12),
+  ZODIAC_SIGNS.slice(0, 6),
+  ZODIAC_SIGNS.slice(6, 12),
 ];
 
 function SummarySlide({ data }: { data: SummaryData | null }) {
@@ -188,20 +187,20 @@ function HoroscopeSlide({
   }
   const group = HOROSCOPE_GROUPS[groupIndex];
   return (
-    <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-4">
+    <div className="grid h-full w-full grid-cols-3 grid-rows-2 gap-3">
       {group.map((s) => (
         <div
           key={s.key}
-          className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-white/5 p-5"
+          className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-white/5 p-4"
         >
-          <div className="mb-2 flex items-center gap-3">
-            <span className="text-3xl leading-none">{s.symbol}</span>
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="text-2xl leading-none">{s.symbol}</span>
             <div>
-              <p className="text-xl font-bold leading-tight">{s.ja}</p>
-              <p className="text-xs text-white/40">{s.dateRange}</p>
+              <p className="text-base font-bold leading-tight">{s.ja}</p>
+              <p className="text-[10px] text-white/40">{s.dateRange}</p>
             </div>
           </div>
-          <p className="min-h-0 flex-1 overflow-hidden text-sm leading-relaxed text-white/80">
+          <p className="min-h-0 flex-1 overflow-hidden text-xs leading-relaxed text-white/80">
             {data.horoscopes![s.key]}
           </p>
         </div>
