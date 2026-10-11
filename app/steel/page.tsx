@@ -720,12 +720,12 @@ export default function SteelPage() {
                     </div>
                     {/* Legend: 普通鋼 / 特殊鋼. */}
                     <div className="mt-1 flex shrink-0 gap-2.5">
-                      <span className="flex items-center gap-0.5 text-[8px] text-white/50">
-                        <span className="inline-block h-1.5 w-1.5 rounded-sm" style={{ backgroundColor: "#38bdf8" }} />
+                      <span className="flex items-center gap-1 text-[10px] text-white/60">
+                        <span className="inline-block h-2 w-2 rounded-sm" style={{ backgroundColor: "#38bdf8" }} />
                         普通鋼
                       </span>
-                      <span className="flex items-center gap-0.5 text-[8px] text-white/50">
-                        <span className="inline-block h-1.5 w-1.5 rounded-sm" style={{ backgroundColor: "#a78bfa" }} />
+                      <span className="flex items-center gap-1 text-[10px] text-white/60">
+                        <span className="inline-block h-2 w-2 rounded-sm" style={{ backgroundColor: "#a78bfa" }} />
                         特殊鋼
                       </span>
                     </div>
@@ -825,10 +825,10 @@ export default function SteelPage() {
                           {sorted.slice(0, 6).map((c) => (
                             <span
                               key={c.name}
-                              className="flex items-center gap-0.5 text-[8px] text-white/50"
+                              className="flex items-center gap-1 text-[10px] text-white/60"
                             >
                               <span
-                                className="inline-block h-1.5 w-1.5 rounded-sm"
+                                className="inline-block h-2 w-2 rounded-sm"
                                 style={{
                                   backgroundColor: palette[c.name] ?? "#94a3b8",
                                 }}
@@ -837,7 +837,7 @@ export default function SteelPage() {
                             </span>
                           ))}
                           {sorted.length > 6 && (
-                            <span className="text-[8px] text-white/35">
+                            <span className="text-[10px] text-white/35">
                               +{sorted.length - 6}
                             </span>
                           )}
@@ -1037,10 +1037,10 @@ export default function SteelPage() {
                     ).map(([name, color]) => (
                       <span
                         key={name}
-                        className="flex items-center gap-0.5 text-[8px] text-white/50"
+                        className="flex items-center gap-1 text-[10px] text-white/60"
                       >
                         <span
-                          className="inline-block h-1.5 w-1.5 rounded-sm"
+                          className="inline-block h-2 w-2 rounded-sm"
                           style={{ backgroundColor: color }}
                         />
                         {name}

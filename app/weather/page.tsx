@@ -212,10 +212,10 @@ function TideChart({
   const range = max - min || 1;
 
   const L = 96;
-  const B = 90;
+  const B = 46;
   const plotW = W - L - 20;
-  const plotH = H - B - 20;
-  const top = 10;
+  const plotH = H - B - 12;
+  const top = 12;
 
   const step = hourly.length > 1 ? plotW / (hourly.length - 1) : 0;
   const points = hourly.map((h, i) => {
@@ -457,10 +457,10 @@ function HourlyChart({
   const range = max - min || 1;
 
   const L = 96;
-  const B = 90;
+  const B = 46;
   const plotW = W - L - 20;
-  const plotH = H - B - 20;
-  const top = 10;
+  const plotH = H - B - 12;
+  const top = 12;
 
   const step = hourly.length > 1 ? plotW / (hourly.length - 1) : 0;
   const points = hourly.map((h, i) => {
@@ -599,7 +599,7 @@ function HourlyChart({
           >
             {fmtHour(p.h.time)}時
           </text>
-          <WeatherIcon code={p.h.weatherCode} cx={p.x} cy={top + plotH + 48} size={26} />
+          <WeatherIcon code={p.h.weatherCode} cx={p.x} cy={top + plotH + 44} size={24} />
         </g>
       ))}
 
