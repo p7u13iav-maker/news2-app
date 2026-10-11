@@ -958,6 +958,21 @@ export default function WeatherPage() {
                     <span className="text-sm font-medium">mm</span>
                   </p>
                 </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">湿度</p>
+                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
+                    {c!.humidity}
+                    <span className="text-sm font-medium">%</span>
+                  </p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">風</p>
+                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
+                    {c!.windSpeed.toFixed(1)}
+                    <span className="text-sm font-medium">m/s</span>
+                  </p>
+                  <p className="text-[9px] text-white/40">{c!.windDirectionLabel}</p>
+                </div>
               </div>
             </div>
 
@@ -980,22 +995,7 @@ export default function WeatherPage() {
                 <p className="text-sm font-medium text-white/50">
                   その他気象データ
                 </p>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  <div className="rounded-xl bg-white/5 p-2.5">
-                    <p className="text-[10px] text-white/50">湿度</p>
-                    <p className="mt-0.5 font-mono text-xl font-bold tabular-nums">
-                      {c!.humidity}%
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-white/5 p-2.5">
-                    <p className="text-[10px] text-white/50">風</p>
-                    <p className="mt-0.5 font-mono text-xl font-bold tabular-nums">
-                      {c!.windDirectionLabel} {c!.windSpeed.toFixed(1)}
-                      <span className="ml-0.5 text-[10px] font-normal text-white/40">
-                        m/s
-                      </span>
-                    </p>
-                  </div>
+                <div className="mt-3 flex gap-3">
                   <div className="flex items-center gap-2 rounded-xl bg-white/5 p-2.5">
                     <span className="text-lg">🌅</span>
                     <div>
