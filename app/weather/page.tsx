@@ -92,9 +92,9 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
   const max = Math.max(...temps);
   const range = max - min || 1;
 
-  // Axis padding: room for Y-labels (left) and X-labels + weather emoji (bottom).
+  // Axis padding: room for Y-labels (left) and X-labels + weather icons (bottom).
   const L = 60; // left padding for Y-axis labels
-  const B = 70; // bottom padding for hour labels + weather emoji
+  const B = 90; // bottom padding for hour labels + weather icons
   const plotW = W - L - 20;
   const plotH = H - B - 20;
 
@@ -191,7 +191,7 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
           >
             {fmtHour(p.h.time)}時
           </text>
-          <WeatherIcon code={p.h.weatherCode} cx={p.x} cy={10 + plotH + 40} size={14} />
+          <WeatherIcon code={p.h.weatherCode} cx={p.x} cy={10 + plotH + 42} size={24} />
         </g>
       ))}
     </svg>
@@ -332,6 +332,18 @@ function WeatherIcon({
   );
 }
 
+/** Single tip row: emoji + text. */
+function TipItem({ emoji, text }: { emoji: string; text: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg bg-white/5 px-3 py-2">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-base">
+        {emoji}
+      </span>
+      <p className="text-sm leading-snug text-white/80">{text}</p>
+    </div>
+  );
+}
+
 export default function WeatherPage() {
   const [clock, setClock] = useState<Date | null>(null);
   const [data, setData] = useState<WeatherData | null>(null);
@@ -427,100 +439,143 @@ export default function WeatherPage() {
           </div>
         ) : (
           <>
-            {/* Top: current weather + today summary. */}
+            {/* Top: current weather + today summary + tips (3 columns). */}
             <div className="flex min-h-0 flex-1 gap-4">
-              {/* Current conditions card. */}
-              <div className="flex w-[40%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-8">
-                <div className="mb-4 flex items-center gap-3">
-                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-5xl">
+              {/* Column 1: Current conditions. */}
+              <div className="flex w-[34%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
+                <div className="mb-3 flex items-center gap-3">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-4xl">
                     {c!.emoji}
                   </span>
                   <div>
-                    <p className="text-2xl font-semibold">{c!.label}</p>
-                    <p className="text-sm text-white/50">
+                    <p className="text-xl font-semibold">{c!.label}</p>
+                    <p className="text-xs text-white/50">
                       {fmtTime(c!.time)} 現在
                     </p>
                   </div>
                 </div>
-                <p className="font-mono text-7xl font-light tabular-nums">
+                <p className="font-mono text-6xl font-light tabular-nums">
                   {Math.round(c!.temperature)}
-                  <span className="text-4xl">°C</span>
+                  <span className="text-3xl">°C</span>
                 </p>
-                <p className="mt-2 text-sm text-white/60">
+                <p className="mt-1 text-sm text-white/60">
                   体感 {Math.round(c!.apparentTemperature)}°C
                 </p>
-                <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-lg bg-white/5 p-3">
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg bg-white/5 p-2">
                     <p className="text-white/50">湿度</p>
-                    <p className="mt-1 font-mono text-lg font-semibold">
+                    <p className="mt-0.5 font-mono text-base font-semibold">
                       {c!.humidity}%
                     </p>
                   </div>
-                  <div className="rounded-lg bg-white/5 p-3">
+                  <div className="rounded-lg bg-white/5 p-2">
                     <p className="text-white/50">風</p>
-                    <p className="mt-1 font-mono text-lg font-semibold">
-                      {c!.windDirectionLabel} {c!.windSpeed.toFixed(1)} km/h
+                    <p className="mt-0.5 font-mono text-base font-semibold">
+                      {c!.windDirectionLabel} {c!.windSpeed.toFixed(1)}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Today summary card. */}
-              <div className="flex w-[60%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-8">
-                <p className="mb-4 text-sm font-medium text-white/50">
+              {/* Column 2: Today summary. */}
+              <div className="flex w-[34%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
+                <p className="mb-3 text-sm font-medium text-white/50">
                   今日の天気
                 </p>
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-5">
                   <div className="flex flex-col">
-                    <p className="text-sm font-medium text-white/50">
+                    <p className="text-xs font-medium text-white/50">
                       最高気温
                     </p>
                     <p className="font-light tabular-nums text-orange-300">
-                      <span className="text-5xl">{Math.round(d!.maxTemp)}</span>
-                      <span className="text-2xl">°C</span>
+                      <span className="text-4xl">{Math.round(d!.maxTemp)}</span>
+                      <span className="text-xl">°C</span>
                     </p>
                   </div>
                   <div className="flex flex-col">
-                    <p className="text-sm font-medium text-white/50">
+                    <p className="text-xs font-medium text-white/50">
                       最低気温
                     </p>
                     <p className="font-light tabular-nums text-sky-300">
-                      <span className="text-5xl">{Math.round(d!.minTemp)}</span>
-                      <span className="text-2xl">°C</span>
+                      <span className="text-4xl">{Math.round(d!.minTemp)}</span>
+                      <span className="text-xl">°C</span>
                     </p>
                   </div>
-                  <div className="ml-auto flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-base">
-                      🌧
-                    </span>
-                    <span className="font-mono font-semibold">
-                      降水 {d!.maxPrecipProb}%
-                    </span>
-                  </div>
                 </div>
-                <div className="mt-8 grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3 rounded-xl bg-white/5 p-4">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-2xl">
+                <div className="mt-3 flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-sm">
+                    🌧
+                  </span>
+                  <span className="font-mono font-semibold">
+                    降水 {d!.maxPrecipProb}%
+                  </span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 rounded-xl bg-white/5 p-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-lg">
                       🌅
                     </span>
                     <div>
-                      <p className="text-xs text-white/50">日の出</p>
-                      <p className="font-mono text-xl font-semibold">
+                      <p className="text-[10px] text-white/50">日の出</p>
+                      <p className="font-mono text-base font-semibold">
                         {fmtTime(d!.sunrise)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 rounded-xl bg-white/5 p-4">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-2xl">
+                  <div className="flex items-center gap-2 rounded-xl bg-white/5 p-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-lg">
                       🌇
                     </span>
                     <div>
-                      <p className="text-xs text-white/50">日の入り</p>
-                      <p className="font-mono text-xl font-semibold">
+                      <p className="text-[10px] text-white/50">日の入り</p>
+                      <p className="font-mono text-base font-semibold">
                         {fmtTime(d!.sunset)}
                       </p>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Column 3: Outgoing tips. */}
+              <div className="flex w-[32%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
+                <p className="mb-3 text-sm font-medium text-white/50">
+                  今日のヒント
+                </p>
+                <div className="flex flex-col gap-3">
+                  <TipItem
+                    emoji="🌡️"
+                    text={
+                      d!.maxTemp >= 30
+                        ? "暑い日。水分補給を忘れずに。"
+                        : d!.maxTemp >= 25
+                          ? "暖かい日。薄着でも快適です。"
+                          : d!.maxTemp >= 18
+                            ? "肌寒い日。羽織ものがあると安心。"
+                            : d!.maxTemp >= 10
+                              ? "寒い日。防寒着を忘れずに。"
+                              : "真冬。重ね着で防寒しましょう。"
+                    }
+                  />
+                  <TipItem
+                    emoji={d!.maxPrecipProb >= 50 ? "☂️" : "🌂"}
+                    text={
+                      d!.maxPrecipProb >= 70
+                        ? "雨の可能性大。傘をお持ちください。"
+                        : d!.maxPrecipProb >= 40
+                          ? "雨の可能性あり。折りたたみ傘が安心。"
+                          : "傘は不要。晴れの日です。"
+                    }
+                  />
+                  <TipItem
+                    emoji={c!.windSpeed >= 20 ? "💨" : "🍃"}
+                    text={
+                      c!.windSpeed >= 30
+                        ? "強風注意。帽子や小物に気をつけて。"
+                        : c!.windSpeed >= 15
+                          ? "やや風が強い日。"
+                          : "風は穏やかです。"
+                    }
+                  />
                 </div>
               </div>
             </div>
