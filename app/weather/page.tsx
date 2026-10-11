@@ -264,8 +264,8 @@ function TideChart({
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      className="h-full w-full"
-      preserveAspectRatio="none"
+      className="mx-auto h-full w-full"
+      preserveAspectRatio="xMidYMid meet"
     >
       <defs>
         <linearGradient id="tideGrad" x1="0" y1="0" x2="0" y2="1">
@@ -514,8 +514,8 @@ function HourlyChart({
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      className="h-full w-full"
-      preserveAspectRatio="none"
+      className="mx-auto h-full w-full"
+      preserveAspectRatio="xMidYMid meet"
     >
       <defs>
         <linearGradient id="tempGrad" x1="0" y1="0" x2="0" y2="1">
