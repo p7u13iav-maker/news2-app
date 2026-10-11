@@ -161,9 +161,15 @@ function BarChart({
   const slot = (W - 2 * PAD) / n;
   const barW = Math.max(slot - 2, 1);
 
+  // Leave headroom at the top (16 SVG units) so value labels fit above bars.
+  const BASE = H - 8; // baseline y
+  const TOP = 16; // top of the plot area (headroom for labels)
+  const plotH = BASE - TOP;
+
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="min-h-0 flex-1">
+      {/* Chart area (relative so value labels can be HTML overlays). */}
+      <div className="relative min-h-0 flex-1">
         <svg
           viewBox={`0 0 ${W} ${H}`}
           className="h-full w-full"
@@ -172,20 +178,17 @@ function BarChart({
           {/* baseline */}
           <line
             x1={PAD}
-            y1={H - 8}
+            y1={BASE}
             x2={W - PAD}
-            y2={H - 8}
+            y2={BASE}
             stroke="rgba(255,255,255,0.15)"
             strokeWidth={0.5}
             vectorEffect="non-scaling-stroke"
           />
           {data.map((d, i) => {
             const x = PAD + i * slot + (slot - barW) / 2;
-            const barH = Math.max(
-              ((d.value - min) / range) * (H - 16),
-              0.5,
-            );
-            const y = H - 8 - barH;
+            const barH = Math.max(((d.value - min) / range) * plotH, 0.5);
+            const y = BASE - barH;
             const isLatest = i === n - 1;
             return (
               <rect
@@ -200,6 +203,27 @@ function BarChart({
             );
           })}
         </svg>
+
+        {/* HTML value labels above each bar (avoid SVG text distortion). */}
+        {data.map((d, i) => {
+          const cxPct = ((PAD + i * slot + slot / 2) / W) * 100;
+          const barH = Math.max(((d.value - min) / range) * plotH, 0.5);
+          const topPct = ((BASE - barH) / H) * 100;
+          const isLatest = i === n - 1;
+          return (
+            <span
+              key={i}
+              className="absolute -translate-x-1/2 -translate-y-full font-mono text-[9px] leading-none tabular-nums"
+              style={{
+                left: `${cxPct}%`,
+                top: `${topPct}%`,
+                color: isLatest ? "#fff" : "rgba(255,255,255,0.55)",
+              }}
+            >
+              {d.value.toFixed(0)}
+            </span>
+          );
+        })}
       </div>
       {/* Month labels aligned to each bar slot. */}
       <div className="flex shrink-0 pt-0.5" style={{ paddingLeft: PAD, paddingRight: PAD }}>
@@ -433,6 +457,42 @@ function ColHeader({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Big latest-value row: value + unit on the left, an optional change badge
+ * (前年比 / 前月比) on the right. Placed directly under the panel subtitle so
+ * the number is always the most legible element of the panel.
+ */
+function ValueRow({
+  value,
+  unit,
+  change,
+  changeLabel,
+}: {
+  value: string;
+  unit: string;
+  change?: number | null;
+  changeLabel?: string;
+}) {
+  const up = (change ?? 0) >= 0;
+  return (
+    <div className="flex shrink-0 items-end justify-between">
+      <p className="font-mono text-lg font-bold leading-tight tabular-nums text-white">
+        {value}
+        <span className="ml-1 text-xs font-normal text-white/40">{unit}</span>
+      </p>
+      {change !== undefined && change !== null && (
+        <span
+          className={`font-mono text-xs leading-tight tabular-nums ${up ? "text-emerald-400" : "text-red-400"}`}
+        >
+          {up ? "+" : ""}
+          {change.toFixed(1)}%
+          <span className="ml-0.5 text-[9px] text-white/30">{changeLabel}</span>
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function SteelPage() {
   const [data, setData] = useState<SteelData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -591,9 +651,19 @@ export default function SteelPage() {
                 <ColHeader>粗鋼生産</ColHeader>
                 <div className="grid min-h-0 flex-1 grid-rows-2 gap-2">
                   <Panel className="flex flex-col overflow-hidden">
-                    <p className="mb-1 shrink-0 text-xs font-semibold text-white/80">
+                    <p className="shrink-0 text-xs font-semibold text-white/80">
                       日本の粗鋼生産
                     </p>
+                    {data.production.length > 0 && (
+                      <div className="mt-0.5">
+                        <ValueRow
+                          value={data.production[data.production.length - 1].crudeSteel.toFixed(1)}
+                          unit="万トン"
+                          change={data.production[data.production.length - 1].yoy}
+                          changeLabel="前年比"
+                        />
+                      </div>
+                    )}
                     <div className="min-h-0 flex-1">
                       <BarChart
                         data={data.production.map((p) => ({
@@ -603,35 +673,22 @@ export default function SteelPage() {
                         color="#38bdf8"
                       />
                     </div>
-                    {data.production.length > 0 && (
-                      <div className="mt-1 flex shrink-0 items-end justify-between">
-                        <p className="font-mono text-lg font-bold tabular-nums text-white">
-                          {data.production[data.production.length - 1].crudeSteel.toFixed(1)}
-                          <span className="ml-0.5 text-xs font-normal text-white/40">
-                            万トン
-                          </span>
-                        </p>
-                        <span
-                          className={`font-mono text-xs tabular-nums ${
-                            data.production[data.production.length - 1].yoy >= 0
-                              ? "text-emerald-400"
-                              : "text-red-400"
-                          }`}
-                        >
-                          {data.production[data.production.length - 1].yoy >= 0
-                            ? "+"
-                            : ""}
-                          {data.production[data.production.length - 1].yoy.toFixed(1)}%
-                          <span className="ml-0.5 text-[9px] text-white/30">前年比</span>
-                        </span>
-                      </div>
-                    )}
                   </Panel>
 
                   <Panel className="flex flex-col overflow-hidden">
-                    <p className="mb-1 shrink-0 text-xs font-semibold text-white/80">
+                    <p className="shrink-0 text-xs font-semibold text-white/80">
                       世界の粗鋼生産（国・地域別）
                     </p>
+                    {data.worldSteel.length > 0 && (
+                      <div className="mt-0.5">
+                        <ValueRow
+                          value={data.worldSteel[data.worldSteel.length - 1].worldCrudeSteel.toFixed(1)}
+                          unit="百万トン"
+                          change={data.worldSteel[data.worldSteel.length - 1].yoy}
+                          changeLabel="前年比"
+                        />
+                      </div>
+                    )}
                     <div className="min-h-0 flex-1">
                       <StackedBarChart
                         data={data.worldSteel.map((w) => ({
@@ -721,9 +778,19 @@ export default function SteelPage() {
                 <div className="grid min-h-0 flex-1 grid-rows-3 gap-2">
                   {/* Production trend. */}
                   <Panel className="flex flex-col overflow-hidden">
-                    <p className="mb-0.5 shrink-0 text-[11px] font-semibold text-white/80">
+                    <p className="shrink-0 text-[11px] font-semibold text-white/80">
                       生産の月別
                     </p>
+                    {sdTrend.length > 0 && (
+                      <div className="mt-0.5">
+                        <ValueRow
+                          value={sdTrend[sdTrend.length - 1].carbonSteel.toFixed(1)}
+                          unit="万トン"
+                          change={sdMom("carbonSteel")}
+                          changeLabel="前月比"
+                        />
+                      </div>
+                    )}
                     <div className="min-h-0 flex-1">
                       <BarChart
                         data={sdTrend.map((t) => ({
@@ -733,36 +800,23 @@ export default function SteelPage() {
                         color="#a78bfa"
                       />
                     </div>
-                    {sdTrend.length > 0 && (
-                      <div className="mt-0.5 flex shrink-0 items-end justify-between">
-                        <p className="font-mono text-lg font-bold tabular-nums text-white">
-                          {sdTrend[sdTrend.length - 1].carbonSteel.toFixed(1)}
-                          <span className="ml-0.5 text-xs font-normal text-white/40">
-                            万トン
-                          </span>
-                        </p>
-                        {(() => {
-                          const mom = sdMom("carbonSteel");
-                          if (mom === null) return null;
-                          return (
-                            <span
-                              className={`font-mono text-xs tabular-nums ${mom >= 0 ? "text-emerald-400" : "text-red-400"}`}
-                            >
-                              {mom >= 0 ? "+" : ""}
-                              {mom.toFixed(1)}%
-                              <span className="ml-0.5 text-[9px] text-white/30">前月比</span>
-                            </span>
-                          );
-                        })()}
-                      </div>
-                    )}
                   </Panel>
 
                   {/* Shipments trend. */}
                   <Panel className="flex flex-col overflow-hidden">
-                    <p className="mb-0.5 shrink-0 text-[11px] font-semibold text-white/80">
+                    <p className="shrink-0 text-[11px] font-semibold text-white/80">
                       出荷量の月別
                     </p>
+                    {sdTrend.length > 0 && (
+                      <div className="mt-0.5">
+                        <ValueRow
+                          value={sdTrend[sdTrend.length - 1].shipmentsTotal.toFixed(1)}
+                          unit="万トン"
+                          change={sdMom("shipmentsTotal")}
+                          changeLabel="前月比"
+                        />
+                      </div>
+                    )}
                     <div className="min-h-0 flex-1">
                       <BarChart
                         data={sdTrend.map((t) => ({
@@ -772,34 +826,11 @@ export default function SteelPage() {
                         color="#f472b6"
                       />
                     </div>
-                    {sdTrend.length > 0 && (
-                      <div className="mt-0.5 flex shrink-0 items-end justify-between">
-                        <p className="font-mono text-lg font-bold tabular-nums text-white">
-                          {sdTrend[sdTrend.length - 1].shipmentsTotal.toFixed(1)}
-                          <span className="ml-0.5 text-xs font-normal text-white/40">
-                            万トン
-                          </span>
-                        </p>
-                        {(() => {
-                          const mom = sdMom("shipmentsTotal");
-                          if (mom === null) return null;
-                          return (
-                            <span
-                              className={`font-mono text-xs tabular-nums ${mom >= 0 ? "text-emerald-400" : "text-red-400"}`}
-                            >
-                              {mom >= 0 ? "+" : ""}
-                              {mom.toFixed(1)}%
-                              <span className="ml-0.5 text-[9px] text-white/30">前月比</span>
-                            </span>
-                          );
-                        })()}
-                      </div>
-                    )}
                   </Panel>
 
                   {/* Inventory trend + inventory ratio (integrated). */}
                   <Panel className="flex flex-col overflow-hidden">
-                    <div className="mb-0.5 flex shrink-0 items-center justify-between">
+                    <div className="flex shrink-0 items-center justify-between">
                       <p className="text-[11px] font-semibold text-white/80">
                         在庫量の月別
                       </p>
@@ -818,6 +849,16 @@ export default function SteelPage() {
                         </p>
                       )}
                     </div>
+                    {sdTrend.length > 0 && (
+                      <div className="mt-0.5">
+                        <ValueRow
+                          value={sdTrend[sdTrend.length - 1].inventory.toFixed(1)}
+                          unit="万トン"
+                          change={sdMom("inventory")}
+                          changeLabel="前月比"
+                        />
+                      </div>
+                    )}
                     <div className="min-h-0 flex-1">
                       <BarChart
                         data={sdTrend.map((t) => ({
@@ -827,31 +868,6 @@ export default function SteelPage() {
                         color="#fbbf24"
                       />
                     </div>
-                    {sdTrend.length > 0 && (
-                      <div className="mt-0.5 shrink-0">
-                        <div className="flex items-end justify-between">
-                          <p className="font-mono text-lg font-bold tabular-nums text-white">
-                            {sdTrend[sdTrend.length - 1].inventory.toFixed(1)}
-                            <span className="ml-0.5 text-xs font-normal text-white/40">
-                              万トン
-                            </span>
-                          </p>
-                          {(() => {
-                            const mom = sdMom("inventory");
-                            if (mom === null) return null;
-                            return (
-                              <span
-                                className={`font-mono text-xs tabular-nums ${mom >= 0 ? "text-emerald-400" : "text-red-400"}`}
-                              >
-                                {mom >= 0 ? "+" : ""}
-                                {mom.toFixed(1)}%
-                                <span className="ml-0.5 text-[9px] text-white/30">前月比</span>
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    )}
                   </Panel>
                 </div>
               </div>
@@ -862,19 +878,17 @@ export default function SteelPage() {
                 <div className="grid min-h-0 flex-1 grid-rows-3 gap-2">
                   {/* Stacked bar chart by sector (top, 2 rows). */}
                   <Panel className="row-span-2 flex flex-col overflow-hidden">
-                    <div className="mb-0.5 flex shrink-0 items-center justify-between">
-                      <p className="text-[11px] font-semibold text-white/80">
-                        受注量合計
-                      </p>
-                      {orderLatest && (
-                        <p className="font-mono text-base font-bold tabular-nums text-white">
-                          {orderLatest.total.toFixed(1)}
-                          <span className="ml-0.5 text-[10px] font-normal text-white/40">
-                            万トン
-                          </span>
-                        </p>
-                      )}
-                    </div>
+                    <p className="shrink-0 text-[11px] font-semibold text-white/80">
+                      受注量合計
+                    </p>
+                    {orderLatest && (
+                      <div className="mt-0.5">
+                        <ValueRow
+                          value={orderLatest.total.toFixed(1)}
+                          unit="万トン"
+                        />
+                      </div>
+                    )}
                     <div className="min-h-0 flex-1">
                       {(() => {
                         const mach = (o: OrderMonth) =>
