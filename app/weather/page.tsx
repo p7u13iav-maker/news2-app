@@ -355,14 +355,25 @@ function TideChart({
             <circle cx={x} cy={y} r="5" fill="#f472b6" opacity="0.8" />
             <text
               x={x}
-              y={y - 10}
+              y={y - 26}
               fill="#f472b6"
               fontSize="14"
               fontFamily="monospace"
               textAnchor="middle"
               fontWeight="bold"
             >
-              {h.time} {h.level}cm
+              {h.time}
+            </text>
+            <text
+              x={x}
+              y={y - 10}
+              fill="#f472b6"
+              fontSize="15"
+              fontFamily="monospace"
+              textAnchor="middle"
+              fontWeight="bold"
+            >
+              {h.level}cm
             </text>
           </g>
         );
@@ -376,14 +387,25 @@ function TideChart({
             <circle cx={x} cy={y} r="5" fill="#38bdf8" opacity="0.8" />
             <text
               x={x}
-              y={y + 20}
+              y={y + 18}
               fill="#38bdf8"
               fontSize="14"
               fontFamily="monospace"
               textAnchor="middle"
               fontWeight="bold"
             >
-              {l.time} {l.level}cm
+              {l.time}
+            </text>
+            <text
+              x={x}
+              y={y + 34}
+              fill="#38bdf8"
+              fontSize="15"
+              fontFamily="monospace"
+              textAnchor="middle"
+              fontWeight="bold"
+            >
+              {l.level}cm
             </text>
           </g>
         );
@@ -594,28 +616,50 @@ function HourlyChart({
               <circle cx={maxP.x} cy={maxP.y} r="5" fill="#fb923c" />
               <text
                 x={maxP.x}
-                y={maxP.y - 10}
+                y={maxP.y - 26}
                 fill="#fb923c"
                 fontSize="14"
                 fontFamily="monospace"
                 textAnchor="middle"
                 fontWeight="bold"
               >
-                {hourOf(maxP.h.time)}時 {Math.round(maxP.h.temperature)}°
+                {hourOf(maxP.h.time)}時
+              </text>
+              <text
+                x={maxP.x}
+                y={maxP.y - 10}
+                fill="#fb923c"
+                fontSize="15"
+                fontFamily="monospace"
+                textAnchor="middle"
+                fontWeight="bold"
+              >
+                {Math.round(maxP.h.temperature)}°
               </text>
             </g>
             <g>
               <circle cx={minP.x} cy={minP.y} r="5" fill="#38bdf8" />
               <text
                 x={minP.x}
-                y={minP.y + 20}
+                y={minP.y + 18}
                 fill="#38bdf8"
                 fontSize="14"
                 fontFamily="monospace"
                 textAnchor="middle"
                 fontWeight="bold"
               >
-                {hourOf(minP.h.time)}時 {Math.round(minP.h.temperature)}°
+                {hourOf(minP.h.time)}時
+              </text>
+              <text
+                x={minP.x}
+                y={minP.y + 34}
+                fill="#38bdf8"
+                fontSize="15"
+                fontFamily="monospace"
+                textAnchor="middle"
+                fontWeight="bold"
+              >
+                {Math.round(minP.h.temperature)}°
               </text>
             </g>
           </>
