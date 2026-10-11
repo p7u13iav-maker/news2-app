@@ -14,11 +14,12 @@ import { NextResponse } from "next/server";
 interface MarketItem {
   key: string;
   label: string;
-  unit: "%" | "";
+  unit: "%" | "円" | "";
   symbol: string;
 }
 
 const MARKET: MarketItem[] = [
+  { key: "usdjpy", label: "円/ドル為替", unit: "円", symbol: "USDJPY=X" },
   { key: "us10y", label: "米国債 10年金利", unit: "%", symbol: "^TNX" },
   { key: "us2y", label: "米国債 2年金利", unit: "%", symbol: "^FVX" },
   { key: "sp500", label: "S&P 500", unit: "", symbol: "^GSPC" },

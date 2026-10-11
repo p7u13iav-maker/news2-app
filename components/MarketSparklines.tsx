@@ -11,7 +11,7 @@ interface Point {
 interface MarketData {
   key: string;
   label: string;
-  unit: "%" | "";
+  unit: "%" | "円" | "";
   symbol: string;
   ok: boolean;
   points: Point[];
@@ -145,6 +145,7 @@ export default function MarketSparklines({
   // Group the 6 series into 3 columns (yields / US stocks / JP stocks),
   // each column holding two cards stacked vertically.
   const groups: { title: string; icon: string; keys: string[] }[] = [
+    { title: "為替", icon: "💱", keys: ["usdjpy"] },
     { title: "金利", icon: "🇺🇸", keys: ["us10y", "us2y"] },
     { title: "米国株", icon: "🇺🇸", keys: ["sp500", "nasdaq"] },
     { title: "日本株", icon: "🇯🇵", keys: ["nikkei", "jfe"] },
@@ -272,7 +273,7 @@ export default function MarketSparklines({
 
       {data && (
         <div
-          className={`grid grid-cols-3 ${large ? "gap-4" : "gap-3"}`}
+          className={`grid grid-cols-4 ${large ? "gap-4" : "gap-3"}`}
         >
           {groups.map((g) => (
             <div

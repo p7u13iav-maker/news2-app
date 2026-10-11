@@ -9,7 +9,7 @@
 export interface MarketSeries {
   key: string;
   label: string;
-  unit: "%" | "";
+  unit: "%" | "円" | "";
   points: { t: number; v: number }[];
 }
 
@@ -70,6 +70,15 @@ export function buildMarketComment(markets: MarketSeries[]): string {
   };
 
   const sentences: string[] = [];
+
+  // --- FX (USD/JPY) ---
+  const fx = stat("usdjpy");
+  if (fx) {
+    const dir = fx.diff >= 0 ? "円安" : "円高";
+    sentences.push(
+      `為替は${dir}傾向で、円/ドルは${fmtNum(fx.last, false)}円です。`,
+    );
+  }
 
   // --- Yields (US 10Y / 2Y) ---
   const y10 = stat("us10y");
