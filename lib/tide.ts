@@ -101,9 +101,15 @@ function parseLine(line: string): TideDay | null {
  * Fetch tide data for a specific day (by JST date string YYYY-MM-DD).
  * Returns null if not found or fetch fails.
  */
+// Temporary debug: surface the last failure reason (set by fetchTideForDay).
+export let lastTideError: string | null = null;
+
 export async function fetchTideForDay(dateStr: string): Promise<TideDay | null> {
   const [year, month, day] = dateStr.split("-").map((n) => parseInt(n, 10));
-  if (!year || !month || !day) return null;
+  if (!year || !month || !day) {
+    lastTideError = "bad dateStr: " + dateStr;
+    return null;
+  }
 
   const url = `https://www.data.jma.go.jp/kaiyou/data/db/tide/suisan/txt/${year}/${STATION}.txt`;
   try {
@@ -111,17 +117,31 @@ export async function fetchTideForDay(dateStr: string): Promise<TideDay | null> 
       headers: { "User-Agent": "Mozilla/5.0" },
       signal: AbortSignal.timeout(15_000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      lastTideError = "HTTP " + res.status + " from " + url;
+      return null;
+    }
     const text = await res.text();
     const lines = text.split(/\r?\n/).filter((l) => l.length >= 136);
+    if (lines.length === 0) {
+      lastTideError = "no 136-char lines (got " + text.length + " chars total)";
+      return null;
+    }
     for (const line of lines) {
       const parsed = parseLine(line);
       if (parsed && parsed.date === dateStr) {
+        lastTideError = null;
         return parsed;
       }
     }
-  } catch {
-    // ignore
+    lastTideError =
+      "date " +
+      dateStr +
+      " not found in " +
+      lines.length +
+      " lines";
+  } catch (e) {
+    lastTideError = "exception: " + (e instanceof Error ? e.message : String(e));
   }
   return null;
 }

@@ -5,7 +5,7 @@ import {
   windDirectionJa,
   type WeatherData,
 } from "@/lib/weather";
-import { fetchTideForDay, type TideDay } from "@/lib/tide";
+import { fetchTideForDay, lastTideError, type TideDay } from "@/lib/tide";
 
 /**
  * GET /api/weather
@@ -86,6 +86,8 @@ export async function GET() {
       weather,
       // Tide data (Mizushima, Kurashiki) — may be null if fetch failed.
       tide: tide as TideDay | null,
+      // Temporary: debug why tide is null.
+      tideDebug: lastTideError ?? "ok",
     };
     weatherCache.set(cacheKey, { ts: Date.now(), data: payload });
     return NextResponse.json(payload);
