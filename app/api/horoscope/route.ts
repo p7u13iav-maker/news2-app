@@ -25,25 +25,26 @@ function sigastraUrl(period: Period): string {
 
 /**
  * Sigastra returns full-length comments (100-700 chars). To display without
- * scrolling on a signage screen, we truncate to the first N characters,
- * cutting at a natural sentence boundary (。or 、) so the text reads cleanly.
+ * scrolling on a signage screen, we keep only the first 3 sentences
+ * (up to the 3rd "。"). If there are fewer than 3 sentences, we keep all.
  */
-const MAX_CHARS = 120;
 
 /**
- * Truncate to max chars, cutting at a sentence boundary (。or 、) when
- * possible so the text reads cleanly. Always returns ≤ max chars.
+ * Keep the first 3 sentences (up to and including the 3rd "。").
+ * If fewer than 3 sentences, return the text as-is.
  */
-function truncateAtBoundary(text: string, max: number): string {
-  if (text.length <= max) return text;
-  const window = text.slice(0, max);
-  const lastPeriod = window.lastIndexOf("。");
-  const lastComma = window.lastIndexOf("、");
-  const cut = Math.max(lastPeriod, lastComma);
-  if (cut > max * 0.4) {
-    return window.slice(0, cut + 1);
+function keepThreeSentences(text: string): string {
+  let count = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === "。") {
+      count++;
+      if (count === 3) {
+        return text.slice(0, i + 1);
+      }
+    }
   }
-  return window;
+  // Fewer than 3 sentences — return as-is.
+  return text;
 }
 
 /**
@@ -97,7 +98,7 @@ export async function POST(req: Request) {
             s.key.charAt(0).toUpperCase() + s.key.slice(1),
       );
       const raw = item?.text ?? "";
-      horoscopes[s.key] = truncateAtBoundary(raw, MAX_CHARS);
+      horoscopes[s.key] = keepThreeSentences(raw);
     }
 
     // Verify we got at least some data.

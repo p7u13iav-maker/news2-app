@@ -1,36 +1,40 @@
-import { getGemini, geminiModel, isGeminiConfigured } from "@/lib/gemini";
-import { generateText } from "ai";
 import { fetchHeadlines } from "@/lib/newsApi";
+import { translateHeadline } from "@/lib/translateHeadline";
 import { NextResponse } from "next/server";
-
-// In-memory cache for daily summaries (avoids re-calling Gemini on every load).
-// Keyed by JST date — the summary is generated once per day (at 6:30 via cron
-// or on first page load), then served from cache for the rest of the day.
-const summaryCache = new Map<string, { ts: number; data: object }>();
-const DAILY_CACHE_MS = 24 * 60 * 60 * 1000;
 
 /**
  * POST /api/summary
  *
- * Fetches the latest NHK + Nikkei headlines, then uses OITOMA AI to
- * summarize them into three categories:
- *   - 国内の出来事 (yesterday's domestic events)
- *   - 国外の出来事 (yesterday's international events)
- *   - 経済ニュース (world economy including Japan)
+ * No AI. Categorizes headlines by source:
+ *   - domestic: NHK + Nikkei (Japanese sources)
+ *   - international: BBC + Guardian (English sources, translated to Japanese)
+ *   - economy: Nikkei Business (economy-focused source)
+ *
+ * Each category shows max 5 items, truncated to 40 chars at sentence boundary.
  *
  * Returns JSON: { ok, date, summary: { domestic, international, economy } }
- * Each category is an array of short bullet-point strings.
  */
-export async function POST() {
-  if (!isGeminiConfigured()) {
-    return NextResponse.json(
-      { ok: false, error: "GEMINI_API_KEY is not set." },
-      { status: 500 },
-    );
-  }
 
-  // Daily cache: key by JST date so we only call Gemini once per day.
-  // The cron at 6:30 triggers the first generation; subsequent loads hit cache.
+// In-memory cache for daily summaries.
+const summaryCache = new Map<string, { ts: number; data: object }>();
+const DAILY_CACHE_MS = 24 * 60 * 60 * 1000;
+
+/** Truncate to max chars at sentence boundary (。or 、). */
+function truncate(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const window = s.slice(0, max);
+  const lastPeriod = window.lastIndexOf("。");
+  const lastComma = window.lastIndexOf("、");
+  const cut = Math.max(lastPeriod, lastComma);
+  if (cut > max * 0.5) return window.slice(0, cut + 1);
+  return window;
+}
+
+const MAX_ITEMS = 5;
+const MAX_CHARS = 40;
+
+export async function POST() {
+  // Daily cache: key by JST date.
   const cacheKey = "summary-" +
     new Date().toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" });
   const cached = summaryCache.get(cacheKey);
@@ -39,10 +43,7 @@ export async function POST() {
   }
 
   try {
-    // Fetch the latest headlines, then take only the first 15 (half of ~30)
-    // to reduce Gemini token usage and avoid quota limits.
-    const allArticles = await fetchHeadlines();
-    const articles = allArticles.slice(0, 15);
+    const articles = await fetchHeadlines();
     if (articles.length === 0) {
       return NextResponse.json(
         { ok: false, error: "No news articles found." },
@@ -50,86 +51,31 @@ export async function POST() {
       );
     }
 
-    // Build a compact text input for the AI.
-    const newsText = articles
-      .map((a, i) => `${i + 1}. [${a.source}] ${a.title}`)
-      .join("\n");
+    // Categorize by source.
+    const domestic: string[] = [];
+    const international: string[] = [];
+    const economy: string[] = [];
 
-    // Ask the AI to categorize and summarize. We use structuredOutputs: true
-    // (Gemini's native structured output) + thinkingBudget: 0 (no thinking)
-    // to get fast, reliable JSON output. We then robustly extract the JSON
-    // from the response text.
-    const { text } = await generateText({
-      model: getGemini(),
-      system: `ニュース見出しを3カテゴリに分類し、JSON配列で出力してください。
-各カテゴリは文字列の配列(2〜4項目)。各項目は20〜40文字の**日本語**の短い要約。
-カテゴリ: domestic(国内), international(国外), economy(経済)
-※ 見出しは日本語と英語(BBC/Guardian)が混在しますが、全て日本語で要約してください。
-例: {"domestic":["項目1","項目2"],"international":["項目1"],"economy":["項目1","項目2"]}
-出力はJSONのみ。`,
-      prompt: `以下の見出しを要約してください:
+    for (const a of articles) {
+      const isEnglish = a.source === "BBC" || a.source === "Guardian";
+      const title = isEnglish
+        ? translateHeadline(a.title)
+        : a.title;
+      const item = truncate(title, MAX_CHARS);
 
-${newsText}`,
-      temperature: 0.2,
-      maxOutputTokens: 600,
-      maxRetries: 1,
-      timeout: 50_000,
-      providerOptions: {
-        google: {
-          thinkingConfig: { thinkingBudget: 0 },
-          structuredOutputs: true,
-        },
-      },
-    });
-
-    // Extract the JSON object from the response (may be wrapped in code fences).
-    let parsed: { domestic: string[]; international: string[]; economy: string[] };
-    try {
-      const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-      const start = cleaned.indexOf("{");
-      if (start === -1) throw new Error("No JSON object found");
-      let depth = 0, end = -1;
-      for (let i = start; i < cleaned.length; i++) {
-        if (cleaned[i] === "{") depth++;
-        else if (cleaned[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+      if (a.source === "NHK") {
+        if (domestic.length < MAX_ITEMS) domestic.push(item);
+      } else if (isEnglish) {
+        if (international.length < MAX_ITEMS) international.push(item);
+      } else if (a.source === "日経ビジネス") {
+        // Nikkei Business → economy
+        if (economy.length < MAX_ITEMS) economy.push(item);
+      } else if (a.source === "日経新聞") {
+        // Nikkei main → domestic (could also be economy, but keep simple)
+        if (domestic.length < MAX_ITEMS) domestic.push(item);
       }
-      let jsonStr: string;
-      if (end !== -1) {
-        jsonStr = cleaned.slice(start, end + 1);
-      } else {
-        // Truncated: repair by closing open brackets/braces.
-        jsonStr = cleaned.slice(start);
-        const qCount = (jsonStr.match(/"/g) || []).length;
-        if (qCount % 2 === 1) {
-          const lc = jsonStr.lastIndexOf('",');
-          if (lc > 0) jsonStr = jsonStr.slice(0, lc + 1);
-        }
-        jsonStr = jsonStr.replace(/,\s*$/, "");
-        const ob = (jsonStr.match(/\[/g) || []).length - (jsonStr.match(/\]/g) || []).length;
-        const oc = (jsonStr.match(/\{/g) || []).length - (jsonStr.match(/\}/g) || []).length;
-        for (let i = 0; i < Math.max(0, ob); i++) jsonStr += "]";
-        for (let i = 0; i < Math.max(0, oc); i++) jsonStr += "}";
-      }
-      parsed = JSON.parse(jsonStr);
-      // If structuredOutputs wrapped items as {summary:"..."} objects, extract
-      // the string value.
-      for (const key of ["domestic", "international", "economy"] as const) {
-        if (Array.isArray(parsed[key])) {
-          parsed[key] = parsed[key].map((item: unknown) =>
-            typeof item === "object" && item !== null && "summary" in item
-              ? String((item as Record<string, unknown>).summary)
-              : String(item),
-          );
-        }
-      }
-    } catch {
-      return NextResponse.json(
-        { ok: false, error: "Failed to parse AI response as JSON.", raw: text },
-        { status: 500 },
-      );
     }
 
-    // Today's date in JST (Asia/Tokyo).
     const dateStr = new Date().toLocaleDateString("ja-JP", {
       timeZone: "Asia/Tokyo",
       year: "numeric",
@@ -142,12 +88,12 @@ ${newsText}`,
       ok: true,
       date: dateStr,
       summary: {
-        domestic: parsed.domestic || [],
-        international: parsed.international || [],
-        economy: parsed.economy || [],
+        domestic,
+        international,
+        economy,
       },
     };
-    // Cache the result for the rest of the day.
+
     summaryCache.set(cacheKey, { ts: Date.now(), data: result });
     return NextResponse.json(result);
   } catch (e) {
