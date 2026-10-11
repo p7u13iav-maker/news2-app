@@ -225,11 +225,11 @@ function BarChart({
           );
         })}
       </div>
-      {/* Month labels aligned to each bar slot. */}
+      {/* Month labels aligned to each bar slot (all months). */}
       <div className="flex shrink-0 pt-0.5" style={{ paddingLeft: PAD, paddingRight: PAD }}>
         {data.map((d, i) => (
           <span key={i} className="flex-1 text-center text-[8px] leading-none text-white/35">
-            {i === 0 || i === n - 1 ? d.label : ""}
+            {d.label}
           </span>
         ))}
       </div>
@@ -422,7 +422,7 @@ function StackedBarChart({
             key={i}
             className="flex-1 text-center text-[8px] leading-none text-white/35"
           >
-            {i === 0 || i === n - 1 ? d.label : ""}
+            {d.label}
           </span>
         ))}
       </div>
