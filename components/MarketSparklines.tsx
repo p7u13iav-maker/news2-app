@@ -332,16 +332,17 @@ export default function MarketSparklines({
                 g.title !== "金利" ? "pl-4" : ""
               } ${g.title !== "日本株" ? "pr-4" : ""}`}
             >
-              {/* Group header */}
+              {/* Group header — made prominent so the 3 column titles stand
+                  out against the sparkline cards below. */}
               <div
-                className={`flex items-center gap-1.5 ${
-                  large ? "pb-1" : "pb-0.5"
+                className={`flex items-center gap-2 border-b ${
+                  large ? "border-white/15 pb-2" : "border-white/10 pb-1"
                 }`}
               >
-                <span className={large ? "text-base" : "text-xs"}>{g.icon}</span>
+                <span className={large ? "text-lg" : "text-sm"}>{g.icon}</span>
                 <span
-                  className={`font-semibold tracking-wide text-white/60 ${
-                    large ? "text-sm" : "text-xs"
+                  className={`font-bold tracking-wide text-white ${
+                    large ? "text-lg" : "text-sm"
                   }`}
                 >
                   {g.title}
