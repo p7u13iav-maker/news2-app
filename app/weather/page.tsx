@@ -586,6 +586,8 @@ function HourlyChart({
         const minIdx = temps.indexOf(Math.min(...temps));
         const maxP = points[maxIdx];
         const minP = points[minIdx];
+        const hourOf = (t: string) =>
+          String(new Date(t).getHours()).padStart(2, "0");
         return (
           <>
             <g>
@@ -599,7 +601,7 @@ function HourlyChart({
                 textAnchor="middle"
                 fontWeight="bold"
               >
-                {fmtHour(maxP.h.time)}時 {Math.round(maxP.h.temperature)}°
+                {hourOf(maxP.h.time)}時 {Math.round(maxP.h.temperature)}°
               </text>
             </g>
             <g>
@@ -613,14 +615,14 @@ function HourlyChart({
                 textAnchor="middle"
                 fontWeight="bold"
               >
-                {fmtHour(minP.h.time)}時 {Math.round(minP.h.temperature)}°
+                {hourOf(minP.h.time)}時 {Math.round(minP.h.temperature)}°
               </text>
             </g>
           </>
         );
       })()}
 
-      {/* X-axis: hour labels + weather icons. */}
+      {/* X-axis: hour labels (2-digit, e.g. 00時 03時) + weather icons. */}
       {xTicks.map((p, i) => (
         <g key={i}>
           <text
@@ -631,7 +633,7 @@ function HourlyChart({
             fontFamily="monospace"
             textAnchor="middle"
           >
-            {fmtHour(p.h.time)}時
+            {String(new Date(p.h.time).getHours()).padStart(2, "0")}時
           </text>
           <WeatherIcon code={p.h.weatherCode} cx={p.x} cy={top + plotH + 46} size={30} />
         </g>
@@ -1109,7 +1111,7 @@ export default function WeatherPage() {
         </a>
         <div className="flex items-center gap-4">
           <span className="text-xs text-white/30">
-            毎朝 6:30 に更新 · 出典: Open-Meteo (JMA)
+            毎朝 7:30 に更新 · 出典: Open-Meteo (JMA)
           </span>
           <a
             href="/market"

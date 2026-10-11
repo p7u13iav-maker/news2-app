@@ -84,7 +84,7 @@ export default function MarketPage() {
         </a>
         <div className="flex items-center gap-4">
           <span className="text-xs text-white/30">
-            毎朝 6:30 に更新 · 出典: Yahoo Finance
+            毎朝 7:30 に更新 · 出典: Yahoo Finance
           </span>
           <a
             href="/steel"

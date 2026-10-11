@@ -199,7 +199,7 @@ export default function HoroscopePage() {
         </a>
         <div className="flex items-center gap-4">
           <span className="text-xs text-white/30">
-            毎朝 6:30 に更新 ·{" "}
+            毎朝 7:30 に更新 ·{" "}
             <a
               href="https://sigastra.com/"
               target="_blank"
