@@ -944,198 +944,96 @@ export default function SteelPage() {
                 </div>
               </div>
 
-              {/* Column 3: 受注量 (Orders) — stacked bar by sector. */}
+              {/* Column 3: 受注量 (Orders) — single full-height stacked chart. */}
               <div className="flex min-h-0 flex-col">
                 <ColHeader>受注量</ColHeader>
-                <div className="grid min-h-0 flex-1 grid-rows-3 gap-2">
-                  {/* Stacked bar chart by sector (top, 2 rows). */}
-                  <Panel className="row-span-2 flex flex-col overflow-hidden">
-                    <p className="shrink-0 text-[11px] font-semibold text-white/80">
-                      受注量合計
-                    </p>
-                    {orderLatest && (
-                      <div className="mt-0.5">
-                        <ValueRow
-                          value={Math.round(orderLatest.total).toString()}
-                          unit="万トン"
-                          change={orderYoy}
-                          changeLabel="前年同月比"
-                          period={`${orderLatest.year}年${orderLatest.month}月`}
+                <Panel className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <p className="shrink-0 text-[11px] font-semibold text-white/80">
+                    受注量合計
+                  </p>
+                  {orderLatest && (
+                    <div className="mt-0.5">
+                      <ValueRow
+                        value={Math.round(orderLatest.total).toString()}
+                        unit="万トン"
+                        change={orderYoy}
+                        changeLabel="前年同月比"
+                        period={`${orderLatest.year}年${orderLatest.month}月`}
+                      />
+                    </div>
+                  )}
+                  <div className="min-h-0 flex-1">
+                    {(() => {
+                      const mach = (o: OrderMonth) =>
+                        (o.machinery ?? 0) +
+                        (o.electrical ?? 0) +
+                        (o.railway ?? 0) +
+                        (o.otherTransport ?? 0);
+                      const chartData = orders.map((o) => {
+                        const known =
+                          (o.construction ?? 0) +
+                          (o.automobiles ?? 0) +
+                          mach(o) +
+                          (o.ships ?? 0) +
+                          (o.export ?? 0);
+                        const other = Math.max(o.total - known, 0);
+                        const segments: { name: string; value: number }[] = [
+                          { name: "建設", value: o.construction ?? 0 },
+                          { name: "自動車", value: o.automobiles ?? 0 },
+                          { name: "機械", value: mach(o) },
+                          { name: "船舶", value: o.ships ?? 0 },
+                          { name: "輸出", value: o.export ?? 0 },
+                        ];
+                        if (other > 0.05) {
+                          segments.push({ name: "その他", value: other });
+                        }
+                        return {
+                          label: `${o.month}月`,
+                          segments,
+                          total: o.total,
+                        };
+                      });
+                      return (
+                        <StackedBarChart
+                          labelKeys={["建設", "自動車", "機械", "船舶", "輸出"]}
+                          data={chartData}
+                          paletteOverride={{
+                            建設: "#38bdf8",
+                            自動車: "#fbbf24",
+                            機械: "#a78bfa",
+                            船舶: "#f472b6",
+                            輸出: "#34d399",
+                            その他: "#64748b",
+                          }}
                         />
-                      </div>
-                    )}
-                    <div className="min-h-0 flex-1">
-                      {(() => {
-                        const mach = (o: OrderMonth) =>
-                          (o.machinery ?? 0) +
-                          (o.electrical ?? 0) +
-                          (o.railway ?? 0) +
-                          (o.otherTransport ?? 0);
-                        const chartData = orders.map((o) => {
-                          const known =
-                            (o.construction ?? 0) +
-                            (o.automobiles ?? 0) +
-                            mach(o) +
-                            (o.ships ?? 0) +
-                            (o.export ?? 0);
-                          const other = Math.max(o.total - known, 0);
-                          const segments: { name: string; value: number }[] = [
-                            { name: "建設", value: o.construction ?? 0 },
-                            { name: "自動車", value: o.automobiles ?? 0 },
-                            { name: "機械", value: mach(o) },
-                            { name: "船舶", value: o.ships ?? 0 },
-                            { name: "輸出", value: o.export ?? 0 },
-                          ];
-                          if (other > 0.05) {
-                            segments.push({ name: "その他", value: other });
-                          }
-                          return {
-                            label: `${o.month}月`,
-                            segments,
-                            total: o.total,
-                          };
-                        });
-                        return (
-                          <StackedBarChart
-                            data={chartData}
-                            paletteOverride={{
-                              建設: "#38bdf8",
-                              自動車: "#fbbf24",
-                              機械: "#a78bfa",
-                              船舶: "#f472b6",
-                              輸出: "#34d399",
-                              その他: "#64748b",
-                            }}
-                          />
-                        );
-                      })()}
-                    </div>
-                    {/* Legend. */}
-                    <div className="mt-1 flex shrink-0 flex-wrap gap-x-2 gap-y-0.5">
-                      {(
-                        [
-                          ["建設", "#38bdf8"],
-                          ["自動車", "#fbbf24"],
-                          ["機械", "#a78bfa"],
-                          ["船舶", "#f472b6"],
-                          ["輸出", "#34d399"],
-                          ["その他", "#64748b"],
-                        ] as const
-                      ).map(([name, color]) => (
+                      );
+                    })()}
+                  </div>
+                  {/* Legend. */}
+                  <div className="mt-1 flex shrink-0 flex-wrap gap-x-2 gap-y-0.5">
+                    {(
+                      [
+                        ["建設", "#38bdf8"],
+                        ["自動車", "#fbbf24"],
+                        ["機械", "#a78bfa"],
+                        ["船舶", "#f472b6"],
+                        ["輸出", "#34d399"],
+                        ["その他", "#64748b"],
+                      ] as const
+                    ).map(([name, color]) => (
+                      <span
+                        key={name}
+                        className="flex items-center gap-0.5 text-[8px] text-white/50"
+                      >
                         <span
-                          key={name}
-                          className="flex items-center gap-0.5 text-[8px] text-white/50"
-                        >
-                          <span
-                            className="inline-block h-1.5 w-1.5 rounded-sm"
-                            style={{ backgroundColor: color }}
-                          />
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  </Panel>
-
-                  {/* Orders table by sector (bottom, 1 row). */}
-                  <Panel title="受注品目別" className="flex flex-col overflow-hidden">
-                    <div className="min-h-0 flex-1">
-                      <table className="w-full text-[11px]">
-                        <thead>
-                          <tr className="text-white/50">
-                            <th className="pb-0.5 text-left font-normal">品目</th>
-                            {orderPrevPrev && (
-                              <th className="pb-0.5 text-right font-normal">
-                                {orderPrevPrev.month}月
-                              </th>
-                            )}
-                            {orderPrev && (
-                              <th className="pb-0.5 text-right font-normal">
-                                {orderPrev.month}月
-                              </th>
-                            )}
-                            {orderLatest && (
-                              <th className="pb-0.5 text-right font-normal text-sky-300">
-                                {orderLatest.month}月
-                              </th>
-                            )}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(() => {
-                            const mach = (o?: OrderMonth) =>
-                              (o?.machinery ?? 0) +
-                              (o?.electrical ?? 0) +
-                              (o?.railway ?? 0) +
-                              (o?.otherTransport ?? 0);
-                            const rows = [
-                              {
-                                label: "建設用",
-                                pp: orderPrevPrev?.construction ?? 0,
-                                pv: orderPrev?.construction ?? 0,
-                                lt: orderLatest?.construction ?? 0,
-                              },
-                              {
-                                label: "自動車用",
-                                pp: orderPrevPrev?.automobiles ?? 0,
-                                pv: orderPrev?.automobiles ?? 0,
-                                lt: orderLatest?.automobiles ?? 0,
-                              },
-                              {
-                                label: "機械用",
-                                pp: mach(orderPrevPrev),
-                                pv: mach(orderPrev),
-                                lt: mach(orderLatest),
-                              },
-                              {
-                                label: "船舶用",
-                                pp: orderPrevPrev?.ships ?? 0,
-                                pv: orderPrev?.ships ?? 0,
-                                lt: orderLatest?.ships ?? 0,
-                              },
-                              {
-                                label: "輸出",
-                                pp: orderPrevPrev?.export ?? 0,
-                                pv: orderPrev?.export ?? 0,
-                                lt: orderLatest?.export ?? 0,
-                              },
-                            ];
-                            return rows.map((r) => {
-                              const mom =
-                                r.pv > 0 ? ((r.lt - r.pv) / r.pv) * 100 : 0;
-                              return (
-                                <tr
-                                  key={r.label}
-                                  className="border-t border-white/10"
-                                >
-                                  <td className="py-0.5 text-white/70">
-                                    {r.label}
-                                  </td>
-                                  <td className="py-0.5 text-right font-mono tabular-nums text-white/50">
-                                    {r.pp > 0 ? Math.round(r.pp).toString() : "-"}
-                                  </td>
-                                  <td className="py-0.5 text-right font-mono tabular-nums text-white/70">
-                                    {r.pv > 0 ? Math.round(r.pv).toString() : "-"}
-                                  </td>
-                                  <td className="py-0.5 text-right font-mono tabular-nums">
-                                    <span className="font-bold text-white">
-                                      {r.lt > 0 ? Math.round(r.lt).toString() : "-"}
-                                    </span>
-                                    <span
-                                      className={`ml-1 text-[9px] ${mom >= 0 ? "text-emerald-400" : "text-red-400"}`}
-                                    >
-                                      {mom >= 0 ? "+" : ""}
-                                      {mom.toFixed(0)}%
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            });
-                          })()}
-                        </tbody>
-                      </table>
-                    </div>
-                  </Panel>
-                </div>
+                          className="inline-block h-1.5 w-1.5 rounded-sm"
+                          style={{ backgroundColor: color }}
+                        />
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </Panel>
               </div>
             </div>
           </>
