@@ -36,6 +36,10 @@ export interface ProductionMonth {
   pigIron: number;
   /** Crude steel production in 10k tons. */
   crudeSteel: number;
+  /** Carbon steel (普通鋼) portion of crude steel, in 10k tons. */
+  carbonSteel: number;
+  /** Special/other steel (特殊鋼) portion of crude steel, in 10k tons. */
+  specialSteel: number;
   /** Year-over-year change for crude steel (%). */
   yoy: number;
 }
@@ -123,6 +127,9 @@ function parseJisfXls(buf: Buffer): ProductionMonth[] {
       const pigIron = row[3];
       const crudeSteel = row[5];
       const yoy = row[6];
+      // 粗鋼 鋼種別内訳: col 13 = 普通鋼, col 14 = 特殊鋼 (1000t).
+      const carbonSteel = row[13];
+      const specialSteel = row[14];
 
       if (
         typeof pigIron === "number" &&
@@ -130,11 +137,19 @@ function parseJisfXls(buf: Buffer): ProductionMonth[] {
       ) {
         // Excel values are in 千トン (thousand tonnes). Convert to 万トン
         // (10k tonnes) for display: 1万トン = 10千トン.
+        // Fallback: if the split columns are missing, derive special = crude - carbon.
+        const cSteel = typeof carbonSteel === "number" ? carbonSteel : 0;
+        const sSteel =
+          typeof specialSteel === "number"
+            ? specialSteel
+            : crudeSteel - cSteel;
         results.push({
           year: currentYear,
           month: monthVal,
           pigIron: pigIron / 10,
           crudeSteel: crudeSteel / 10,
+          carbonSteel: cSteel / 10,
+          specialSteel: sSteel / 10,
           yoy: typeof yoy === "number" ? yoy : 0,
         });
       }

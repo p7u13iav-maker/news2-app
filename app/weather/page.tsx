@@ -911,7 +911,7 @@ export default function WeatherPage() {
           <>
             {/* Top row: unified current conditions + today overview (single full-width panel). */}
             <div className="flex shrink-0 items-center gap-8 rounded-2xl border border-white/10 bg-white/5 px-8 py-4">
-              {/* Left: current hero. */}
+              {/* Left: current hero (no temperature; sunrise/sunset stacked). */}
               <div className="flex shrink-0 items-center gap-4">
                 <span className="text-5xl leading-none">{c!.emoji}</span>
                 <div>
@@ -920,12 +920,26 @@ export default function WeatherPage() {
                     {fmtTime(c!.time)} 現在 · 体感 {Math.round(c!.apparentTemperature)}°C
                   </p>
                 </div>
-                <p
-                  className={`ml-2 font-mono text-6xl font-bold leading-none tabular-nums ${tColor}`}
-                >
-                  {Math.round(c!.temperature)}
-                  <span className="text-2xl font-medium">°C</span>
-                </p>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base leading-none">🌅</span>
+                    <div>
+                      <p className="text-[9px] leading-none text-white/45">日の出</p>
+                      <p className="font-mono text-lg font-bold leading-tight tabular-nums">
+                        {fmtTime(d!.sunrise)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base leading-none">🌇</span>
+                    <div>
+                      <p className="text-[9px] leading-none text-white/45">日の入り</p>
+                      <p className="font-mono text-lg font-bold leading-tight tabular-nums">
+                        {fmtTime(d!.sunset)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Right: today overview metrics. */}
@@ -976,44 +990,16 @@ export default function WeatherPage() {
               </div>
             </div>
 
-            {/* Middle row: summary (left) + other weather data (right). */}
-            <div className="grid shrink-0 grid-cols-2 gap-4" style={{ height: "22%" }}>
-              {/* Summary. */}
-              <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
-                <p className="text-sm font-semibold text-sky-200">
+            {/* Middle row: today's summary only. */}
+            <div className="shrink-0" style={{ height: "18%" }}>
+              <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="shrink-0 text-sm font-semibold text-sky-200">
                   今日の一言
                 </p>
-                <div className="mt-3 flex min-h-0 flex-1 items-center">
+                <div className="mt-2 flex min-h-0 flex-1 items-center">
                   <p className="text-lg leading-relaxed text-white/85">
                     {weatherSummary(c!, d!)}
                   </p>
-                </div>
-              </div>
-
-              {/* Other weather data (sub-title: その他気象データ). */}
-              <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
-                <p className="text-sm font-medium text-white/50">
-                  その他気象データ
-                </p>
-                <div className="mt-3 flex gap-3">
-                  <div className="flex items-center gap-2 rounded-xl bg-white/5 p-2.5">
-                    <span className="text-lg">🌅</span>
-                    <div>
-                      <p className="text-[10px] text-white/50">日の出</p>
-                      <p className="font-mono text-base font-bold tabular-nums">
-                        {fmtTime(d!.sunrise)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 rounded-xl bg-white/5 p-2.5">
-                    <span className="text-lg">🌇</span>
-                    <div>
-                      <p className="text-[10px] text-white/50">日の入り</p>
-                      <p className="font-mono text-base font-bold tabular-nums">
-                        {fmtTime(d!.sunset)}
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

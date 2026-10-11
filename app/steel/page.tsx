@@ -7,6 +7,8 @@ interface ProductionMonth {
   month: number;
   pigIron: number;
   crudeSteel: number;
+  carbonSteel: number;
+  specialSteel: number;
   yoy: number;
 }
 
@@ -690,19 +692,34 @@ export default function SteelPage() {
                           value={Math.round(data.production[data.production.length - 1].crudeSteel).toString()}
                           unit="万トン"
                           change={data.production[data.production.length - 1].yoy}
-                          changeLabel="前年比"
+                          changeLabel="前年同月比"
                           period={`${data.production[data.production.length - 1].year}年${data.production[data.production.length - 1].month}月`}
                         />
                       </div>
                     )}
                     <div className="min-h-0 flex-1">
-                      <BarChart
+                      <StackedBarChart
+                        paletteOverride={{ 普通鋼: "#38bdf8", 特殊鋼: "#a78bfa" }}
                         data={data.production.map((p) => ({
                           label: `${p.month}月`,
-                          value: p.crudeSteel,
+                          segments: [
+                            { name: "普通鋼", value: p.carbonSteel },
+                            { name: "特殊鋼", value: p.specialSteel },
+                          ],
+                          total: p.crudeSteel,
                         }))}
-                        color="#38bdf8"
                       />
+                    </div>
+                    {/* Legend: 普通鋼 / 特殊鋼. */}
+                    <div className="mt-1 flex shrink-0 gap-2.5">
+                      <span className="flex items-center gap-0.5 text-[8px] text-white/50">
+                        <span className="inline-block h-1.5 w-1.5 rounded-sm" style={{ backgroundColor: "#38bdf8" }} />
+                        普通鋼
+                      </span>
+                      <span className="flex items-center gap-0.5 text-[8px] text-white/50">
+                        <span className="inline-block h-1.5 w-1.5 rounded-sm" style={{ backgroundColor: "#a78bfa" }} />
+                        特殊鋼
+                      </span>
                     </div>
                   </Panel>
 
