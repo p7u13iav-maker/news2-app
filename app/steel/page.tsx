@@ -401,7 +401,7 @@ function StackedBarChart({
               {/* Label segment values: centered on each labeled segment.
                   Latest month → dark color (bright bar); older → light (dimmed bar). */}
               {b.labelSegs.map((ls) =>
-                ls.h > 4 ? (
+                ls.h > 2 ? (
                   <span
                     key={ls.name}
                     className="absolute -translate-x-1/2 -translate-y-1/2 font-mono text-[8px] font-bold leading-none tabular-nums"
@@ -1001,13 +1001,10 @@ export default function SteelPage() {
                       });
                       return (
                         <StackedBarChart
-                          labelKeys={["建設", "自動車", "機械", "船舶", "輸出"]}
+                          labelKeys={["機械", "船舶"]}
                           labelColorMap={{
-                            建設: "#0c4a6e",
-                            自動車: "#78350f",
                             機械: "#4c1d95",
                             船舶: "#831843",
-                            輸出: "#064e3b",
                           }}
                           data={chartData}
                           paletteOverride={{

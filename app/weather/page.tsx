@@ -211,7 +211,7 @@ function TideChart({
   const max = Math.max(...levels) + 20;
   const range = max - min || 1;
 
-  const L = 96;
+  const L = 118;
   const B = 46;
   const plotW = W - L - 20;
   const plotH = H - B - 12;
@@ -243,20 +243,28 @@ function TideChart({
   let nowX: number | null = null;
   let nowY: number | null = null;
   let nowLevel: number | null = null;
-  for (let i = 0; i < points.length; i++) {
-    const hHM = points[i].h.hour;
-    if (hHM <= nowHM) {
-      const prev = i > 0 ? points[i - 1] : null;
-      const prevHM = prev ? prev.h.hour : null;
-      if (prev && prevHM !== null && hHM > prevHM) {
-        const frac = (nowHM - prevHM) / (hHM - prevHM);
-        nowX = prev.x + (points[i].x - prev.x) * frac;
-        nowY = prev.y + (points[i].y - prev.y) * frac;
-        nowLevel = prev.h.level + (points[i].h.level - prev.h.level) * frac;
-      } else {
-        nowX = points[i].x;
-        nowY = points[i].y;
-        nowLevel = points[i].h.level;
+  if (points.length > 0) {
+    if (nowHM <= points[0].h.hour) {
+      nowX = points[0].x;
+      nowY = points[0].y;
+      nowLevel = points[0].h.level;
+    } else if (nowHM >= points[points.length - 1].h.hour) {
+      const last = points[points.length - 1];
+      nowX = last.x;
+      nowY = last.y;
+      nowLevel = last.h.level;
+    } else {
+      for (let i = 0; i < points.length - 1; i++) {
+        const a = points[i].h.hour;
+        const b = points[i + 1].h.hour;
+        if (nowHM >= a && nowHM <= b) {
+          const frac = b === a ? 0 : (nowHM - a) / (b - a);
+          nowX = points[i].x + (points[i + 1].x - points[i].x) * frac;
+          nowY = points[i].y + (points[i + 1].y - points[i].y) * frac;
+          nowLevel =
+            points[i].h.level + (points[i + 1].h.level - points[i].h.level) * frac;
+          break;
+        }
       }
     }
   }
@@ -456,7 +464,7 @@ function HourlyChart({
   const max = Math.max(...temps);
   const range = max - min || 1;
 
-  const L = 96;
+  const L = 118;
   const B = 46;
   const plotW = W - L - 20;
   const plotH = H - B - 12;
@@ -485,28 +493,40 @@ function HourlyChart({
   // X-axis: hour labels + weather icons every 3 hours.
   const xTicks = points.filter((_, i) => i % 3 === 0);
 
-  // "Now" marker: find the current hour position.
+  // "Now" marker: interpolate the current position between the two hours
+  // that bracket the current time (avoids snapping to a whole hour).
   const now = new Date();
-  const nowHM =
-    now.getHours() + now.getMinutes() / 60;
+  const nowHM = now.getHours() + now.getMinutes() / 60;
   let nowX: number | null = null;
   let nowY: number | null = null;
   let nowTemp: number | null = null;
-  for (let i = 0; i < points.length; i++) {
-    const hd = new Date(points[i].h.time);
-    const hHM = hd.getHours() + hd.getMinutes() / 60;
-    if (hHM <= nowHM) {
-      const prev = i > 0 ? points[i - 1] : null;
-      const prevHM = prev ? new Date(prev.h.time).getHours() + new Date(prev.h.time).getMinutes() / 60 : null;
-      if (prev && prevHM !== null && hHM > prevHM) {
-        const frac = (nowHM - prevHM) / (hHM - prevHM);
-        nowX = prev.x + (points[i].x - prev.x) * frac;
-        nowY = prev.y + (points[i].y - prev.y) * frac;
-        nowTemp = prev.h.temperature + (points[i].h.temperature - prev.h.temperature) * frac;
-      } else {
-        nowX = points[i].x;
-        nowY = points[i].y;
-        nowTemp = points[i].h.temperature;
+  if (points.length > 0) {
+    const hm = (i: number) => {
+      const d = new Date(points[i].h.time);
+      return d.getHours() + d.getMinutes() / 60;
+    };
+    if (nowHM <= hm(0)) {
+      nowX = points[0].x;
+      nowY = points[0].y;
+      nowTemp = points[0].h.temperature;
+    } else if (nowHM >= hm(points.length - 1)) {
+      const last = points[points.length - 1];
+      nowX = last.x;
+      nowY = last.y;
+      nowTemp = last.h.temperature;
+    } else {
+      for (let i = 0; i < points.length - 1; i++) {
+        const a = hm(i);
+        const b = hm(i + 1);
+        if (nowHM >= a && nowHM <= b) {
+          const frac = b === a ? 0 : (nowHM - a) / (b - a);
+          nowX = points[i].x + (points[i + 1].x - points[i].x) * frac;
+          nowY = points[i].y + (points[i + 1].y - points[i].y) * frac;
+          nowTemp =
+            points[i].h.temperature +
+            (points[i + 1].h.temperature - points[i].h.temperature) * frac;
+          break;
+        }
       }
     }
   }
