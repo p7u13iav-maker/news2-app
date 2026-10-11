@@ -238,7 +238,7 @@ function BarChart({
           <span
             key={i}
             className={`flex-1 text-center leading-none text-white/35 ${
-              embedded ? "text-[7px]" : "text-[8px]"
+              embedded ? "text-[10px]" : "text-[12px]"
             }`}
           >
             {d.label}
@@ -420,7 +420,7 @@ function StackedBarChart({
                   <span
                     key={ls.name}
                     className={`absolute -translate-x-1/2 -translate-y-1/2 font-mono font-bold leading-none tabular-nums ${
-                      embedded ? "text-[7px]" : "text-[8px]"
+                      embedded ? "text-[10px]" : "text-[12px]"
                     }`}
                     style={{
                       left: `${cxPct}%`,
@@ -451,7 +451,7 @@ function StackedBarChart({
           <span
             key={i}
             className={`flex-1 text-center leading-none text-white/35 ${
-              embedded ? "text-[7px]" : "text-[8px]"
+              embedded ? "text-[10px]" : "text-[12px]"
             }`}
           >
             {d.label}
