@@ -22,22 +22,24 @@ export interface ZodiacSign {
   key: ZodiacKey;
   ja: string;
   symbol: string;
+  /** The zodiac's animal, shown as a friendly emoji (morning-show style). */
+  animal: string;
   dateRange: string;
 }
 
 export const ZODIAC_SIGNS: ZodiacSign[] = [
-  { key: "aries", ja: "おひつじ座", symbol: "♈", dateRange: "3/21 - 4/19" },
-  { key: "taurus", ja: "おうし座", symbol: "♉", dateRange: "4/20 - 5/20" },
-  { key: "gemini", ja: "ふたご座", symbol: "♊", dateRange: "5/21 - 6/21" },
-  { key: "cancer", ja: "かに座", symbol: "♋", dateRange: "6/22 - 7/22" },
-  { key: "leo", ja: "しし座", symbol: "♌", dateRange: "7/23 - 8/22" },
-  { key: "virgo", ja: "おとめ座", symbol: "♍", dateRange: "8/23 - 9/22" },
-  { key: "libra", ja: "てんびん座", symbol: "♎", dateRange: "9/23 - 10/23" },
-  { key: "scorpio", ja: "さそり座", symbol: "♏", dateRange: "10/24 - 11/22" },
-  { key: "sagittarius", ja: "いて座", symbol: "♐", dateRange: "11/23 - 12/21" },
-  { key: "capricorn", ja: "やぎ座", symbol: "♑", dateRange: "12/22 - 1/19" },
-  { key: "aquarius", ja: "みずがめ座", symbol: "♒", dateRange: "1/20 - 2/18" },
-  { key: "pisces", ja: "うお座", symbol: "♓", dateRange: "2/19 - 3/20" },
+  { key: "aries", ja: "おひつじ座", symbol: "♈", animal: "🐏", dateRange: "3/21 - 4/19" },
+  { key: "taurus", ja: "おうし座", symbol: "♉", animal: "🐂", dateRange: "4/20 - 5/20" },
+  { key: "gemini", ja: "ふたご座", symbol: "♊", animal: "🐒", dateRange: "5/21 - 6/21" },
+  { key: "cancer", ja: "かに座", symbol: "♋", animal: "🦀", dateRange: "6/22 - 7/22" },
+  { key: "leo", ja: "しし座", symbol: "♌", animal: "🦁", dateRange: "7/23 - 8/22" },
+  { key: "virgo", ja: "おとめ座", symbol: "♍", animal: "🐪", dateRange: "8/23 - 9/22" },
+  { key: "libra", ja: "てんびん座", symbol: "♎", animal: "🦉", dateRange: "9/23 - 10/23" },
+  { key: "scorpio", ja: "さそり座", symbol: "♏", animal: "🦂", dateRange: "10/24 - 11/22" },
+  { key: "sagittarius", ja: "いて座", symbol: "♐", animal: "🦌", dateRange: "11/23 - 12/21" },
+  { key: "capricorn", ja: "やぎ座", symbol: "♑", animal: "🐐", dateRange: "12/22 - 1/19" },
+  { key: "aquarius", ja: "みずがめ座", symbol: "♒", animal: "🦩", dateRange: "1/20 - 2/18" },
+  { key: "pisces", ja: "うお座", symbol: "♓", animal: "🐟", dateRange: "2/19 - 3/20" },
 ];
 
 /** Map a zodiac key to its sign info. */

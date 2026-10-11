@@ -11,42 +11,23 @@ interface HoroscopeData {
 }
 
 /**
- * Element styling per sign. The card uses a soft radial gradient tinted by
- * the element color (fire/earth/air/water) so the 12-sign grid reads as a
- * set of glowing "stars" rather than flat boxes.
+ * Element accent per sign (fire/earth/air/water). Used for the top accent bar,
+ * the animal badge ring and the element tag on the bright morning-show cards.
  */
-const ELEMENTS: Record<
-  ZodiacKey,
-  { label: string; color: string; glow: string; ring: string }
-> = {
-  aries: { label: "火", color: "#fca5a5", glow: "rgba(239,68,68,0.30)", ring: "rgba(252,165,165,0.45)" },
-  taurus: { label: "地", color: "#6ee7b7", glow: "rgba(16,185,129,0.30)", ring: "rgba(110,231,183,0.45)" },
-  gemini: { label: "風", color: "#fcd34d", glow: "rgba(245,158,11,0.30)", ring: "rgba(252,211,77,0.45)" },
-  cancer: { label: "水", color: "#7dd3fc", glow: "rgba(14,165,233,0.30)", ring: "rgba(125,211,252,0.45)" },
-  leo: { label: "火", color: "#fdba74", glow: "rgba(249,115,22,0.30)", ring: "rgba(253,186,116,0.45)" },
-  virgo: { label: "地", color: "#5eead4", glow: "rgba(20,184,166,0.30)", ring: "rgba(94,234,212,0.45)" },
-  libra: { label: "風", color: "#fde047", glow: "rgba(234,179,8,0.30)", ring: "rgba(253,224,71,0.45)" },
-  scorpio: { label: "水", color: "#93c5fd", glow: "rgba(59,130,246,0.30)", ring: "rgba(147,197,253,0.45)" },
-  sagittarius: { label: "火", color: "#fdba74", glow: "rgba(249,115,22,0.30)", ring: "rgba(253,186,116,0.45)" },
-  capricorn: { label: "地", color: "#86efac", glow: "rgba(34,197,94,0.30)", ring: "rgba(134,239,172,0.45)" },
-  aquarius: { label: "風", color: "#fef08a", glow: "rgba(250,204,21,0.30)", ring: "rgba(254,240,138,0.45)" },
-  pisces: { label: "水", color: "#a5b4fc", glow: "rgba(99,102,241,0.30)", ring: "rgba(165,180,252,0.45)" },
+const ELEMENTS: Record<ZodiacKey, { label: string; accent: string; soft: string }> = {
+  aries: { label: "火", accent: "#f43f5e", soft: "#ffe4e6" },
+  taurus: { label: "地", accent: "#10b981", soft: "#d1fae5" },
+  gemini: { label: "風", accent: "#f59e0b", soft: "#fef3c7" },
+  cancer: { label: "水", accent: "#0ea5e9", soft: "#e0f2fe" },
+  leo: { label: "火", accent: "#f97316", soft: "#ffedd5" },
+  virgo: { label: "地", accent: "#14b8a6", soft: "#ccfbf1" },
+  libra: { label: "風", accent: "#eab308", soft: "#fef9c3" },
+  scorpio: { label: "水", accent: "#6366f1", soft: "#e0e7ff" },
+  sagittarius: { label: "火", accent: "#f97316", soft: "#ffedd5" },
+  capricorn: { label: "地", accent: "#22c55e", soft: "#dcfce7" },
+  aquarius: { label: "風", accent: "#eab308", soft: "#fef9c3" },
+  pisces: { label: "水", accent: "#8b5cf6", soft: "#ede9fe" },
 };
-
-/** A small four-pointed star glyph used for decoration. */
-const Star = ({
-  className = "",
-  color = "#fff",
-  style,
-}: {
-  className?: string;
-  color?: string;
-  style?: React.CSSProperties;
-}) => (
-  <svg viewBox="0 0 24 24" className={className} style={style} fill={color} aria-hidden>
-    <path d="M12 0c.6 6.5 4.9 10.8 12 12-7.1 1.2-11.4 5.5-12 12-.6-6.5-4.9-10.8-12-12C7.1 10.8 11.4 6.5 12 0z" />
-  </svg>
-);
 
 export default function HoroscopePage() {
   const [data, setData] = useState<HoroscopeData | null>(null);
@@ -90,112 +71,59 @@ export default function HoroscopePage() {
 
   const horoscopes = data?.horoscopes;
 
-  // A few decorative "stars" placed in the background (deterministic layout).
-  const bgStars = [
-    { top: "12%", left: "8%", size: 18, o: 0.5 },
-    { top: "22%", left: "88%", size: 26, o: 0.4 },
-    { top: "78%", left: "6%", size: 22, o: 0.35 },
-    { top: "85%", left: "92%", size: 16, o: 0.5 },
-    { top: "50%", left: "50%", size: 14, o: 0.25 },
-    { top: "35%", left: "70%", size: 12, o: 0.3 },
-  ];
-
-  // Shooting star: a thin streak that sweeps across the background from the
-  // upper-left toward the lower-right (like the reference). (top/left = start
-  // point, dur = timing.)
-  const shootingStars = [
-    { top: "6%", left: "10%", dur: 10, delay: 0 },
-  ];
-
   return (
-    <div className="relative flex h-dvh flex-col overflow-hidden bg-slate-950 text-white">
-      {/* Card entrance + shooting-star animations. */}
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-sky-100 text-slate-800">
+      {/* Card entrance animation (staggered per sign). */}
       <style>{`
         @keyframes signIn {
-          from { opacity: 0; transform: translateY(10px) scale(0.97); }
+          from { opacity: 0; transform: translateY(10px) scale(0.98); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
-        /* Shooting star: a streak that fades in, sweeps from upper-left to
-           lower-right, then fades out. rotate comes BEFORE translate so the
-           element is oriented along the 45deg travel line while the translate
-           axis stays screen-aligned (x to the right, y down). */
-        @keyframes shoot {
-          0%   { transform: translate(0, 0) rotate(45deg); opacity: 0; }
-          12%  { opacity: 0; }
-          30%  { opacity: 1; }
-          75%  { opacity: 0.9; }
-          100% { transform: translate(500px, 500px) rotate(45deg); opacity: 0; }
-        }
       `}</style>
-      {/* Sunrise gradient background (morning sky: dawn purple -> peach -> gold). */}
+      {/* Bright morning sky: sunlight glow (upper-right) + soft sky wash. */}
       <div
-        className="absolute inset-0 opacity-95"
+        className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(130% 120% at 82% 8%, #fdba74 0%, #f9a8d4 26%, #c4b5fd 52%, #6d28d9 82%, #4c1d95 100%)",
+            "linear-gradient(160deg, #fef9c3 0%, #e0f2fe 45%, #dbeafe 100%)",
         }}
       />
-      {/* Soft morning glows. */}
+      {/* Sunrise glow. */}
       <div
-        className="absolute -left-40 -top-40 h-[55vh] w-[55vh] rounded-full opacity-30 blur-3xl"
-        style={{ background: "radial-gradient(circle, #fbbf24 0%, transparent 70%)" }}
+        className="absolute -right-32 -top-32 h-[60vh] w-[60vh] rounded-full opacity-70 blur-3xl"
+        style={{ background: "radial-gradient(circle, #fde68a 0%, #fdba74 40%, transparent 70%)" }}
       />
+      {/* Faint sun. */}
       <div
-        className="absolute -bottom-40 -right-40 h-[60vh] w-[60vh] rounded-full opacity-35 blur-3xl"
-        style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }}
+        className="absolute right-24 top-10 h-24 w-24 rounded-full"
+        style={{ background: "radial-gradient(circle, #fff7cc 0%, #fde047 60%, transparent 72%)", opacity: 0.8 }}
       />
-      {/* Scattered stars. */}
-      {bgStars.map((s, i) => (
-        <Star
-          key={i}
-          className="absolute"
-          color="#fff"
-          style={{ top: s.top, left: s.left, width: s.size, height: s.size, opacity: s.o }}
-        />
-      ))}
-      {/* Shooting stars sweeping across the background. */}
-      {shootingStars.map((s, i) => (
-        <span
-          key={"ss" + i}
-          className="pointer-events-none absolute h-px w-40"
-          style={
-            {
-              top: s.top,
-              left: s.left,
-              background:
-                "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.9) 80%, #fff 100%)",
-              boxShadow: "0 0 6px rgba(255,255,255,0.6)",
-              animation: `shoot ${s.dur}s ease-in ${s.delay}s infinite`,
-            } as React.CSSProperties
-          }
-        />
-      ))}
 
-      {/* Header. */}
-      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 px-10 py-4">
+      {/* Header (morning-show title bar). */}
+      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/60 bg-white/50 px-10 py-3.5 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-amber-400/40 to-rose-400/40 text-2xl shadow-[0_0_20px_rgba(251,146,60,0.45)]">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 to-orange-400 text-2xl shadow-lg shadow-orange-200/60">
             🌅
           </span>
           <div>
-            <p className="bg-gradient-to-r from-amber-100 via-rose-100 to-white bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+            <p className="text-2xl font-extrabold tracking-tight text-slate-800">
               朝会前のひととき
             </p>
-            <p className="text-sm text-white/50">
+            <p className="text-sm font-medium text-slate-500">
               今日の運勢 · 12星座 · {data?.date ?? ""}
             </p>
           </div>
         </div>
         {clock && (
           <div className="text-right">
-            <p className="font-mono text-3xl font-light tabular-nums">
+            <p className="font-mono text-3xl font-bold tabular-nums text-slate-800">
               {clock.toLocaleTimeString("ja-JP", {
                 hour: "2-digit",
                 minute: "2-digit",
                 second: "2-digit",
               })}
             </p>
-            <p className="text-xs text-white/50">
+            <p className="text-xs font-medium text-slate-500">
               {clock.toLocaleDateString("ja-JP", {
                 year: "numeric",
                 month: "long",
@@ -212,7 +140,7 @@ export default function HoroscopePage() {
         {/* Error state. */}
         {error && (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-white/40">{error}</p>
+            <p className="text-slate-500">{error}</p>
           </div>
         )}
 
@@ -220,8 +148,8 @@ export default function HoroscopePage() {
         {loading && !error && (
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
-              <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-amber-400" />
-              <p className="text-white/40">占いを読み込み中…</p>
+              <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-orange-400" />
+              <p className="text-slate-500">占いを読み込み中…</p>
             </div>
           </div>
         )}
@@ -234,53 +162,39 @@ export default function HoroscopePage() {
               return (
                 <div
                   key={s.key}
-                  className="group relative flex min-h-0 flex-col overflow-hidden rounded-2xl border p-3.5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5"
-                  style={{
-                    borderColor: el.ring,
-                    background: `radial-gradient(140% 120% at 0% 0%, ${el.glow} 0%, rgba(15,10,30,0.55) 55%, rgba(10,7,24,0.8) 100%)`,
-                    animation: `signIn 0.5s ease ${i * 40}ms both`,
-                  }}
+                  className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm shadow-slate-200/50 backdrop-blur-sm"
+                  style={{ animation: `signIn 0.5s ease ${i * 40}ms both` }}
                 >
-                  {/* Glow accent at the top edge. */}
+                  {/* Element accent bar at the top. */}
                   <div
-                    className="pointer-events-none absolute inset-x-0 top-0 h-px"
-                    style={{
-                      background: `linear-gradient(90deg, transparent, ${el.color}, transparent)`,
-                    }}
+                    className="absolute inset-x-0 top-0 h-1"
+                    style={{ background: el.accent }}
                   />
-                  {/* Sign header: symbol + name + date range + element badge. */}
-                  <div className="mb-2 flex shrink-0 items-center gap-2.5">
+                  {/* Sign header: animal + name + date range + element badge. */}
+                  <div className="mb-1.5 flex shrink-0 items-center gap-2.5">
                     <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl leading-none"
-                      style={{
-                        color: el.color,
-                        backgroundColor: "rgba(255,255,255,0.06)",
-                        boxShadow: `0 0 14px ${el.glow}`,
-                      }}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-2xl leading-none"
+                      style={{ backgroundColor: el.soft }}
                     >
-                      {s.symbol}
+                      {s.animal}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-bold leading-tight text-white">
+                      <p className="truncate text-[15px] font-bold leading-tight text-slate-800">
                         {s.ja}
                       </p>
-                      <p className="font-mono text-[10px] tabular-nums text-white/40">
+                      <p className="font-mono text-[10px] tabular-nums text-slate-400">
                         {s.dateRange}
                       </p>
                     </div>
                     <span
-                      className="shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold"
-                      style={{
-                        color: el.color,
-                        borderColor: el.ring,
-                        backgroundColor: "rgba(255,255,255,0.04)",
-                      }}
+                      className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold"
+                      style={{ color: el.accent, backgroundColor: el.soft }}
                     >
                       {el.label}
                     </span>
                   </div>
                   {/* Horoscope comment (clamped to fit the cell). */}
-                  <p className="min-h-0 flex-1 overflow-hidden text-[11px] leading-snug text-white/75">
+                  <p className="min-h-0 flex-1 overflow-hidden text-[11px] leading-snug text-slate-600">
                     {horoscopes[s.key]}
                   </p>
                 </div>
@@ -291,28 +205,28 @@ export default function HoroscopePage() {
       </main>
 
       {/* Footer: navigation. */}
-      <footer className="relative z-10 flex shrink-0 items-center justify-between border-t border-white/10 px-10 py-3">
+      <footer className="relative z-10 flex shrink-0 items-center justify-between border-t border-white/60 bg-white/50 px-10 py-3 backdrop-blur-md">
         <a
           href="/"
-          className="text-sm text-white/40 transition hover:text-white/70"
+          className="text-sm font-medium text-slate-500 transition hover:text-slate-700"
         >
           ← メインニュースに戻る
         </a>
         <div className="flex items-center gap-4">
-          <span className="text-xs text-white/30">
+          <span className="text-xs text-slate-400">
             毎朝 7:30 に更新 ·{" "}
             <a
               href="https://sigastra.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white/40 underline decoration-white/30 transition hover:text-white/70"
+              className="text-slate-500 underline decoration-slate-300 transition hover:text-slate-700"
             >
               Powered by Sigastra
             </a>
           </span>
           <a
             href="/weather"
-            className="text-sm text-white/40 transition hover:text-white/70"
+            className="text-sm font-medium text-slate-500 transition hover:text-slate-700"
           >
             ⛅ 天気 →
           </a>

@@ -36,43 +36,27 @@ interface HoroscopeData {
 
 /* ---------- Horoscope (astro) styling ---------- */
 
-/** Element per sign: fire / earth / air / water (shared with /horoscope). */
+/** Element accent per sign (morning-show palette, shared with /horoscope). */
 const HORO_ELEMENTS: Record<
   ZodiacKey,
-  { label: string; color: string; glow: string; ring: string }
+  { label: string; accent: string; soft: string }
 > = {
-  aries: { label: "火", color: "#fca5a5", glow: "rgba(239,68,68,0.30)", ring: "rgba(252,165,165,0.45)" },
-  taurus: { label: "地", color: "#6ee7b7", glow: "rgba(16,185,129,0.30)", ring: "rgba(110,231,183,0.45)" },
-  gemini: { label: "風", color: "#fcd34d", glow: "rgba(245,158,11,0.30)", ring: "rgba(252,211,77,0.45)" },
-  cancer: { label: "水", color: "#7dd3fc", glow: "rgba(14,165,233,0.30)", ring: "rgba(125,211,252,0.45)" },
-  leo: { label: "火", color: "#fdba74", glow: "rgba(249,115,22,0.30)", ring: "rgba(253,186,116,0.45)" },
-  virgo: { label: "地", color: "#5eead4", glow: "rgba(20,184,166,0.30)", ring: "rgba(94,234,212,0.45)" },
-  libra: { label: "風", color: "#fde047", glow: "rgba(234,179,8,0.30)", ring: "rgba(253,224,71,0.45)" },
-  scorpio: { label: "水", color: "#93c5fd", glow: "rgba(59,130,246,0.30)", ring: "rgba(147,197,253,0.45)" },
-  sagittarius: { label: "火", color: "#fdba74", glow: "rgba(249,115,22,0.30)", ring: "rgba(253,186,116,0.45)" },
-  capricorn: { label: "地", color: "#86efac", glow: "rgba(34,197,94,0.30)", ring: "rgba(134,239,172,0.45)" },
-  aquarius: { label: "風", color: "#fef08a", glow: "rgba(250,204,21,0.30)", ring: "rgba(254,240,138,0.45)" },
-  pisces: { label: "水", color: "#a5b4fc", glow: "rgba(99,102,241,0.30)", ring: "rgba(165,180,252,0.45)" },
+  aries: { label: "火", accent: "#f43f5e", soft: "#ffe4e6" },
+  taurus: { label: "地", accent: "#10b981", soft: "#d1fae5" },
+  gemini: { label: "風", accent: "#f59e0b", soft: "#fef3c7" },
+  cancer: { label: "水", accent: "#0ea5e9", soft: "#e0f2fe" },
+  leo: { label: "火", accent: "#f97316", soft: "#ffedd5" },
+  virgo: { label: "地", accent: "#14b8a6", soft: "#ccfbf1" },
+  libra: { label: "風", accent: "#eab308", soft: "#fef9c3" },
+  scorpio: { label: "水", accent: "#6366f1", soft: "#e0e7ff" },
+  sagittarius: { label: "火", accent: "#f97316", soft: "#ffedd5" },
+  capricorn: { label: "地", accent: "#22c55e", soft: "#dcfce7" },
+  aquarius: { label: "風", accent: "#eab308", soft: "#fef9c3" },
+  pisces: { label: "水", accent: "#8b5cf6", soft: "#ede9fe" },
 };
 
-/** Sunrise gradient for the horoscope slide (same as /horoscope). */
-const HORO_BG =
-  "radial-gradient(130% 120% at 82% 8%, #fdba74 0%, #f9a8d4 26%, #c4b5fd 52%, #6d28d9 82%, #4c1d95 100%)";
-
-/** A small four-pointed star glyph used for decoration. */
-const Star = ({
-  className = "",
-  color = "#fff",
-  style,
-}: {
-  className?: string;
-  color?: string;
-  style?: React.CSSProperties;
-}) => (
-  <svg viewBox="0 0 24 24" className={className} style={style} fill={color} aria-hidden>
-    <path d="M12 0c.6 6.5 4.9 10.8 12 12-7.1 1.2-11.4 5.5-12 12-.6-6.5-4.9-10.8-12-12C7.1 10.8 11.4 6.5 12 0z" />
-  </svg>
-);
+/** Bright morning sky for the horoscope slide (same as /horoscope). */
+const HORO_BG = "linear-gradient(160deg, #fef9c3 0%, #e0f2fe 45%, #dbeafe 100%)";
 
 /* ---------- Slide definitions ---------- */
 
@@ -158,47 +142,20 @@ function HoroscopeSlide({ data }: { data: HoroscopeData | null }) {
   }
   return (
     <div className="relative h-full w-full">
-      {/* Deep-space background + nebula glows. */}
+      {/* Bright morning-sky background (same as /horoscope). */}
+      <div className="absolute inset-0" style={{ background: HORO_BG }} />
+      {/* Sunrise glow. */}
       <div
-        className="absolute inset-0"
-        style={{ background: HORO_BG }}
+        className="absolute -right-32 -top-32 h-[60vh] w-[60vh] rounded-full opacity-70 blur-3xl"
+        style={{ background: "radial-gradient(circle, #fde68a 0%, #fdba74 40%, transparent 70%)" }}
       />
-      <div
-        className="absolute -left-40 -top-40 h-[55vh] w-[55vh] rounded-full opacity-30 blur-3xl"
-        style={{ background: "radial-gradient(circle, #fbbf24 0%, transparent 70%)" }}
-      />
-      <div
-        className="absolute -bottom-40 -right-40 h-[60vh] w-[60vh] rounded-full opacity-35 blur-3xl"
-        style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }}
-      />
-      {/* Card entrance + shooting-star animations. */}
+      {/* Card entrance animation (staggered per sign). */}
       <style>{`
         @keyframes hSignIn {
-          from { opacity: 0; transform: translateY(10px) scale(0.97); }
+          from { opacity: 0; transform: translateY(10px) scale(0.98); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
-        @keyframes hShoot {
-          0%   { transform: translate(0, 0) rotate(45deg); opacity: 0; }
-          12%  { opacity: 0; }
-          30%  { opacity: 1; }
-          75%  { opacity: 0.9; }
-          100% { transform: translate(500px, 500px) rotate(45deg); opacity: 0; }
-        }
       `}</style>
-      {/* Shooting star (upper-left -> lower-right). */}
-      <span
-        className="pointer-events-none absolute h-px w-40"
-        style={
-          {
-            top: "6%",
-            left: "10%",
-            background:
-              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.9) 80%, #fff 100%)",
-            boxShadow: "0 0 6px rgba(255,255,255,0.6)",
-            animation: "hShoot 10s ease-in 0s infinite",
-          } as React.CSSProperties
-        }
-      />
       {/* 4 columns × 3 rows grid of all 12 signs. */}
       <div className="relative z-10 grid h-full w-full grid-cols-4 grid-rows-3 gap-3">
         {ZODIAC_SIGNS.map((s, i) => {
@@ -206,50 +163,34 @@ function HoroscopeSlide({ data }: { data: HoroscopeData | null }) {
           return (
             <div
               key={s.key}
-              className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border p-3 backdrop-blur-sm"
-              style={{
-                borderColor: el.ring,
-                background: `radial-gradient(140% 120% at 0% 0%, ${el.glow} 0%, rgba(15,10,30,0.55) 55%, rgba(10,7,24,0.8) 100%)`,
-                animation: `hSignIn 0.5s ease ${i * 40}ms both`,
-              }}
+              className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm shadow-slate-200/50"
+              style={{ animation: `hSignIn 0.5s ease ${i * 40}ms both` }}
             >
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 h-px"
-                style={{
-                  background: `linear-gradient(90deg, transparent, ${el.color}, transparent)`,
-                }}
-              />
-              <div className="mb-2 flex shrink-0 items-center gap-2.5">
+              {/* Element accent bar at the top. */}
+              <div className="absolute inset-x-0 top-0 h-1" style={{ background: el.accent }} />
+              <div className="mb-1.5 flex shrink-0 items-center gap-2.5">
                 <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl leading-none"
-                  style={{
-                    color: el.color,
-                    backgroundColor: "rgba(255,255,255,0.06)",
-                    boxShadow: `0 0 14px ${el.glow}`,
-                  }}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-2xl leading-none"
+                  style={{ backgroundColor: el.soft }}
                 >
-                  {s.symbol}
+                  {s.animal}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[15px] font-bold leading-tight text-white">
+                  <p className="truncate text-[15px] font-bold leading-tight text-slate-800">
                     {s.ja}
                   </p>
-                  <p className="font-mono text-[10px] tabular-nums text-white/40">
+                  <p className="font-mono text-[10px] tabular-nums text-slate-400">
                     {s.dateRange}
                   </p>
                 </div>
                 <span
-                  className="shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold"
-                  style={{
-                    color: el.color,
-                    borderColor: el.ring,
-                    backgroundColor: "rgba(255,255,255,0.04)",
-                  }}
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold"
+                  style={{ color: el.accent, backgroundColor: el.soft }}
                 >
                   {el.label}
                 </span>
               </div>
-              <p className="min-h-0 flex-1 overflow-hidden text-[11px] leading-snug text-white/75">
+              <p className="min-h-0 flex-1 overflow-hidden text-[11px] leading-snug text-slate-600">
                 {data.horoscopes![s.key]}
               </p>
             </div>
@@ -369,13 +310,17 @@ export default function UnifiedSignage({
 
   const current = slides[index];
 
-  // Whole-signage background: on the weather slide it adopts the
-  // weather-dependent gradient (same as /weather) so the full screen shifts
-  // with the weather; every other slide keeps the neutral slate gradient.
+  // Whole-signage background: weather slide adopts the weather-dependent sky
+  // gradient; the horoscope slide uses the bright morning sky; every other
+  // slide (steel/market/news) keeps the dark slate gradient that matches the
+  // steel page, so the steel slide blends seamlessly.
+  const isHoro = current.kind === "horoscope";
   const signageBackground =
     current.kind === "weather" && weatherData
       ? skyGradient(weatherData.current.weatherCode)
-      : "radial-gradient(120% 120% at 15% 10%, #1e293b 0%, #0b1120 45%, #020617 100%)";
+      : isHoro
+        ? HORO_BG
+        : "radial-gradient(120% 120% at 15% 10%, #1e293b 0%, #0b1120 45%, #020617 100%)";
 
   // Section label shown as a small badge (title is unified across pages).
   const sectionLabel =
@@ -397,40 +342,59 @@ export default function UnifiedSignage({
         className="absolute inset-0 opacity-90 transition-all duration-1000"
         style={{ background: signageBackground }}
       />
-      {/* Accent glow that shifts hue per slide. */}
-      <div
-        className="absolute -right-40 -top-40 h-[60vh] w-[60vh] rounded-full opacity-20 blur-3xl transition-all duration-1000"
-        style={{
-          background: `hsl(${(index * 28) % 360} 70% 55%)`,
-        }}
-      />
+      {/* Accent glow that shifts hue per slide (hidden on the light
+          horoscope slide, which has its own sunrise glow). */}
+      {!isHoro && (
+        <div
+          className="absolute -right-40 -top-40 h-[60vh] w-[60vh] rounded-full opacity-20 blur-3xl transition-all duration-1000"
+          style={{
+            background: `hsl(${(index * 28) % 360} 70% 55%)`,
+          }}
+        />
+      )}
 
       {/* Header. */}
       <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-10 pt-8">
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-2xl">
-            ☀️
+          <span
+            className={`flex h-11 w-11 items-center justify-center rounded-full text-2xl ${
+              isHoro
+                ? "bg-gradient-to-br from-amber-300 to-orange-400 shadow-lg shadow-orange-200/60"
+                : "bg-white/10"
+            }`}
+          >
+            {isHoro ? "🌅" : "☀️"}
           </span>
           <div>
-            <p className="text-2xl font-bold tracking-tight">
+            <p
+              className={`text-2xl font-bold tracking-tight ${
+                isHoro ? "text-slate-800" : "text-white"
+              }`}
+            >
               朝会前のひととき
             </p>
-            <p className="text-sm text-white/50">
-              <span className="text-white/60">{sectionLabel}</span>
+            <p className={`text-sm ${isHoro ? "text-slate-500" : "text-white/50"}`}>
+              <span className={isHoro ? "text-slate-600" : "text-white/60"}>
+                {sectionLabel}
+              </span>
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           {clock && (
             <div className="text-right">
-              <p className="font-mono text-3xl font-light tabular-nums">
+              <p
+                className={`font-mono text-3xl font-light tabular-nums ${
+                  isHoro ? "text-slate-800" : "text-white"
+                }`}
+              >
                 {clock.toLocaleTimeString("ja-JP", {
                   hour: "2-digit",
                   minute: "2-digit",
                   second: "2-digit",
                 })}
               </p>
-              <p className="text-xs text-white/50">
+              <p className={`text-xs ${isHoro ? "text-slate-500" : "text-white/50"}`}>
                 {clock.toLocaleDateString("ja-JP", {
                   year: "numeric",
                   month: "long",
@@ -501,8 +465,11 @@ export default function UnifiedSignage({
                   className="h-1.5 rounded-full transition-all duration-500"
                   style={{
                     width: i === index ? "1.2rem" : "0.4rem",
-                    background:
-                      i === index
+                    background: isHoro
+                      ? i === index
+                        ? "#f97316"
+                        : "rgba(15,23,42,0.30)"
+                      : i === index
                         ? "#fff"
                         : s.kind === current.kind
                           ? "rgba(255,255,255,0.4)"
@@ -512,15 +479,21 @@ export default function UnifiedSignage({
               ))}
             </div>
             {/* Progress bar — same fixed width as the dots row. */}
-            <div className="h-1 overflow-hidden rounded-full bg-white/10">
+            <div
+              className={`h-1 overflow-hidden rounded-full ${
+                isHoro ? "bg-slate-900/10" : "bg-white/10"
+              }`}
+            >
               <div
-                className="h-full bg-white/60"
+                className={`h-full ${isHoro ? "bg-orange-400" : "bg-white/60"}`}
                 style={{ width: `${progress}%` }}
               />
             </div>
           </div>
           {/* Page number, right of the dots. */}
-          <span className="text-sm tabular-nums text-white/40">
+          <span
+            className={`text-sm tabular-nums ${isHoro ? "text-slate-500" : "text-white/40"}`}
+          >
             {index + 1} / {total}
           </span>
         </div>
