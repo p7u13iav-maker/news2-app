@@ -217,7 +217,11 @@ function BarChart({
 function StackedBarChart({
   data,
 }: {
-  data: { label: string; segments: { name: string; value: number }[] }[];
+  data: {
+    label: string;
+    segments: { name: string; value: number }[];
+    total: number;
+  }[];
 }) {
   if (data.length === 0) return null;
   const n = data.length;
@@ -228,17 +232,8 @@ function StackedBarChart({
   const barW = Math.max(slot - 2, 1);
 
   // Compute the max total for scaling.
-  const maxTotal = Math.max(
-    ...data.map((d) => d.segments.reduce((s, seg) => s + seg.value, 0)),
-  );
+  const maxTotal = Math.max(...data.map((d) => d.total));
 
-  // Build the segment name list in stacking order (bottom → top).
-  const segNames: string[] = [];
-  for (const d of data) {
-    for (const s of d.segments) {
-      if (!segNames.includes(s.name)) segNames.push(s.name);
-    }
-  }
   const palette: Record<string, string> = {
     中国: "#f87171",
     日本: "#38bdf8",
@@ -277,9 +272,10 @@ function StackedBarChart({
           />
           {data.map((d, i) => {
             const x = PAD + i * slot + (slot - barW) / 2;
-            const total = d.segments.reduce((s, seg) => s + seg.value, 0);
-            const scale = (H - 16) / (maxTotal || 1);
+            const cx = PAD + i * slot + slot / 2;
+            const scale = (H - 20) / (maxTotal || 1);
             let yCursor = H - 8;
+            let chinaY = 0;
             return (
               <g key={i}>
                 {d.segments.map((seg, si) => {
@@ -287,6 +283,7 @@ function StackedBarChart({
                   const y = yCursor - segH;
                   const isLatest = i === n - 1;
                   const fill = palette[seg.name] ?? "#94a3b8";
+                  if (seg.name === "中国") chinaY = y;
                   yCursor = y;
                   return (
                     <rect
@@ -299,6 +296,32 @@ function StackedBarChart({
                     />
                   );
                 })}
+                {/* World total label above the bar. */}
+                <text
+                  x={cx}
+                  y={yCursor - 1.5}
+                  textAnchor="middle"
+                  fontSize={3.5}
+                  fill="#f0fdf4"
+                  vectorEffect="non-scaling-stroke"
+                >
+                  {d.total.toFixed(0)}
+                </text>
+                {/* China value label (inside the bar, on the China segment). */}
+                {chinaY > 0 && (
+                  <text
+                    x={cx}
+                    y={chinaY + 4}
+                    textAnchor="middle"
+                    fontSize={3}
+                    fill="#fff"
+                    vectorEffect="non-scaling-stroke"
+                  >
+                    {d.segments
+                      .find((s) => s.name === "中国")
+                      ?.value.toFixed(0)}
+                  </text>
+                )}
               </g>
             );
           })}
@@ -553,6 +576,7 @@ export default function SteelPage() {
                         data={data.worldSteel.map((w) => ({
                           label: `${w.month}月`,
                           segments: w.byCountry,
+                          total: w.worldCrudeSteel,
                         }))}
                       />
                     </div>
@@ -807,44 +831,82 @@ export default function SteelPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {([
-                            ["建設用", "construction"],
-                            ["産業機械用", "machinery"],
-                            ["電気機械用", "electrical"],
-                            ["船舶用", "ships"],
-                            ["自動車用", "automobiles"],
-                            ["鉄道車両用", "railway"],
-                            ["その他輸送機械", "otherTransport"],
-                            ["輸出", "export"],
-                          ] as const).map(([label, key]) => {
-                            const pp = orderPrevPrev?.[key] ?? 0;
-                            const pv = orderPrev?.[key] ?? 0;
-                            const lt = orderLatest?.[key] ?? 0;
-                            const mom =
-                              pv > 0 ? ((lt - pv) / pv) * 100 : 0;
-                            return (
-                              <tr key={key} className="border-t border-white/10">
-                                <td className="py-1 text-white/70">{label}</td>
-                                <td className="py-1 text-right font-mono tabular-nums text-white/50">
-                                  {pp > 0 ? pp.toFixed(1) : "-"}
-                                </td>
-                                <td className="py-1 text-right font-mono tabular-nums text-white/70">
-                                  {pv > 0 ? pv.toFixed(1) : "-"}
-                                </td>
-                                <td className="py-1 text-right font-mono tabular-nums">
-                                  <span className="font-bold text-white">
-                                    {lt > 0 ? lt.toFixed(1) : "-"}
-                                  </span>
-                                  <span
-                                    className={`ml-1 text-[10px] ${mom >= 0 ? "text-emerald-400" : "text-red-400"}`}
-                                  >
-                                    {mom >= 0 ? "+" : ""}
-                                    {mom.toFixed(0)}%
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
+                          {/* Compute 機械用 = 産業機械+電気機械+鉄道車両+その他輸送機械 */}
+                          {(() => {
+                            const mach = (o?: OrderMonth) =>
+                              (o?.machinery ?? 0) +
+                              (o?.electrical ?? 0) +
+                              (o?.railway ?? 0) +
+                              (o?.otherTransport ?? 0);
+                            const rows: {
+                              label: string;
+                              pp: number;
+                              pv: number;
+                              lt: number;
+                            }[] = [
+                              {
+                                label: "建設用",
+                                pp: orderPrevPrev?.construction ?? 0,
+                                pv: orderPrev?.construction ?? 0,
+                                lt: orderLatest?.construction ?? 0,
+                              },
+                              {
+                                label: "自動車用",
+                                pp: orderPrevPrev?.automobiles ?? 0,
+                                pv: orderPrev?.automobiles ?? 0,
+                                lt: orderLatest?.automobiles ?? 0,
+                              },
+                              {
+                                label: "機械用",
+                                pp: mach(orderPrevPrev),
+                                pv: mach(orderPrev),
+                                lt: mach(orderLatest),
+                              },
+                              {
+                                label: "船舶用",
+                                pp: orderPrevPrev?.ships ?? 0,
+                                pv: orderPrev?.ships ?? 0,
+                                lt: orderLatest?.ships ?? 0,
+                              },
+                              {
+                                label: "輸出",
+                                pp: orderPrevPrev?.export ?? 0,
+                                pv: orderPrev?.export ?? 0,
+                                lt: orderLatest?.export ?? 0,
+                              },
+                            ];
+                            return rows.map((r) => {
+                              const mom =
+                                r.pv > 0 ? ((r.lt - r.pv) / r.pv) * 100 : 0;
+                              return (
+                                <tr
+                                  key={r.label}
+                                  className="border-t border-white/10"
+                                >
+                                  <td className="py-1 text-white/70">
+                                    {r.label}
+                                  </td>
+                                  <td className="py-1 text-right font-mono tabular-nums text-white/50">
+                                    {r.pp > 0 ? r.pp.toFixed(1) : "-"}
+                                  </td>
+                                  <td className="py-1 text-right font-mono tabular-nums text-white/70">
+                                    {r.pv > 0 ? r.pv.toFixed(1) : "-"}
+                                  </td>
+                                  <td className="py-1 text-right font-mono tabular-nums">
+                                    <span className="font-bold text-white">
+                                      {r.lt > 0 ? r.lt.toFixed(1) : "-"}
+                                    </span>
+                                    <span
+                                      className={`ml-1 text-[10px] ${mom >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                                    >
+                                      {mom >= 0 ? "+" : ""}
+                                      {mom.toFixed(0)}%
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
                         </tbody>
                       </table>
                     </div>
