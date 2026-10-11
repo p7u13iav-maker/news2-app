@@ -352,12 +352,12 @@ function TideChart({
         const y = top + plotH - ((h.level - min) / range) * plotH;
         return (
           <g key={"h" + i}>
-            <circle cx={x} cy={y} r="5" fill="#f472b6" opacity="0.8" />
+            <circle cx={x} cy={y} r="6" fill="#f472b6" opacity="0.85" />
             <text
               x={x}
-              y={y - 26}
+              y={y - 30}
               fill="#f472b6"
-              fontSize="14"
+              fontSize="17"
               fontFamily="monospace"
               textAnchor="middle"
               fontWeight="bold"
@@ -366,9 +366,9 @@ function TideChart({
             </text>
             <text
               x={x}
-              y={y - 10}
+              y={y - 11}
               fill="#f472b6"
-              fontSize="15"
+              fontSize="18"
               fontFamily="monospace"
               textAnchor="middle"
               fontWeight="bold"
@@ -384,12 +384,12 @@ function TideChart({
         const y = top + plotH - ((l.level - min) / range) * plotH;
         return (
           <g key={"l" + i}>
-            <circle cx={x} cy={y} r="5" fill="#38bdf8" opacity="0.8" />
+            <circle cx={x} cy={y} r="6" fill="#38bdf8" opacity="0.85" />
             <text
               x={x}
-              y={y + 18}
+              y={y + 20}
               fill="#38bdf8"
-              fontSize="14"
+              fontSize="17"
               fontFamily="monospace"
               textAnchor="middle"
               fontWeight="bold"
@@ -398,9 +398,9 @@ function TideChart({
             </text>
             <text
               x={x}
-              y={y + 34}
+              y={y + 40}
               fill="#38bdf8"
-              fontSize="15"
+              fontSize="18"
               fontFamily="monospace"
               textAnchor="middle"
               fontWeight="bold"
@@ -613,12 +613,12 @@ function HourlyChart({
         return (
           <>
             <g>
-              <circle cx={maxP.x} cy={maxP.y} r="5" fill="#fb923c" />
+              <circle cx={maxP.x} cy={maxP.y} r="6" fill="#fb923c" />
               <text
                 x={maxP.x}
-                y={maxP.y - 26}
+                y={maxP.y - 30}
                 fill="#fb923c"
-                fontSize="14"
+                fontSize="17"
                 fontFamily="monospace"
                 textAnchor="middle"
                 fontWeight="bold"
@@ -627,9 +627,9 @@ function HourlyChart({
               </text>
               <text
                 x={maxP.x}
-                y={maxP.y - 10}
+                y={maxP.y - 11}
                 fill="#fb923c"
-                fontSize="15"
+                fontSize="18"
                 fontFamily="monospace"
                 textAnchor="middle"
                 fontWeight="bold"
@@ -638,12 +638,12 @@ function HourlyChart({
               </text>
             </g>
             <g>
-              <circle cx={minP.x} cy={minP.y} r="5" fill="#38bdf8" />
+              <circle cx={minP.x} cy={minP.y} r="6" fill="#38bdf8" />
               <text
                 x={minP.x}
-                y={minP.y + 18}
+                y={minP.y + 20}
                 fill="#38bdf8"
-                fontSize="14"
+                fontSize="17"
                 fontFamily="monospace"
                 textAnchor="middle"
                 fontWeight="bold"
@@ -652,9 +652,9 @@ function HourlyChart({
               </text>
               <text
                 x={minP.x}
-                y={minP.y + 34}
+                y={minP.y + 40}
                 fill="#38bdf8"
-                fontSize="15"
+                fontSize="18"
                 fontFamily="monospace"
                 textAnchor="middle"
                 fontWeight="bold"
