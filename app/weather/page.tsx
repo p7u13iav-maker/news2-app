@@ -68,6 +68,7 @@ interface TideData {
   maxRange: number;
   high: TideEvent[];
   low: TideEvent[];
+  hourly: { hour: number; level: number }[];
 }
 
 interface WeatherResponse {
@@ -189,6 +190,242 @@ function splinePath(pts: { x: number; y: number }[]): string {
     d += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
   }
   return d;
+}
+
+/** Smooth tide level chart for the 24 hourly values. */
+function TideChart({
+  hourly,
+  high,
+  low,
+}: {
+  hourly: { hour: number; level: number }[];
+  high: { time: string; level: number }[];
+  low: { time: string; level: number }[];
+}) {
+  const W = 1000;
+  const H = 260;
+  if (hourly.length === 0) return null;
+
+  const levels = hourly.map((h) => h.level);
+  const min = Math.min(...levels) - 20;
+  const max = Math.max(...levels) + 20;
+  const range = max - min || 1;
+
+  const L = 60;
+  const B = 90;
+  const plotW = W - L - 20;
+  const plotH = H - B - 20;
+  const top = 10;
+
+  const step = hourly.length > 1 ? plotW / (hourly.length - 1) : 0;
+  const points = hourly.map((h, i) => {
+    const x = L + i * step;
+    const y = top + plotH - ((h.level - min) / range) * plotH;
+    return { x, y, h };
+  });
+
+  const lineD = splinePath(points);
+  const areaD = `${lineD} L ${points[points.length - 1].x},${top + plotH} L ${points[0].x},${top + plotH} Z`;
+
+  const [g1, g2] = ["#38bdf8", "#0ea5e9"];
+
+  const yTicks = [
+    { v: max, y: top },
+    { v: (max + min) / 2, y: top + plotH / 2 },
+    { v: min, y: top + plotH },
+  ];
+
+  const xTicks = points.filter((_, i) => i % 3 === 0);
+
+  // "Now" marker.
+  const now = new Date();
+  const nowHM = now.getHours() + now.getMinutes() / 60;
+  let nowX: number | null = null;
+  let nowY: number | null = null;
+  let nowLevel: number | null = null;
+  for (let i = 0; i < points.length; i++) {
+    const hHM = points[i].h.hour;
+    if (hHM <= nowHM) {
+      const prev = i > 0 ? points[i - 1] : null;
+      const prevHM = prev ? prev.h.hour : null;
+      if (prev && prevHM !== null && hHM > prevHM) {
+        const frac = (nowHM - prevHM) / (hHM - prevHM);
+        nowX = prev.x + (points[i].x - prev.x) * frac;
+        nowY = prev.y + (points[i].y - prev.y) * frac;
+        nowLevel = prev.h.level + (points[i].h.level - prev.h.level) * frac;
+      } else {
+        nowX = points[i].x;
+        nowY = points[i].y;
+        nowLevel = points[i].h.level;
+      }
+    }
+  }
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="h-full w-full"
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <linearGradient id="tideGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={g1} stopOpacity="0.4" />
+          <stop offset="100%" stopColor={g2} stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="tideLineGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={g2} />
+          <stop offset="100%" stopColor={g1} />
+        </linearGradient>
+      </defs>
+
+      {yTicks.map((t, i) => (
+        <g key={i}>
+          <line
+            x1={L}
+            y1={t.y}
+            x2={L + plotW}
+            y2={t.y}
+            stroke="rgba(255,255,255,0.08)"
+            strokeWidth="1"
+            strokeDasharray="4 4"
+          />
+          <text
+            x={L - 8}
+            y={t.y + 5}
+            fill="rgba(255,255,255,0.55)"
+            fontSize="16"
+            fontFamily="monospace"
+            textAnchor="end"
+          >
+            {Math.round(t.v)}
+          </text>
+        </g>
+      ))}
+
+      <path d={areaD} fill="url(#tideGrad)" />
+      <path
+        d={lineD}
+        fill="none"
+        stroke="url(#tideLineGrad)"
+        strokeWidth="3"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+
+      {points.map((p, i) => (
+        <circle
+          key={i}
+          cx={p.x}
+          cy={p.y}
+          r={i % 3 === 0 ? 3.5 : 0}
+          fill={g1}
+        />
+      ))}
+
+      {xTicks.map((p, i) => (
+        <g key={i}>
+          <text
+            x={p.x}
+            y={top + plotH + 24}
+            fill="rgba(255,255,255,0.5)"
+            fontSize="14"
+            fontFamily="monospace"
+            textAnchor="middle"
+          >
+            {p.h.hour}時
+          </text>
+        </g>
+      ))}
+
+      {/* High/low tide markers. */}
+      {high.map((h, i) => {
+        const hm = parseInt(h.time.split(":")[0], 10);
+        const idx = hourly.find((x) => x.hour === hm);
+        if (!idx) return null;
+        const x = L + hm * step;
+        const y = top + plotH - ((idx.level - min) / range) * plotH;
+        return (
+          <g key={"h" + i}>
+            <circle cx={x} cy={y} r="5" fill="#f472b6" opacity="0.8" />
+            <text
+              x={x}
+              y={y - 10}
+              fill="#f472b6"
+              fontSize="13"
+              fontFamily="monospace"
+              textAnchor="middle"
+              fontWeight="bold"
+            >
+              {h.time}
+            </text>
+          </g>
+        );
+      })}
+      {low.map((l, i) => {
+        const hm = parseInt(l.time.split(":")[0], 10);
+        const idx = hourly.find((x) => x.hour === hm);
+        if (!idx) return null;
+        const x = L + hm * step;
+        const y = top + plotH - ((idx.level - min) / range) * plotH;
+        return (
+          <g key={"l" + i}>
+            <circle cx={x} cy={y} r="5" fill="#38bdf8" opacity="0.8" />
+            <text
+              x={x}
+              y={y + 18}
+              fill="#38bdf8"
+              fontSize="13"
+              fontFamily="monospace"
+              textAnchor="middle"
+              fontWeight="bold"
+            >
+              {l.time}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* "Now" marker. */}
+      {nowX !== null && nowY !== null && (
+        <g>
+          <line
+            x1={nowX}
+            y1={top}
+            x2={nowX}
+            y2={top + plotH}
+            stroke="rgba(255,255,255,0.4)"
+            strokeWidth="1.5"
+            strokeDasharray="5 4"
+          />
+          <circle cx={nowX} cy={nowY} r="6" fill="#fff" opacity="0.9" />
+          <circle cx={nowX} cy={nowY} r="3" fill={g1} />
+          {nowLevel !== null && (
+            <g>
+              <rect
+                x={nowX - 28}
+                y={nowY - 34}
+                width="56"
+                height="24"
+                rx="6"
+                fill="rgba(255,255,255,0.92)"
+              />
+              <text
+                x={nowX}
+                y={nowY - 17}
+                fill="#0f172a"
+                fontSize="15"
+                fontWeight="bold"
+                fontFamily="monospace"
+                textAnchor="middle"
+              >
+                {Math.round(nowLevel)}
+              </text>
+            </g>
+          )}
+        </g>
+      )}
+    </svg>
+  );
 }
 
 /** Smooth temperature chart for the 24 hourly values. */
@@ -672,93 +909,136 @@ export default function WeatherPage() {
           </div>
         ) : (
           <>
-            {/* Top: 2×2 grid — current / today overview / details / summary. */}
-            <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-4">
-              {/* Cell 1 (top-left): Current conditions (hero). */}
-              <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl leading-none">{c!.emoji}</span>
-                  <div>
-                    <p className="text-xl font-bold leading-tight">
-                      {c!.label}
-                    </p>
-                    <p className="text-xs text-white/50">
-                      {fmtTime(c!.time)} 現在
-                    </p>
-                  </div>
+            {/* Top row: unified current conditions + today overview (single full-width panel). */}
+            <div className="flex shrink-0 items-center gap-8 rounded-2xl border border-white/10 bg-white/5 px-8 py-4">
+              {/* Left: current hero. */}
+              <div className="flex shrink-0 items-center gap-4">
+                <span className="text-5xl leading-none">{c!.emoji}</span>
+                <div>
+                  <p className="text-lg font-bold leading-tight">{c!.label}</p>
+                  <p className="text-xs text-white/50">
+                    {fmtTime(c!.time)} 現在 · 体感 {Math.round(c!.apparentTemperature)}°C
+                  </p>
                 </div>
                 <p
-                  className={`mt-2 font-mono text-7xl font-bold leading-none tabular-nums ${tColor}`}
+                  className={`ml-2 font-mono text-6xl font-bold leading-none tabular-nums ${tColor}`}
                 >
                   {Math.round(c!.temperature)}
-                  <span className="text-3xl font-medium">°C</span>
-                </p>
-                <p className="mt-1 font-mono text-sm tabular-nums text-white/60">
-                  体感 {Math.round(c!.apparentTemperature)}°C
+                  <span className="text-2xl font-medium">°C</span>
                 </p>
               </div>
 
-              {/* Cell 2 (top-right): Today overview (max/min/precip/UV/precip amount). */}
+              {/* Right: today overview metrics. */}
+              <div className="flex flex-1 items-center justify-around gap-2">
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">最高</p>
+                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums text-orange-300">
+                    {Math.round(d!.maxTemp)}
+                    <span className="text-sm font-medium">°</span>
+                  </p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">最低</p>
+                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums text-sky-300">
+                    {Math.round(d!.minTemp)}
+                    <span className="text-sm font-medium">°</span>
+                  </p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">降水確率</p>
+                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums text-blue-200">
+                    {d!.maxPrecipProb}
+                    <span className="text-sm font-medium">%</span>
+                  </p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">紫外線</p>
+                  <p className={`mt-0.5 font-mono text-3xl font-bold tabular-nums ${
+                    d!.uvIndexMax >= 8 ? "text-rose-300" :
+                    d!.uvIndexMax >= 6 ? "text-amber-300" :
+                    d!.uvIndexMax >= 3 ? "text-yellow-200" : "text-emerald-300"
+                  }`}>
+                    {d!.uvIndexMax.toFixed(0)}
+                  </p>
+                  <p className={`text-[9px] font-medium ${
+                    d!.uvIndexMax >= 8 ? "text-rose-300/70" :
+                    d!.uvIndexMax >= 6 ? "text-amber-300/70" :
+                    d!.uvIndexMax >= 3 ? "text-yellow-200/70" : "text-emerald-300/70"
+                  }`}>
+                    {d!.uvIndexMax >= 8 ? "非常に強い" :
+                     d!.uvIndexMax >= 6 ? "強い" :
+                     d!.uvIndexMax >= 3 ? "やや強い" : "弱"}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">降水量</p>
+                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums text-blue-200">
+                    {d!.precipitationSum.toFixed(1)}
+                    <span className="text-sm font-medium">mm</span>
+                  </p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">湿度</p>
+                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
+                    {c!.humidity}
+                    <span className="text-sm font-medium">%</span>
+                  </p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">風</p>
+                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
+                    {c!.windSpeed.toFixed(1)}
+                    <span className="text-sm font-medium">m/s</span>
+                  </p>
+                  <p className="text-[9px] text-white/40">{c!.windDirectionLabel}</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">気圧</p>
+                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
+                    {Math.round(c!.pressureMsl)}
+                    <span className="text-sm font-medium">hPa</span>
+                  </p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">雲量</p>
+                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
+                    {c!.cloudCover}
+                    <span className="text-sm font-medium">%</span>
+                  </p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">🌅 日の出</p>
+                  <p className="mt-0.5 font-mono text-2xl font-bold tabular-nums">
+                    {fmtTime(d!.sunrise)}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <p className="text-[10px] font-medium text-white/50">🌇 日の入り</p>
+                  <p className="mt-0.5 font-mono text-2xl font-bold tabular-nums">
+                    {fmtTime(d!.sunset)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Middle row: summary (left) + other weather data (right). */}
+            <div className="grid min-h-0 flex-1 grid-cols-2 gap-4">
+              {/* Summary. */}
               <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
-                <p className="text-sm font-medium text-white/50">
-                  今日の天気
+                <p className="text-sm font-semibold text-sky-200">
+                  今日の一言
                 </p>
-                <div className="mt-3 grid grid-cols-5 gap-2">
-                  <div className="flex flex-col">
-                    <p className="text-[11px] font-medium text-white/50">
-                      最高気温
-                    </p>
-                    <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-orange-300">
-                      {Math.round(d!.maxTemp)}
-                      <span className="text-sm font-medium">°C</span>
-                    </p>
-                  </div>
-                  <div className="flex flex-col">
-                    <p className="text-[11px] font-medium text-white/50">
-                      最低気温
-                    </p>
-                    <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-sky-300">
-                      {Math.round(d!.minTemp)}
-                      <span className="text-sm font-medium">°C</span>
-                    </p>
-                  </div>
-                  <div className="flex flex-col">
-                    <p className="text-[11px] font-medium text-white/50">
-                      降水確率
-                    </p>
-                    <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-blue-200">
-                      {d!.maxPrecipProb}
-                      <span className="text-sm font-medium">%</span>
-                    </p>
-                  </div>
-                  <div className="flex flex-col">
-                    <p className="text-[11px] font-medium text-white/50">
-                      紫外線
-                    </p>
-                    <p className={`mt-1 font-mono text-3xl font-bold tabular-nums ${
-                      d!.uvIndexMax >= 8 ? "text-rose-300" :
-                      d!.uvIndexMax >= 6 ? "text-amber-300" :
-                      d!.uvIndexMax >= 3 ? "text-yellow-200" : "text-emerald-300"
-                    }`}>
-                      {d!.uvIndexMax.toFixed(0)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col">
-                    <p className="text-[11px] font-medium text-white/50">
-                      降水量
-                    </p>
-                    <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-blue-200">
-                      {d!.precipitationSum.toFixed(1)}
-                      <span className="text-sm font-medium">mm</span>
-                    </p>
-                  </div>
+                <div className="mt-3 flex min-h-0 flex-1 items-center">
+                  <p className="text-lg leading-relaxed text-white/85">
+                    {weatherSummary(c!, d!)}
+                  </p>
                 </div>
               </div>
 
-              {/* Cell 3 (bottom-left): Details (humidity/wind/sunrise/sunset/pressure/cloud). */}
+              {/* Other weather data (sub-title: その他気象データ). */}
               <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
                 <p className="text-sm font-medium text-white/50">
-                  詳細
+                  その他気象データ
                 </p>
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <div className="rounded-xl bg-white/5 p-2.5">
@@ -814,34 +1094,43 @@ export default function WeatherPage() {
                   </div>
                 </div>
               </div>
-
-              {/* Cell 4 (bottom-right): Rule-based one-line summary. */}
-              <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
-                <p className="text-sm font-semibold text-sky-200">
-                  今日の一言
-                </p>
-                <div className="mt-3 flex min-h-0 flex-1 items-center">
-                  <p className="text-lg leading-relaxed text-white/85">
-                    {weatherSummary(c!, d!)}
-                  </p>
-                </div>
-              </div>
             </div>
 
-            {/* Bottom: hourly chart (left) + tide panel (right). */}
+            {/* Bottom: temperature chart (left) + tide chart (right). */}
             <div className="flex shrink-0 gap-4" style={{ height: "32%" }}>
-              <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 p-4">
-                <HourlyChart
-                  hourly={data.hourly}
-                  weatherCode={c!.weatherCode}
-                />
+              <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="mb-1 text-sm font-medium text-white/50">
+                  気温の推移（毎時予報）
+                </p>
+                <div className="min-h-0 flex-1">
+                  <HourlyChart
+                    hourly={data.hourly}
+                    weatherCode={c!.weatherCode}
+                  />
+                </div>
               </div>
               {tide && (
-                <div className="flex w-[34%] flex-col overflow-hidden rounded-2xl border border-sky-300/20 bg-sky-950/20 p-5">
-                  <p className="mb-2 text-sm font-semibold text-sky-200">
-                    潮汐（水島・倉敷）
-                  </p>
-                  <TideWidget tide={tide} />
+                <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-sky-300/20 bg-sky-950/20 p-4">
+                  <div className="mb-1 flex items-center justify-between">
+                    <p className="text-sm font-medium text-sky-200">
+                      潮汐の推移（水島・倉敷）
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-sky-400/20 px-2 py-0.5 text-xs font-bold text-sky-200">
+                        {tide.tideName}
+                      </span>
+                      <span className="font-mono text-[10px] tabular-nums text-white/40">
+                        潮差 {tide.maxRange}cm
+                      </span>
+                    </div>
+                  </div>
+                  <div className="min-h-0 flex-1">
+                    <TideChart
+                      hourly={tide.hourly}
+                      high={tide.high}
+                      low={tide.low}
+                    />
+                  </div>
                 </div>
               )}
             </div>

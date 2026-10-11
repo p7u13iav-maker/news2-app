@@ -20,6 +20,14 @@ export interface TideEvent {
   level: number;
 }
 
+/** One hour of tide level for the chart. */
+export interface TideHourly {
+  /** 0-23 */
+  hour: number;
+  /** Tide level (cm above datum). */
+  level: number;
+}
+
 export interface TideDay {
   date: string;
   /** High tide name: 大潮 / 中潮 / 小潮 / 長潮 / 若潮. */
@@ -28,6 +36,8 @@ export interface TideDay {
   maxRange: number;
   high: TideEvent[];
   low: TideEvent[];
+  /** Hourly tide levels (24 values, cm). */
+  hourly: TideHourly[];
 }
 
 const STATION = "MM"; // Mizushima, Kurashiki
@@ -88,12 +98,23 @@ function parseLine(line: string): TideDay | null {
   const minLow = Math.min(...low.map((l) => l.level));
   const maxRange = maxHigh - minLow;
 
+  // Hourly tide levels: cols 0-71, 3 digits x 24 hours (cm).
+  const hourly: TideHourly[] = [];
+  for (let h = 0; h < 24; h++) {
+    const raw = line.slice(h * 3, h * 3 + 3).trim();
+    const v = parseInt(raw, 10);
+    if (Number.isFinite(v) && raw !== "999") {
+      hourly.push({ hour: h, level: v });
+    }
+  }
+
   return {
     date,
     tideName: tideNameFromRange(maxRange),
     maxRange,
     high,
     low,
+    hourly,
   };
 }
 

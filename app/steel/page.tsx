@@ -450,7 +450,7 @@ function Panel({
   );
 }
 
-/** Column header (粗鋼生産 / 普通鋼需給 / 受注量). */
+/** Column header (粗鋼生産 / 国内普通鋼需給 / 受注量). */
 function ColHeader({ children }: { children: React.ReactNode }) {
   return (
     <p className="mb-1.5 text-sm font-bold text-white/90">{children}</p>
@@ -779,9 +779,9 @@ export default function SteelPage() {
                 </div>
               </div>
 
-              {/* Column 2: 普通鋼需給 (Carbon steel supply-demand). */}
+              {/* Column 2: 国内普通鋼需給 (Domestic carbon steel supply-demand). */}
               <div className="flex min-h-0 flex-col">
-                <ColHeader>普通鋼需給</ColHeader>
+                <ColHeader>国内普通鋼需給</ColHeader>
                 <div className="grid min-h-0 flex-1 grid-rows-3 gap-2">
                   {/* Production trend. */}
                   <Panel className="flex flex-col overflow-hidden">
