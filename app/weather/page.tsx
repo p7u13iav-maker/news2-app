@@ -387,7 +387,7 @@ function TideChart({
             <circle cx={x} cy={y} r="6" fill="#38bdf8" opacity="0.85" />
             <text
               x={x}
-              y={y + 20}
+              y={y - 30}
               fill="#38bdf8"
               fontSize="17"
               fontFamily="monospace"
@@ -398,7 +398,7 @@ function TideChart({
             </text>
             <text
               x={x}
-              y={y + 40}
+              y={y - 11}
               fill="#38bdf8"
               fontSize="18"
               fontFamily="monospace"
@@ -641,7 +641,7 @@ function HourlyChart({
               <circle cx={minP.x} cy={minP.y} r="6" fill="#38bdf8" />
               <text
                 x={minP.x}
-                y={minP.y + 20}
+                y={minP.y - 30}
                 fill="#38bdf8"
                 fontSize="17"
                 fontFamily="monospace"
@@ -652,7 +652,7 @@ function HourlyChart({
               </text>
               <text
                 x={minP.x}
-                y={minP.y + 40}
+                y={minP.y - 11}
                 fill="#38bdf8"
                 fontSize="18"
                 fontFamily="monospace"
