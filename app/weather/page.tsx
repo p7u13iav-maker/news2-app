@@ -929,7 +929,7 @@ export default function WeatherPage() {
               </div>
 
               {/* Right: today overview metrics. */}
-              <div className="flex flex-1 items-center justify-around gap-2">
+              <div className="flex flex-1 items-center justify-around gap-4">
                 <div className="flex flex-col items-center">
                   <p className="text-[10px] font-medium text-white/50">最高</p>
                   <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums text-orange-300">
@@ -975,47 +975,6 @@ export default function WeatherPage() {
                   <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums text-blue-200">
                     {d!.precipitationSum.toFixed(1)}
                     <span className="text-sm font-medium">mm</span>
-                  </p>
-                </div>
-                <div className="flex flex-col items-center">
-                  <p className="text-[10px] font-medium text-white/50">湿度</p>
-                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
-                    {c!.humidity}
-                    <span className="text-sm font-medium">%</span>
-                  </p>
-                </div>
-                <div className="flex flex-col items-center">
-                  <p className="text-[10px] font-medium text-white/50">風</p>
-                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
-                    {c!.windSpeed.toFixed(1)}
-                    <span className="text-sm font-medium">m/s</span>
-                  </p>
-                  <p className="text-[9px] text-white/40">{c!.windDirectionLabel}</p>
-                </div>
-                <div className="flex flex-col items-center">
-                  <p className="text-[10px] font-medium text-white/50">気圧</p>
-                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
-                    {Math.round(c!.pressureMsl)}
-                    <span className="text-sm font-medium">hPa</span>
-                  </p>
-                </div>
-                <div className="flex flex-col items-center">
-                  <p className="text-[10px] font-medium text-white/50">雲量</p>
-                  <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
-                    {c!.cloudCover}
-                    <span className="text-sm font-medium">%</span>
-                  </p>
-                </div>
-                <div className="flex flex-col items-center">
-                  <p className="text-[10px] font-medium text-white/50">🌅 日の出</p>
-                  <p className="mt-0.5 font-mono text-2xl font-bold tabular-nums">
-                    {fmtTime(d!.sunrise)}
-                  </p>
-                </div>
-                <div className="flex flex-col items-center">
-                  <p className="text-[10px] font-medium text-white/50">🌇 日の入り</p>
-                  <p className="mt-0.5 font-mono text-2xl font-bold tabular-nums">
-                    {fmtTime(d!.sunset)}
                   </p>
                 </div>
               </div>
@@ -1098,7 +1057,7 @@ export default function WeatherPage() {
 
             {/* Bottom: temperature chart (left) + tide chart (right). */}
             <div className="flex shrink-0 gap-4" style={{ height: "32%" }}>
-              <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="mb-1 text-sm font-medium text-white/50">
                   気温の推移（毎時予報）
                 </p>
@@ -1110,7 +1069,7 @@ export default function WeatherPage() {
                 </div>
               </div>
               {tide && (
-                <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-sky-300/20 bg-sky-950/20 p-4">
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-sky-300/20 bg-sky-950/20 p-4">
                   <div className="mb-1 flex items-center justify-between">
                     <p className="text-sm font-medium text-sky-200">
                       潮汐の推移（水島・倉敷）
