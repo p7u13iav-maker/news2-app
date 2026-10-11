@@ -147,9 +147,12 @@ function Sparkline({
 function BarChart({
   data,
   color = "#38bdf8",
+  embedded = false,
 }: {
   data: { label: string; value: number }[];
   color?: string;
+  /** Tighter overlay/label sizing for the signage slide. */
+  embedded?: boolean;
 }) {
   if (data.length === 0) return null;
   const vals = data.map((d) => d.value);
@@ -215,7 +218,9 @@ function BarChart({
           return (
             <span
               key={i}
-              className="absolute -translate-x-1/2 -translate-y-full font-mono text-[9px] leading-none tabular-nums"
+              className={`absolute -translate-x-1/2 -translate-y-full font-mono leading-none tabular-nums ${
+                embedded ? "text-[8px]" : "text-[9px]"
+              }`}
               style={{
                 left: `${cxPct}%`,
                 top: `${topPct}%`,
@@ -230,7 +235,12 @@ function BarChart({
       {/* Month labels aligned to each bar slot (all months). */}
       <div className="flex shrink-0 pt-0.5" style={{ paddingLeft: PAD, paddingRight: PAD }}>
         {data.map((d, i) => (
-          <span key={i} className="flex-1 text-center text-[8px] leading-none text-white/35">
+          <span
+            key={i}
+            className={`flex-1 text-center leading-none text-white/35 ${
+              embedded ? "text-[7px]" : "text-[8px]"
+            }`}
+          >
             {d.label}
           </span>
         ))}
@@ -246,6 +256,7 @@ function StackedBarChart({
   labelKey,
   labelKeys,
   labelColorMap,
+  embedded = false,
 }: {
   data: {
     label: string;
@@ -259,6 +270,8 @@ function StackedBarChart({
   labelKeys?: string[];
   /** Explicit color for each labeled segment's number (defaults to white-ish). */
   labelColorMap?: Record<string, string>;
+  /** Tighter overlay/label sizing for the signage slide. */
+  embedded?: boolean;
 }) {
   if (data.length === 0) return null;
   const n = data.length;
@@ -389,7 +402,9 @@ function StackedBarChart({
             <div key={i}>
               {/* Total: above the bar. */}
               <span
-                className="absolute -translate-x-1/2 -translate-y-full font-mono text-[9px] leading-none tabular-nums"
+                className={`absolute -translate-x-1/2 -translate-y-full font-mono leading-none tabular-nums ${
+                  embedded ? "text-[8px]" : "text-[9px]"
+                }`}
                 style={{
                   left: `${cxPct}%`,
                   top: `${topPct}%`,
@@ -404,7 +419,9 @@ function StackedBarChart({
                 ls.h > 2 ? (
                   <span
                     key={ls.name}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 font-mono text-[8px] font-bold leading-none tabular-nums"
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 font-mono font-bold leading-none tabular-nums ${
+                      embedded ? "text-[7px]" : "text-[8px]"
+                    }`}
                     style={{
                       left: `${cxPct}%`,
                       top: `${((ls.topY + ls.h / 2) / H) * 100}%`,
@@ -433,7 +450,9 @@ function StackedBarChart({
         {data.map((d, i) => (
           <span
             key={i}
-            className="flex-1 text-center text-[8px] leading-none text-white/35"
+            className={`flex-1 text-center leading-none text-white/35 ${
+              embedded ? "text-[7px]" : "text-[8px]"
+            }`}
           >
             {d.label}
           </span>
@@ -464,9 +483,19 @@ function Panel({
 }
 
 /** Column header (粗鋼生産 / 国内普通鋼需給 / 受注量). */
-function ColHeader({ children }: { children: React.ReactNode }) {
+function ColHeader({
+  children,
+  embedded = false,
+}: {
+  children: React.ReactNode;
+  embedded?: boolean;
+}) {
   return (
-    <p className="mb-1.5 text-sm font-bold text-white/90">{children}</p>
+    <p
+      className={`text-sm font-bold text-white/90 ${embedded ? "mb-1" : "mb-1.5"}`}
+    >
+      {children}
+    </p>
   );
 }
 
@@ -481,18 +510,24 @@ function ValueRow({
   change,
   changeLabel,
   period,
+  embedded = false,
 }: {
   value: string;
   unit: string;
   change?: number | null;
   changeLabel?: string;
   period?: string;
+  embedded?: boolean;
 }) {
   const up = (change ?? 0) >= 0;
   return (
     <div className="flex shrink-0 items-baseline gap-2">
       {/* Big number + unit (primary). */}
-      <span className="font-mono text-xl font-bold leading-none tabular-nums text-white">
+      <span
+        className={`font-mono font-bold leading-none tabular-nums text-white ${
+          embedded ? "text-base" : "text-xl"
+        }`}
+      >
         {value}
         <span className="ml-1 text-[11px] font-medium text-white/45">{unit}</span>
       </span>
@@ -539,6 +574,20 @@ function SteelSlide({
     return () => clearInterval(id);
   }, []);
 
+  // Compact-mode sizing: when embedded in the signage slideshow the available
+  // height is ~150px shorter than the standalone page (the signage header and
+  // footer overlap the top/bottom of the slide area), so the fixed-height chrome
+  // (padding, banner, value rows, legends) is tightened so everything still fits.
+  const kBanner = embedded
+    ? "px-3 py-1"
+    : "px-4 py-2";
+  const kBannerTitle = embedded ? "text-[10px]" : "text-[11px]";
+  const kBannerHeadline = embedded ? "text-xs" : "text-sm";
+  const kBannerBullet = embedded ? "text-[10px]" : "text-xs";
+  const kValue = embedded ? "text-base" : "text-xl";
+  const kLegend = embedded ? "text-[9px]" : "text-[10px]";
+  const kLegendBox = embedded ? "h-1.5 w-1.5" : "h-2 w-2";
+
   const sd = data?.supplyDemand;
   const orders = data?.orders ?? [];
   const sdTrend = sd?.trend ?? [];
@@ -574,7 +623,11 @@ function SteelSlide({
   }
 
   const content = (
-    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden p-4">
+    <div
+      className={`flex min-h-0 flex-1 flex-col gap-2 overflow-hidden ${
+        embedded ? "p-2" : "p-4"
+      }`}
+    >
       {loading && (
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
@@ -596,8 +649,10 @@ function SteelSlide({
       {data && (
         <>
           {/* Top banner: JISF qualitative comment. */}
-          <div className="shrink-0 rounded-lg border border-sky-300/40 bg-sky-900/30 px-4 py-2">
-            <p className="text-[11px] font-semibold text-sky-200">
+          <div
+            className={`shrink-0 rounded-lg border border-sky-300/40 bg-sky-900/30 ${kBanner}`}
+          >
+            <p className={`${kBannerTitle} font-semibold text-sky-200`}>
               鉄鋼連盟の最新月の定性コメント
               {data.jisfComment?.period && (
                 <span className="ml-2 font-normal text-white/50">
@@ -606,15 +661,17 @@ function SteelSlide({
               )}
             </p>
             {data.jisfComment && (
-              <div className="mt-1">
+              <div className={embedded ? "mt-0.5" : "mt-1"}>
                 {data.jisfComment.headline && (
-                  <p className="text-sm font-bold text-white">
+                  <p className={`${kBannerHeadline} font-bold text-white`}>
                     {data.jisfComment.headline}
                   </p>
                 )}
-                <div className="mt-0.5 flex flex-wrap gap-x-6 gap-y-0.5">
+                <div
+                  className={`${embedded ? "mt-0.5" : "mt-0.5"} flex flex-wrap gap-x-5 gap-y-0.5`}
+                >
                   {data.jisfComment.bullets.slice(0, 3).map((b, i) => (
-                    <p key={i} className="text-xs text-white/70">
+                    <p key={i} className={`${kBannerBullet} text-white/70`}>
                       ○ {b}
                     </p>
                   ))}
@@ -624,12 +681,20 @@ function SteelSlide({
           </div>
 
           {/* 3-column grid. */}
-          <div className="grid min-h-0 flex-1 grid-cols-3 gap-3">
+          <div
+            className={`grid min-h-0 flex-1 grid-cols-3 ${
+              embedded ? "gap-2" : "gap-3"
+            }`}
+          >
             {/* Column 1: 粗鋼生産 (Japan + World production). */}
             <div className="flex min-h-0 flex-col">
-              <ColHeader>粗鋼生産</ColHeader>
+              <ColHeader embedded={embedded}>粗鋼生産</ColHeader>
               <div className="grid min-h-0 flex-1 grid-rows-2 gap-2">
-                <Panel className="flex flex-col overflow-hidden">
+                <Panel
+                  className={`flex flex-col overflow-hidden ${
+                    embedded ? "p-1.5" : "p-2"
+                  }`}
+                >
                   <p className="shrink-0 text-xs font-semibold text-white/80">
                     日本の粗鋼生産
                   </p>
@@ -640,12 +705,14 @@ function SteelSlide({
                         unit="万トン"
                         change={data.production[data.production.length - 1].yoy}
                         changeLabel="前年同月比"
+                        embedded={embedded}
                         period={`${data.production[data.production.length - 1].year}年${data.production[data.production.length - 1].month}月`}
                       />
                     </div>
                   )}
                   <div className="min-h-0 flex-1">
                     <StackedBarChart
+                      embedded={embedded}
                       labelKeys={["普通鋼", "特殊鋼"]}
                       labelColorMap={{ 普通鋼: "#0c4a6e", 特殊鋼: "#4c1d95" }}
                       paletteOverride={{ 普通鋼: "#38bdf8", 特殊鋼: "#a78bfa" }}
@@ -660,19 +727,23 @@ function SteelSlide({
                     />
                   </div>
                   {/* Legend: 普通鋼 / 特殊鋼. */}
-                  <div className="mt-1 flex shrink-0 gap-2.5">
-                    <span className="flex items-center gap-1 text-[10px] text-white/60">
-                      <span className="inline-block h-2 w-2 rounded-sm" style={{ backgroundColor: "#38bdf8" }} />
+                  <div className={`flex shrink-0 gap-2.5 ${embedded ? "mt-0.5" : "mt-1"}`}>
+                    <span className={`flex items-center gap-1 text-white/60 ${kLegend}`}>
+                      <span className={`inline-block rounded-sm ${kLegendBox}`} style={{ backgroundColor: "#38bdf8" }} />
                       普通鋼
                     </span>
-                    <span className="flex items-center gap-1 text-[10px] text-white/60">
-                      <span className="inline-block h-2 w-2 rounded-sm" style={{ backgroundColor: "#a78bfa" }} />
+                    <span className={`flex items-center gap-1 text-white/60 ${kLegend}`}>
+                      <span className={`inline-block rounded-sm ${kLegendBox}`} style={{ backgroundColor: "#a78bfa" }} />
                       特殊鋼
                     </span>
                   </div>
                 </Panel>
 
-                <Panel className="flex flex-col overflow-hidden">
+                <Panel
+                  className={`flex flex-col overflow-hidden ${
+                    embedded ? "p-1.5" : "p-2"
+                  }`}
+                >
                   <p className="shrink-0 text-xs font-semibold text-white/80">
                     世界の粗鋼生産（国・地域別）
                   </p>
@@ -707,6 +778,7 @@ function SteelSlide({
                           unit="万トン"
                           change={latest.yoy}
                           changeLabel="前年同月比"
+                          embedded={embedded}
                           period={`${latest.year}年${latest.month}月`}
                         />
                         <div className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5">
@@ -726,6 +798,7 @@ function SteelSlide({
                   })()}
                   <div className="min-h-0 flex-1">
                     <StackedBarChart
+                      embedded={embedded}
                       labelKeys={["中国", "インド"]}
                       data={data.worldSteel.map((w) => ({
                         label: `${w.month}月`,
@@ -762,14 +835,14 @@ function SteelSlide({
                       その他: "#64748b",
                     };
                     return (
-                      <div className="mt-1 flex shrink-0 flex-wrap gap-x-2 gap-y-0.5">
+                      <div className={`flex shrink-0 flex-wrap gap-x-2 gap-y-0.5 ${embedded ? "mt-0.5" : "mt-1"}`}>
                         {sorted.slice(0, 6).map((c) => (
                           <span
                             key={c.name}
-                            className="flex items-center gap-1 text-[10px] text-white/60"
+                            className={`flex items-center gap-1 text-white/60 ${kLegend}`}
                           >
                             <span
-                              className="inline-block h-2 w-2 rounded-sm"
+                              className={`inline-block rounded-sm ${kLegendBox}`}
                               style={{
                                 backgroundColor: palette[c.name] ?? "#94a3b8",
                               }}
@@ -778,7 +851,7 @@ function SteelSlide({
                           </span>
                         ))}
                         {sorted.length > 6 && (
-                          <span className="text-[10px] text-white/35">
+                          <span className={`text-white/35 ${kLegend}`}>
                             +{sorted.length - 6}
                           </span>
                         )}
@@ -791,10 +864,14 @@ function SteelSlide({
 
             {/* Column 2: 国内普通鋼需給 (Domestic carbon steel supply-demand). */}
             <div className="flex min-h-0 flex-col">
-              <ColHeader>国内普通鋼需給</ColHeader>
+              <ColHeader embedded={embedded}>国内普通鋼需給</ColHeader>
               <div className="grid min-h-0 flex-1 grid-rows-3 gap-2">
                 {/* Production trend. */}
-                <Panel className="flex flex-col overflow-hidden">
+                <Panel
+                  className={`flex flex-col overflow-hidden ${
+                    embedded ? "p-1.5" : "p-2"
+                  }`}
+                >
                   <p className="shrink-0 text-[11px] font-semibold text-white/80">
                     生産の月別
                   </p>
@@ -805,6 +882,7 @@ function SteelSlide({
                         unit="万トン"
                         change={sdMom("carbonSteel")}
                         changeLabel="前月比"
+                        embedded={embedded}
                         period={`${sdTrend[sdTrend.length - 1].year}年${sdTrend[sdTrend.length - 1].month}月`}
                       />
                     </div>
@@ -816,12 +894,17 @@ function SteelSlide({
                         value: t.carbonSteel,
                       }))}
                       color="#a78bfa"
+                      embedded={embedded}
                     />
                   </div>
                 </Panel>
 
                 {/* Shipments trend. */}
-                <Panel className="flex flex-col overflow-hidden">
+                <Panel
+                  className={`flex flex-col overflow-hidden ${
+                    embedded ? "p-1.5" : "p-2"
+                  }`}
+                >
                   <p className="shrink-0 text-[11px] font-semibold text-white/80">
                     出荷量の月別
                   </p>
@@ -832,6 +915,7 @@ function SteelSlide({
                         unit="万トン"
                         change={sdMom("shipmentsTotal")}
                         changeLabel="前月比"
+                        embedded={embedded}
                         period={`${sdTrend[sdTrend.length - 1].year}年${sdTrend[sdTrend.length - 1].month}月`}
                       />
                     </div>
@@ -843,12 +927,17 @@ function SteelSlide({
                         value: t.shipmentsTotal,
                       }))}
                       color="#f472b6"
+                      embedded={embedded}
                     />
                   </div>
                 </Panel>
 
                 {/* Inventory trend + inventory ratio (integrated). */}
-                <Panel className="flex flex-col overflow-hidden">
+                <Panel
+                  className={`flex flex-col overflow-hidden ${
+                    embedded ? "p-1.5" : "p-2"
+                  }`}
+                >
                   <div className="flex shrink-0 items-center justify-between">
                     <p className="text-[11px] font-semibold text-white/80">
                       在庫量の月別
@@ -875,6 +964,7 @@ function SteelSlide({
                         unit="万トン"
                         change={sdMom("inventory")}
                         changeLabel="前月比"
+                        embedded={embedded}
                         period={`${sdTrend[sdTrend.length - 1].year}年${sdTrend[sdTrend.length - 1].month}月`}
                       />
                     </div>
@@ -886,6 +976,7 @@ function SteelSlide({
                         value: t.inventory,
                       }))}
                       color="#fbbf24"
+                      embedded={embedded}
                     />
                   </div>
                 </Panel>
@@ -894,8 +985,12 @@ function SteelSlide({
 
             {/* Column 3: 受注量 (Orders) — single full-height stacked chart. */}
             <div className="flex min-h-0 flex-col">
-              <ColHeader>受注量</ColHeader>
-              <Panel className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <ColHeader embedded={embedded}>受注量</ColHeader>
+              <Panel
+                className={`flex min-h-0 flex-1 flex-col overflow-hidden ${
+                  embedded ? "p-1.5" : "p-2"
+                }`}
+              >
                 <p className="shrink-0 text-[11px] font-semibold text-white/80">
                   受注量合計
                 </p>
@@ -929,6 +1024,7 @@ function SteelSlide({
                       unit="万トン"
                       change={orderYoy}
                       changeLabel="前年同月比"
+                      embedded={embedded}
                       period={`${orderLatest.year}年${orderLatest.month}月`}
                     />
                   </div>
@@ -966,6 +1062,7 @@ function SteelSlide({
                     });
                     return (
                       <StackedBarChart
+                        embedded={embedded}
                         labelKeys={["建設", "自動車", "機械", "船舶", "輸出"]}
                         labelColorMap={{
                           建設: "#0c4a6e",
@@ -988,7 +1085,7 @@ function SteelSlide({
                   })()}
                 </div>
                 {/* Legend. */}
-                <div className="mt-1 flex shrink-0 flex-wrap gap-x-2 gap-y-0.5">
+                <div className={`flex shrink-0 flex-wrap gap-x-2 gap-y-0.5 ${embedded ? "mt-0.5" : "mt-1"}`}>
                   {(
                     [
                       ["建設", "#38bdf8"],
@@ -1001,10 +1098,10 @@ function SteelSlide({
                   ).map(([name, color]) => (
                     <span
                       key={name}
-                      className="flex items-center gap-1 text-[10px] text-white/60"
+                      className={`flex items-center gap-1 text-white/60 ${kLegend}`}
                     >
                       <span
-                        className="inline-block h-2 w-2 rounded-sm"
+                        className={`inline-block rounded-sm ${kLegendBox}`}
                         style={{ backgroundColor: color }}
                       />
                       {name}
@@ -1021,7 +1118,7 @@ function SteelSlide({
 
   if (embedded) {
     return (
-      <div className="h-full w-full bg-slate-950 text-white">
+      <div className="flex h-full w-full flex-col overflow-hidden bg-slate-950 text-white">
         {content}
       </div>
     );

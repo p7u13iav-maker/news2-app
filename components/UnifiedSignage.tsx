@@ -179,21 +179,27 @@ export default function UnifiedSignage({
     return () => clearInterval(id);
   }, []);
 
-  // Fetch horoscope (server caches for the day).
+  // Fetch horoscope on mount (server caches for the day). The first cycle
+  // reaches the horoscope slides after ~2 min, so fetch eagerly — a delay
+  // would leave them stuck on "読み込み中…" for the whole first pass.
   useEffect(() => {
-    const id = setTimeout(() => {
-      fetch("/api/horoscope", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ period: "daily" }),
+    let cancelled = false;
+    fetch("/api/horoscope", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ period: "daily" }),
+    })
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled) setHoroscopeData(json);
       })
-        .then((r) => r.json())
-        .then((json) => setHoroscopeData(json))
-        .catch(() =>
-          setHoroscopeData({ ok: false, error: "fetch failed" }),
-        );
-    }, 5 * 60 * 1000);
-    return () => clearTimeout(id);
+      .catch(() => {
+        if (!cancelled)
+          setHoroscopeData({ ok: false, error: "fetch failed" });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Fetch steel + weather on mount (parallel; server caches for the day).
