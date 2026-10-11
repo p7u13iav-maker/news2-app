@@ -115,13 +115,15 @@ export default function HoroscopePage() {
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
         /* Shooting star: a streak that fades in, sweeps from upper-right to
-           lower-left (45deg, -500px in x and +500px in y), then fades out. */
+           lower-left, then fades out. rotate comes BEFORE translate so the
+           element is oriented along the 45deg travel line while the translate
+           axis stays screen-aligned (x to the left, y down). */
         @keyframes shoot {
-          0%   { transform: translate(0, 0) rotate(45deg); opacity: 0; }
+          0%   { transform: rotate(45deg) translate(0, 0); opacity: 0; }
           12%  { opacity: 0; }
           30%  { opacity: 1; }
           75%  { opacity: 0.9; }
-          100% { transform: translate(-500px, 500px) rotate(45deg); opacity: 0; }
+          100% { transform: rotate(45deg) translate(-500px, 500px); opacity: 0; }
         }
       `}</style>
       {/* Deep-space gradient background. */}
