@@ -345,13 +345,11 @@ function TideChart({
         </g>
       ))}
 
-      {/* High/low tide markers. */}
+      {/* High/low tide markers (positioned by exact event time + level). */}
       {high.map((h, i) => {
-        const hm = parseInt(h.time.split(":")[0], 10);
-        const idx = hourly.find((x) => x.hour === hm);
-        if (!idx) return null;
-        const x = L + hm * step;
-        const y = top + plotH - ((idx.level - min) / range) * plotH;
+        const [hh, mm] = h.time.split(":").map((v) => parseInt(v, 10));
+        const x = L + (hh + mm / 60) * step;
+        const y = top + plotH - ((h.level - min) / range) * plotH;
         return (
           <g key={"h" + i}>
             <circle cx={x} cy={y} r="5" fill="#f472b6" opacity="0.8" />
@@ -359,35 +357,33 @@ function TideChart({
               x={x}
               y={y - 10}
               fill="#f472b6"
-              fontSize="13"
+              fontSize="14"
               fontFamily="monospace"
               textAnchor="middle"
               fontWeight="bold"
             >
-              {h.time}
+              {h.time} {h.level}cm
             </text>
           </g>
         );
       })}
       {low.map((l, i) => {
-        const hm = parseInt(l.time.split(":")[0], 10);
-        const idx = hourly.find((x) => x.hour === hm);
-        if (!idx) return null;
-        const x = L + hm * step;
-        const y = top + plotH - ((idx.level - min) / range) * plotH;
+        const [hh, mm] = l.time.split(":").map((v) => parseInt(v, 10));
+        const x = L + (hh + mm / 60) * step;
+        const y = top + plotH - ((l.level - min) / range) * plotH;
         return (
           <g key={"l" + i}>
             <circle cx={x} cy={y} r="5" fill="#38bdf8" opacity="0.8" />
             <text
               x={x}
-              y={y + 18}
+              y={y + 20}
               fill="#38bdf8"
-              fontSize="13"
+              fontSize="14"
               fontFamily="monospace"
               textAnchor="middle"
               fontWeight="bold"
             >
-              {l.time}
+              {l.time} {l.level}cm
             </text>
           </g>
         );
@@ -583,6 +579,46 @@ function HourlyChart({
           fill={lineColor}
         />
       ))}
+
+      {/* Max/min temperature markers with values. */}
+      {(() => {
+        const maxIdx = temps.indexOf(Math.max(...temps));
+        const minIdx = temps.indexOf(Math.min(...temps));
+        const maxP = points[maxIdx];
+        const minP = points[minIdx];
+        return (
+          <>
+            <g>
+              <circle cx={maxP.x} cy={maxP.y} r="5" fill="#fb923c" />
+              <text
+                x={maxP.x}
+                y={maxP.y - 10}
+                fill="#fb923c"
+                fontSize="14"
+                fontFamily="monospace"
+                textAnchor="middle"
+                fontWeight="bold"
+              >
+                {fmtHour(maxP.h.time)}時 {Math.round(maxP.h.temperature)}°
+              </text>
+            </g>
+            <g>
+              <circle cx={minP.x} cy={minP.y} r="5" fill="#38bdf8" />
+              <text
+                x={minP.x}
+                y={minP.y + 20}
+                fill="#38bdf8"
+                fontSize="14"
+                fontFamily="monospace"
+                textAnchor="middle"
+                fontWeight="bold"
+              >
+                {fmtHour(minP.h.time)}時 {Math.round(minP.h.temperature)}°
+              </text>
+            </g>
+          </>
+        );
+      })()}
 
       {/* X-axis: hour labels + weather icons. */}
       {xTicks.map((p, i) => (
