@@ -145,7 +145,6 @@ export default function MarketSparklines({
   // Group the 6 series into 3 columns (yields / US stocks / JP stocks),
   // each column holding two cards stacked vertically.
   const groups: { title: string; icon: string; keys: string[] }[] = [
-    { title: "為替", icon: "💱", keys: ["usdjpy"] },
     { title: "金利", icon: "🇺🇸", keys: ["us10y", "us2y"] },
     { title: "米国株", icon: "🇺🇸", keys: ["sp500", "nasdaq"] },
     { title: "日本株", icon: "🇯🇵", keys: ["nikkei", "jfe"] },
@@ -240,16 +239,27 @@ export default function MarketSparklines({
           <span className={large ? "text-2xl" : "text-lg"}>📊</span> 市場データ
           (3ヶ月)
         </h2>
-        <span className={large ? "text-sm text-white/40" : "text-xs text-white/40"}>
-          {data
-            ? new Date(data.fetchedAt).toLocaleString("ja-JP", {
-                month: "numeric",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "取得中…"}
-        </span>
+        <div className="flex items-center gap-4">
+          {data && byKey["usdjpy"] && byKey["usdjpy"].ok && (
+            <span
+              className={`rounded-full bg-amber-500/20 px-3 py-1 font-mono font-semibold tabular-nums text-amber-300 ${
+                large ? "text-base" : "text-xs"
+              }`}
+            >
+              💱 円/ドル {fmt(byKey["usdjpy"].points[byKey["usdjpy"].points.length - 1]?.v ?? 0)}円
+            </span>
+          )}
+          <span className={large ? "text-sm text-white/40" : "text-xs text-white/40"}>
+            {data
+              ? new Date(data.fetchedAt).toLocaleString("ja-JP", {
+                  month: "numeric",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "取得中…"}
+          </span>
+        </div>
       </div>
 
       {error && (
@@ -273,7 +283,7 @@ export default function MarketSparklines({
 
       {data && (
         <div
-          className={`grid grid-cols-4 ${large ? "gap-4" : "gap-3"}`}
+          className={`grid grid-cols-3 ${large ? "gap-4" : "gap-3"}`}
         >
           {groups.map((g) => (
             <div
