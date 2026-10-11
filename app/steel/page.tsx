@@ -818,40 +818,23 @@ export default function SteelPage() {
               <div className="flex min-h-0 flex-col">
                 <ColHeader>受注量</ColHeader>
                 <div className="grid min-h-0 flex-1 grid-rows-3 gap-2">
-                  {/* Total + MoM (compact header). */}
-                  <Panel className="flex flex-col overflow-hidden">
-                    {orderLatest && (
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <p className="font-mono text-xl font-bold tabular-nums text-white">
-                            {orderLatest.total.toFixed(1)}
-                            <span className="ml-0.5 text-xs font-normal text-white/40">
-                              万トン
-                            </span>
-                          </p>
-                          <p className="text-[9px] text-white/40">
-                            {orderLatest.year}年{orderLatest.month}月 受注高
-                          </p>
-                        </div>
-                        <span
-                          className={`font-mono text-sm tabular-nums ${orderMom >= 0 ? "text-emerald-400" : "text-red-400"}`}
-                        >
-                          {orderMom >= 0 ? "+" : ""}
-                          {orderMom.toFixed(1)}%
-                          <span className="ml-0.5 text-[9px] text-white/30">前月比</span>
-                        </span>
-                      </div>
-                    )}
-                  </Panel>
-
-                  {/* Stacked bar chart by sector (2 rows — main chart). */}
+                  {/* Stacked bar chart by sector (top, 2 rows). */}
                   <Panel className="row-span-2 flex flex-col overflow-hidden">
-                    <p className="mb-0.5 shrink-0 text-[11px] font-semibold text-white/80">
-                      受注 品目別（積み上げ）
-                    </p>
+                    <div className="mb-0.5 flex shrink-0 items-center justify-between">
+                      <p className="text-[11px] font-semibold text-white/80">
+                        受注 品目別（積み上げ）
+                      </p>
+                      {orderLatest && (
+                        <p className="font-mono text-base font-bold tabular-nums text-white">
+                          {orderLatest.total.toFixed(1)}
+                          <span className="ml-0.5 text-[10px] font-normal text-white/40">
+                            万トン
+                          </span>
+                        </p>
+                      )}
+                    </div>
                     <div className="min-h-0 flex-1">
                       {(() => {
-                        // Build per-month segments: 建設/自動車/機械/船舶/輸出/その他
                         const mach = (o: OrderMonth) =>
                           (o.machinery ?? 0) +
                           (o.electrical ?? 0) +
@@ -919,6 +902,106 @@ export default function SteelPage() {
                           {name}
                         </span>
                       ))}
+                    </div>
+                  </Panel>
+
+                  {/* Orders table by sector (bottom, 1 row). */}
+                  <Panel className="flex flex-col overflow-hidden">
+                    <div className="min-h-0 flex-1">
+                      <table className="w-full text-[11px]">
+                        <thead>
+                          <tr className="text-white/50">
+                            <th className="pb-0.5 text-left font-normal">品目</th>
+                            {orderPrevPrev && (
+                              <th className="pb-0.5 text-right font-normal">
+                                {orderPrevPrev.month}月
+                              </th>
+                            )}
+                            {orderPrev && (
+                              <th className="pb-0.5 text-right font-normal">
+                                {orderPrev.month}月
+                              </th>
+                            )}
+                            {orderLatest && (
+                              <th className="pb-0.5 text-right font-normal text-sky-300">
+                                {orderLatest.month}月
+                              </th>
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const mach = (o?: OrderMonth) =>
+                              (o?.machinery ?? 0) +
+                              (o?.electrical ?? 0) +
+                              (o?.railway ?? 0) +
+                              (o?.otherTransport ?? 0);
+                            const rows = [
+                              {
+                                label: "建設用",
+                                pp: orderPrevPrev?.construction ?? 0,
+                                pv: orderPrev?.construction ?? 0,
+                                lt: orderLatest?.construction ?? 0,
+                              },
+                              {
+                                label: "自動車用",
+                                pp: orderPrevPrev?.automobiles ?? 0,
+                                pv: orderPrev?.automobiles ?? 0,
+                                lt: orderLatest?.automobiles ?? 0,
+                              },
+                              {
+                                label: "機械用",
+                                pp: mach(orderPrevPrev),
+                                pv: mach(orderPrev),
+                                lt: mach(orderLatest),
+                              },
+                              {
+                                label: "船舶用",
+                                pp: orderPrevPrev?.ships ?? 0,
+                                pv: orderPrev?.ships ?? 0,
+                                lt: orderLatest?.ships ?? 0,
+                              },
+                              {
+                                label: "輸出",
+                                pp: orderPrevPrev?.export ?? 0,
+                                pv: orderPrev?.export ?? 0,
+                                lt: orderLatest?.export ?? 0,
+                              },
+                            ];
+                            return rows.map((r) => {
+                              const mom =
+                                r.pv > 0 ? ((r.lt - r.pv) / r.pv) * 100 : 0;
+                              return (
+                                <tr
+                                  key={r.label}
+                                  className="border-t border-white/10"
+                                >
+                                  <td className="py-0.5 text-white/70">
+                                    {r.label}
+                                  </td>
+                                  <td className="py-0.5 text-right font-mono tabular-nums text-white/50">
+                                    {r.pp > 0 ? r.pp.toFixed(1) : "-"}
+                                  </td>
+                                  <td className="py-0.5 text-right font-mono tabular-nums text-white/70">
+                                    {r.pv > 0 ? r.pv.toFixed(1) : "-"}
+                                  </td>
+                                  <td className="py-0.5 text-right font-mono tabular-nums">
+                                    <span className="font-bold text-white">
+                                      {r.lt > 0 ? r.lt.toFixed(1) : "-"}
+                                    </span>
+                                    <span
+                                      className={`ml-1 text-[9px] ${mom >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                                    >
+                                      {mom >= 0 ? "+" : ""}
+                                      {mom.toFixed(0)}%
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
                     </div>
                   </Panel>
                 </div>

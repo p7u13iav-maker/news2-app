@@ -588,37 +588,82 @@ export default function WeatherPage() {
           </div>
         ) : (
           <>
-            {/* Top: current weather + today summary (2 columns). */}
-            <div className="flex min-h-0 flex-1 gap-4">
-              {/* Column 1: Current conditions (hero). */}
-              <div className="flex w-[42%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
-                <div className="mb-2 flex items-center gap-3">
-                  <span className="text-5xl leading-none">{c!.emoji}</span>
+            {/* Top: 2×2 grid — current / today overview / details / summary. */}
+            <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-4">
+              {/* Cell 1 (top-left): Current conditions (hero). */}
+              <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl leading-none">{c!.emoji}</span>
                   <div>
-                    <p className="text-2xl font-bold">{c!.label}</p>
-                    <p className="text-sm text-white/50">
+                    <p className="text-xl font-bold leading-tight">
+                      {c!.label}
+                    </p>
+                    <p className="text-xs text-white/50">
                       {fmtTime(c!.time)} 現在
                     </p>
                   </div>
                 </div>
                 <p
-                  className={`font-mono text-8xl font-bold leading-none tabular-nums ${tColor}`}
+                  className={`mt-2 font-mono text-7xl font-bold leading-none tabular-nums ${tColor}`}
                 >
                   {Math.round(c!.temperature)}
-                  <span className="text-4xl font-medium">°C</span>
+                  <span className="text-3xl font-medium">°C</span>
                 </p>
-                <p className="mt-2 font-mono text-base tabular-nums text-white/60">
+                <p className="mt-1 font-mono text-sm tabular-nums text-white/60">
                   体感 {Math.round(c!.apparentTemperature)}°C
                 </p>
-                <div className="mt-5 grid grid-cols-2 gap-3 text-xs">
+              </div>
+
+              {/* Cell 2 (top-right): Today overview (max/min/precip). */}
+              <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="text-sm font-medium text-white/50">
+                  今日の天気
+                </p>
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                  <div className="flex flex-col">
+                    <p className="text-xs font-medium text-white/50">
+                      最高気温
+                    </p>
+                    <p className="mt-1 font-mono text-4xl font-bold tabular-nums text-orange-300">
+                      {Math.round(d!.maxTemp)}
+                      <span className="text-lg font-medium">°C</span>
+                    </p>
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-xs font-medium text-white/50">
+                      最低気温
+                    </p>
+                    <p className="mt-1 font-mono text-4xl font-bold tabular-nums text-sky-300">
+                      {Math.round(d!.minTemp)}
+                      <span className="text-lg font-medium">°C</span>
+                    </p>
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-xs font-medium text-white/50">
+                      降水確率
+                    </p>
+                    <p className="mt-1 font-mono text-4xl font-bold tabular-nums text-blue-200">
+                      {d!.maxPrecipProb}
+                      <span className="text-lg font-medium">%</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cell 3 (bottom-left): Details (humidity/wind/sunrise/sunset). */}
+              <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="text-sm font-medium text-white/50">
+                  詳細
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
                   <div className="rounded-xl bg-white/5 p-3">
-                    <p className="text-white/50">湿度</p>
+                    <p className="text-[11px] text-white/50">湿度</p>
                     <p className="mt-1 font-mono text-2xl font-bold tabular-nums">
                       {c!.humidity}%
                     </p>
                   </div>
                   <div className="rounded-xl bg-white/5 p-3">
-                    <p className="text-white/50">風</p>
+                    <p className="text-[11px] text-white/50">風</p>
                     <p className="mt-1 font-mono text-2xl font-bold tabular-nums">
                       {c!.windDirectionLabel} {c!.windSpeed.toFixed(1)}
                       <span className="ml-0.5 text-xs font-normal text-white/40">
@@ -626,69 +671,34 @@ export default function WeatherPage() {
                       </span>
                     </p>
                   </div>
-                </div>
-              </div>
-
-              {/* Column 2: Today summary. */}
-              <div className="flex w-[58%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
-                <p className="mb-3 text-sm font-medium text-white/50">
-                  今日の天気
-                </p>
-                <div className="flex items-end gap-6">
-                  <div className="flex flex-col">
-                    <p className="text-xs font-medium text-white/50">
-                      最高気温
-                    </p>
-                    <p className="font-mono text-5xl font-bold tabular-nums text-orange-300">
-                      {Math.round(d!.maxTemp)}
-                      <span className="text-2xl font-medium">°C</span>
-                    </p>
-                  </div>
-                  <div className="flex flex-col">
-                    <p className="text-xs font-medium text-white/50">
-                      最低気温
-                    </p>
-                    <p className="font-mono text-5xl font-bold tabular-nums text-sky-300">
-                      {Math.round(d!.minTemp)}
-                      <span className="text-2xl font-medium">°C</span>
-                    </p>
-                  </div>
-                  <div className="mb-1 flex flex-col">
-                    <p className="text-xs font-medium text-white/50">
-                      降水確率
-                    </p>
-                    <p className="font-mono text-3xl font-bold tabular-nums text-blue-200">
-                      {d!.maxPrecipProb}
-                      <span className="text-xl font-medium">%</span>
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-5 grid grid-cols-2 gap-4">
                   <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-                    <span className="text-2xl">🌅</span>
+                    <span className="text-xl">🌅</span>
                     <div>
                       <p className="text-[11px] text-white/50">日の出</p>
-                      <p className="font-mono text-xl font-bold tabular-nums">
+                      <p className="font-mono text-lg font-bold tabular-nums">
                         {fmtTime(d!.sunrise)}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-                    <span className="text-2xl">🌇</span>
+                    <span className="text-xl">🌇</span>
                     <div>
                       <p className="text-[11px] text-white/50">日の入り</p>
-                      <p className="font-mono text-xl font-bold tabular-nums">
+                      <p className="font-mono text-lg font-bold tabular-nums">
                         {fmtTime(d!.sunset)}
                       </p>
                     </div>
                   </div>
                 </div>
-                {/* Rule-based one-line summary (replaces the tips list). */}
-                <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="mb-1 text-xs font-semibold text-sky-200">
-                    今日の一言
-                  </p>
-                  <p className="text-base leading-relaxed text-white/85">
+              </div>
+
+              {/* Cell 4 (bottom-right): Rule-based one-line summary. */}
+              <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="text-sm font-semibold text-sky-200">
+                  今日の一言
+                </p>
+                <div className="mt-3 flex min-h-0 flex-1 items-center">
+                  <p className="text-lg leading-relaxed text-white/85">
                     {weatherSummary(c!, d!)}
                   </p>
                 </div>
@@ -696,7 +706,7 @@ export default function WeatherPage() {
             </div>
 
             {/* Bottom: hourly temperature chart (smooth spline + now marker). */}
-            <div className="shrink-0" style={{ height: "38%" }}>
+            <div className="shrink-0 rounded-2xl border border-white/10 bg-white/5 p-4" style={{ height: "36%" }}>
               <HourlyChart
                 hourly={data.hourly}
                 weatherCode={c!.weatherCode}
