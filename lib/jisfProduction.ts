@@ -109,10 +109,13 @@ function parseJisfXls(buf: Buffer): ProductionMonth[] {
       currentYear = col0;
     }
 
-    // Month column: should be a number 1-12 (possibly with leading spaces).
-    const monthVal = typeof col2 === "string" ? parseInt(col2.trim(), 10) : col2;
+    // Month column: must be a clean single number 1-12 (rejects quarterly
+    // rows like " 1～ 3" or " 4～ 6" which parseInt would otherwise truncate
+    // to 1 or 4 and wrongly include as monthly data).
+    const col2Str = String(col2 ?? "").trim();
+    if (!/^\d{1,2}$/.test(col2Str)) continue;
+    const monthVal = parseInt(col2Str, 10);
     if (
-      typeof monthVal === "number" &&
       monthVal >= 1 &&
       monthVal <= 12 &&
       currentYear > 0
@@ -125,11 +128,13 @@ function parseJisfXls(buf: Buffer): ProductionMonth[] {
         typeof pigIron === "number" &&
         typeof crudeSteel === "number"
       ) {
+        // Excel values are in 千トン (thousand tonnes). Convert to 万トン
+        // (10k tonnes) for display: 1万トン = 10千トン.
         results.push({
           year: currentYear,
           month: monthVal,
-          pigIron,
-          crudeSteel,
+          pigIron: pigIron / 10,
+          crudeSteel: crudeSteel / 10,
           yoy: typeof yoy === "number" ? yoy : 0,
         });
       }

@@ -1,7 +1,11 @@
 /**
- * Fetch world steel production data from statorigin.org (sourced from worldsteel).
- * License: CC BY 4.0 (attributed to worldsteel)
+ * Fetch world steel production data from JISF "主要国粗鋼生産" Excel.
+ * The world total is in column 17 (世界計).
+ * Source: https://www.jisf.or.jp/data/jikeiretsu/syuyoukoku.html
+ * File: /data/jikeiretsu/documents/syuyoukoku_s_YYYYMM.xls
  */
+
+import * as XLSX from "xlsx";
 
 export interface WorldSteelMonth {
   year: number;
@@ -9,87 +13,126 @@ export interface WorldSteelMonth {
   period: string;
   /** World crude steel production in million tonnes. */
   worldCrudeSteel: number;
-  /** Japan crude steel production in million tonnes (if available). */
-  japanCrudeSteel?: number;
+  /** Japan crude steel production in million tonnes. */
+  japanCrudeSteel: number;
+  /** China crude steel production in million tonnes. */
+  chinaCrudeSteel: number;
   /** YoY change for world production (%). */
   yoy: number;
 }
 
 /**
- * Fetch world and Japan crude steel production data.
+ * Fetch world and major countries crude steel production from JISF Excel.
  * Returns the last N months of data (newest last).
  */
 export async function fetchWorldSteelProduction(months = 12): Promise<WorldSteelMonth[]> {
-  const url = "https://statorigin.org/api/v1/indicators/crude-steel-production/export.csv";
-  const res = await fetch(url, {
-    headers: { "User-Agent": "Mozilla/5.0" },
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (!res.ok) throw new Error("Failed to fetch worldsteel data");
-  const csv = await res.text();
-  return parseWorldSteelCsv(csv).slice(-months);
-}
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
 
-/** Parse the statorigin CSV and extract worldsteel production data. */
-function parseWorldSteelCsv(csv: string): WorldSteelMonth[] {
-  const lines = csv.split("\n");
-  const header = lines[0].split(",");
-  const results: WorldSteelMonth[] = [];
+  // Try the latest 3 candidates (data is published ~2 months behind)
+  const candidates: { y: number; m: number }[] = [];
+  for (let offset = 1; offset <= 3; offset++) {
+    const d = new Date(currentYear, currentMonth - 1 - offset, 1);
+    candidates.push({ y: d.getFullYear(), m: d.getMonth() + 1 });
+  }
 
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    // Simple CSV parser (handles quoted fields)
-    const fields = parseCsvLine(line);
-    if (fields.length < 30) continue;
-
-    const region = fields[3]; // region name
-    const regionCode = fields[4]; // GLOBAL, JP, etc.
-    const period = fields[5]; // e.g. "July 2026"
-    const periodStart = fields[6]; // e.g. "2026-07-01"
-    const valueNumeric = parseFloat(fields[29]); // last column: value_numeric
-
-    if (Number.isNaN(valueNumeric)) continue;
-
-    // Extract year and month from period_start
-    const [yearStr, monthStr] = periodStart.split("-");
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10);
-
-    if (year < 2020) continue; // Only recent data
-
-    // Find existing entry for this month (world data)
-    let entry = results.find((r) => r.year === year && r.month === month);
-
-    if (!entry) {
-      entry = {
-        year,
-        month,
-        period,
-        worldCrudeSteel: 0,
-        yoy: 0,
-      };
-      results.push(entry);
-    }
-
-    if (regionCode === "GLOBAL" || region === "Global") {
-      entry.worldCrudeSteel = valueNumeric;
-    } else if (regionCode === "JP" || region === "Japan") {
-      entry.japanCrudeSteel = valueNumeric;
+  for (const { y, m } of candidates) {
+    const suffix = `${String(y).slice(2)}${String(m).padStart(2, "0")}`;
+    const url = `https://www.jisf.or.jp/data/jikeiretsu/documents/syuyoukoku_s_${suffix}.xls`;
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!res.ok) continue;
+      const buf = Buffer.from(await res.arrayBuffer());
+      const data = parseJisfWorldXls(buf);
+      if (data.length > 0) {
+        return data.slice(-months);
+      }
+    } catch {
+      continue;
     }
   }
 
-  // Sort by date
-  results.sort((a, b) => {
-    if (a.year !== b.year) return a.year - b.year;
-    return a.month - b.month;
+  // Fallback: try current year January
+  const fallbackUrl = `https://www.jisf.or.jp/data/jikeiretsu/documents/syuyoukoku_s_${String(currentYear).slice(2)}01.xls`;
+  const res = await fetch(fallbackUrl, {
+    headers: { "User-Agent": "Mozilla/5.0" },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) throw new Error("Failed to fetch JISF world production data");
+  const buf = Buffer.from(await res.arrayBuffer());
+  const data = parseJisfWorldXls(buf);
+  if (data.length === 0) throw new Error("No world production data found in JISF file");
+  return data.slice(-months);
+}
+
+/** Parse the JISF world production Excel and extract monthly data. */
+function parseJisfWorldXls(buf: Buffer): WorldSteelMonth[] {
+  const wb = XLSX.read(buf, { type: "buffer" });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  if (!sheet) return [];
+  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+  const results: WorldSteelMonth[] = [];
+  let currentYear = 0;
+
+  for (const row of rows) {
+    const col0 = row[0];
+    const col2 = row[2];
+
+    // Year column
+    if (typeof col0 === "number" && col0 >= 2000 && col0 <= 2100) {
+      currentYear = col0;
+    }
+
+    // Month column: must be a clean single number 1-12 (rejects quarterly
+    // rows like " 7～ 9" or " 1～ 3" which parseInt would otherwise truncate).
+    const col2Str = String(col2 ?? "").trim();
+    if (!/^\d{1,2}$/.test(col2Str)) continue;
+    const monthVal = parseInt(col2Str, 10);
+    if (
+      monthVal >= 1 &&
+      monthVal <= 12 &&
+      currentYear > 0
+    ) {
+      const japan = row[3]; // 日本
+      const china = row[4]; // 中国
+      const world = row[17]; // 世界計
+
+      if (
+        typeof japan === "number" &&
+        typeof china === "number" &&
+        typeof world === "number"
+      ) {
+        results.push({
+          year: currentYear,
+          month: monthVal,
+          period: `${currentYear}年${monthVal}月`,
+          japanCrudeSteel: japan / 1000, // Convert from thousand tonnes to million tonnes
+          chinaCrudeSteel: china / 1000,
+          worldCrudeSteel: world / 1000,
+          yoy: 0, // Will calculate later
+        });
+      }
+    }
+  }
+
+  // Remove duplicates
+  const seen = new Set<string>();
+  const unique = results.filter((r) => {
+    const key = `${r.year}-${r.month}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 
   // Calculate YoY
-  for (let i = 0; i < results.length; i++) {
-    const current = results[i];
-    const prevYear = results.find(
+  for (let i = 0; i < unique.length; i++) {
+    const current = unique[i];
+    const prevYear = unique.find(
       (r) => r.year === current.year - 1 && r.month === current.month,
     );
     if (prevYear && prevYear.worldCrudeSteel > 0) {
@@ -100,26 +143,5 @@ function parseWorldSteelCsv(csv: string): WorldSteelMonth[] {
     }
   }
 
-  return results;
-}
-
-/** Parse a CSV line handling quoted fields. */
-function parseCsvLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === "," && !inQuotes) {
-      fields.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  fields.push(current.trim());
-  return fields;
+  return unique;
 }
