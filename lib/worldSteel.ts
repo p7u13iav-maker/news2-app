@@ -98,7 +98,8 @@ function parseJisfWorldXls(buf: Buffer): WorldSteelMonth[] {
 
     // Month column: must be a clean single number 1-12 (rejects quarterly
     // rows like " 7～ 9" or " 1～ 3" which parseInt would otherwise truncate).
-    const col2Str = String(col2 ?? "").trim();
+    // January is written as " 1月" (with the 月 character), so strip it.
+    const col2Str = String(col2 ?? "").trim().replace(/月$/, "");
     if (!/^\d{1,2}$/.test(col2Str)) continue;
     const monthVal = parseInt(col2Str, 10);
     if (

@@ -105,8 +105,11 @@ function parseOrderXls(buf: Buffer): OrderMonth[] {
       currentYear = parseInt(yearMatch[1], 10);
     }
 
-    // Month detection: pure number 1-12
-    const col0Str = col0.replace(/\s+/g, "");
+    // Month detection: pure number 1-12. January is written as
+    // "2026年  1月" (year + 年 + month + 月) while other months are just
+    // " 2", " 3", etc., so strip 年 / 月 and any surrounding year digits
+    // before validating.
+    const col0Str = col0.replace(/年.*$/g, "").replace(/月/g, "").replace(/\D/g, "");
     if (!/^\d{1,2}$/.test(col0Str)) continue;
     const monthVal = parseInt(col0Str, 10);
     if (monthVal < 1 || monthVal > 12 || currentYear < 2020) continue;

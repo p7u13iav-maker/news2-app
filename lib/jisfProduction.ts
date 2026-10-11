@@ -115,8 +115,10 @@ function parseJisfXls(buf: Buffer): ProductionMonth[] {
 
     // Month column: must be a clean single number 1-12 (rejects quarterly
     // rows like " 1～ 3" or " 4～ 6" which parseInt would otherwise truncate
-    // to 1 or 4 and wrongly include as monthly data).
-    const col2Str = String(col2 ?? "").trim();
+    // to 1 or 4 and wrongly include as monthly data). January is written as
+    // " 1月" (with the 月 character) while other months are just " 2", " 3",
+    // so strip a trailing 月 before validating.
+    const col2Str = String(col2 ?? "").trim().replace(/月$/, "");
     if (!/^\d{1,2}$/.test(col2Str)) continue;
     const monthVal = parseInt(col2Str, 10);
     if (
