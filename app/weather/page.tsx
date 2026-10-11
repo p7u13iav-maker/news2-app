@@ -115,8 +115,8 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
     { v: min, y: 10 + plotH },
   ];
 
-  // X-axis: hour labels + weather icons every 3 hours (0,3,6,9,12,15,18,21).
-  const xTicks = points.filter((_, i) => i % 3 === 0);
+  // X-axis: hour labels + weather icons every 2 hours.
+  const xTicks = points.filter((_, i) => i % 2 === 0);
 
   return (
     <svg
@@ -214,23 +214,24 @@ function WeatherIcon({
   const s = size;
 
   // Determine icon type + color from weather code.
-  const isSun = code === 0 || code === 1;
-  const isCloud = code === 2 || code === 3;
+  const isClear = code === 0;           // 晴れ (sun only)
+  const isPartly = code === 1;           // 晴れ時々くもり (sun + cloud)
+  const isCloud = code === 2 || code === 3; // くもり/曇り (cloud only)
   const isRain = code >= 51 && code <= 67 || (code >= 80 && code <= 82);
   const isSnow = code >= 71 && code <= 77 || (code >= 85 && code <= 86);
   const isThunder = code >= 95;
   const isFog = code === 45 || code === 48;
 
   const sunColor = "#fbbf24";
-  const cloudColor = "rgba(203,213,225,0.8)";
+  const cloudColor = "rgba(203,213,225,0.85)";
   const rainColor = "#60a5fa";
   const snowColor = "#e2e8f0";
   const thunderColor = "#fbbf24";
 
   return (
     <g transform={`translate(${cx - s / 2}, ${cy - s / 2})`}>
-      {/* Sun (code 0,1). */}
-      {isSun && (
+      {/* Clear sun (code 0). */}
+      {isClear && (
         <>
           <circle cx={s / 2} cy={s / 2} r={r * 0.6} fill={sunColor} />
           {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
@@ -245,6 +246,35 @@ function WeatherIcon({
               strokeLinecap="round"
             />
           ))}
+        </>
+      )}
+
+      {/* Partly sunny: small sun behind cloud (code 1). */}
+      {isPartly && (
+        <>
+          {/* Small sun peeking from behind. */}
+          <circle cx={s * 0.35} cy={s * 0.35} r={s * 0.18} fill={sunColor} />
+          {[0, 90, 180, 270].map((deg) => (
+            <line
+              key={deg}
+              x1={s * 0.35 + Math.cos((deg * Math.PI) / 180) * s * 0.22}
+              y1={s * 0.35 + Math.sin((deg * Math.PI) / 180) * s * 0.22}
+              x2={s * 0.35 + Math.cos((deg * Math.PI) / 180) * s * 0.28}
+              y2={s * 0.35 + Math.sin((deg * Math.PI) / 180) * s * 0.28}
+              stroke={sunColor}
+              strokeWidth="1.2"
+              strokeLinecap="round"
+            />
+          ))}
+          {/* Cloud in front. */}
+          <path
+            d={`M ${s * 0.25} ${s * 0.65}
+               a ${s * 0.12} ${s * 0.12} 0 0 1 0 -${s * 0.24}
+               a ${s * 0.16} ${s * 0.16} 0 0 1 ${s * 0.32} 0
+               a ${s * 0.12} ${s * 0.12} 0 0 1 0 ${s * 0.24}
+               z`}
+            fill={cloudColor}
+          />
         </>
       )}
 
