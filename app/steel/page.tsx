@@ -682,8 +682,8 @@ export default function SteelPage() {
                     {data.worldSteel.length > 0 && (
                       <div className="mt-0.5">
                         <ValueRow
-                          value={data.worldSteel[data.worldSteel.length - 1].worldCrudeSteel.toFixed(1)}
-                          unit="百万トン"
+                          value={(data.worldSteel[data.worldSteel.length - 1].worldCrudeSteel * 100).toFixed(0)}
+                          unit="万トン"
                           change={data.worldSteel[data.worldSteel.length - 1].yoy}
                           changeLabel="前年比"
                         />
@@ -693,8 +693,12 @@ export default function SteelPage() {
                       <StackedBarChart
                         data={data.worldSteel.map((w) => ({
                           label: `${w.month}月`,
-                          segments: w.byCountry,
-                          total: w.worldCrudeSteel,
+                          // Convert Mt → 万トン (×100) for display.
+                          segments: w.byCountry.map((s) => ({
+                            ...s,
+                            value: s.value * 100,
+                          })),
+                          total: w.worldCrudeSteel * 100,
                         }))}
                       />
                     </div>
