@@ -30,18 +30,19 @@ function sigastraUrl(period: Period): string {
  */
 const MAX_CHARS = 120;
 
+/**
+ * Truncate to max chars, cutting at a sentence boundary (。or 、) when
+ * possible so the text reads cleanly. Always returns ≤ max chars.
+ */
 function truncateAtBoundary(text: string, max: number): string {
   if (text.length <= max) return text;
-  // Try to cut at the last sentence boundary within the limit.
   const window = text.slice(0, max);
   const lastPeriod = window.lastIndexOf("。");
   const lastComma = window.lastIndexOf("、");
   const cut = Math.max(lastPeriod, lastComma);
-  if (cut > max * 0.5) {
-    // Cut at the boundary, keeping the trailing punctuation.
+  if (cut > max * 0.4) {
     return window.slice(0, cut + 1);
   }
-  // No good boundary found — hard cut at max chars.
   return window;
 }
 
