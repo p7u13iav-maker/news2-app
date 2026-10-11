@@ -56,22 +56,24 @@ function Sparkline({
   points,
   up,
   height = 30,
+  label,
 }: {
   points: Point[];
   up: boolean;
   height?: number;
+  label: string;
 }) {
-  const W = 100;
+  const W = 120;
   const H = height;
   const PAD = 2;
+  const AXIS_W = 28; // reserved for Y-axis labels on the left
 
-  // Scale to include high/low for proper candle rendering.
-  const allVals = points.flatMap((p) => [p.h, p.l]);
-  const min = Math.min(...allVals);
-  const max = Math.max(...allVals);
+  const vals = points.map((p) => p.v);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
   const range = max - min || 1;
   const n = points.length;
-  const x0 = PAD;
+  const x0 = AXIS_W;
   const x1 = W - PAD;
   const y0 = PAD;
   const y1 = H - PAD;
@@ -81,17 +83,25 @@ function Sparkline({
 
   const stroke = up ? "#34d399" : "#f87171";
   const fill = up ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)";
-  const candleColor = "rgba(255,255,255,0.55)";
 
-  // Close line path.
   const d = buildPath(points, W, H, PAD);
   if (!d) return null;
 
-  // Candle width (thin, so they don't overwhelm the sparkline).
-  const cw = Math.max(0.6, (x1 - x0) / n * 0.35);
-
   const lastV = points[n - 1].v;
   const lastY = yOf(lastV);
+
+  // Y-axis: 3 ticks (top, middle, bottom).
+  const ticks = [
+    { v: max, y: y0 },
+    { v: (max + min) / 2, y: (y0 + y1) / 2 },
+    { v: min, y: y1 },
+  ];
+
+  const fmtTick = (v: number) => {
+    if (label === "%") return v.toFixed(1);
+    if (label === "円") return v < 10 ? v.toFixed(1) : String(Math.round(v));
+    return v >= 10000 ? (v / 1000).toFixed(0) + "k" : String(Math.round(v));
+  };
 
   return (
     <svg
@@ -99,23 +109,37 @@ function Sparkline({
       preserveAspectRatio="none"
       className="h-full w-full"
     >
+      {/* Y-axis grid lines. */}
+      {ticks.map((t, i) => (
+        <line
+          key={i}
+          x1={x0}
+          y1={t.y}
+          x2={x1}
+          y2={t.y}
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth={0.5}
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
+      {/* Y-axis labels. */}
+      {ticks.map((t, i) => (
+        <text
+          key={i}
+          x={x0 - 2}
+          y={t.y + 1.5}
+          textAnchor="end"
+          fill="rgba(255,255,255,0.4)"
+          fontSize="4.5"
+          fontFamily="monospace"
+        >
+          {fmtTick(t.v)}
+        </text>
+      ))}
       {/* Area fill under close line. */}
       <path d={`${d} L${W - PAD},${H} L${PAD},${H} Z`} fill={fill} stroke="none" />
       {/* Close trend line. */}
       <path d={d} fill="none" stroke={stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-      {/* OHLC candles: high-low vertical + open tick. */}
-      {points.map((p, i) => {
-        const cx = xOf(i);
-        const yh = yOf(p.h);
-        const yl = yOf(p.l);
-        const yo = yOf(p.o);
-        return (
-          <g key={i} stroke={candleColor} strokeWidth={0.4} vectorEffect="non-scaling-stroke">
-            <line x1={cx} y1={yh} x2={cx} y2={yl} />
-            <line x1={cx - cw / 2} y1={yo} x2={cx + cw / 2} y2={yo} />
-          </g>
-        );
-      })}
       {/* Last point dot. */}
       <circle cx={W - PAD} cy={lastY} r={2} fill={stroke} />
     </svg>
@@ -222,39 +246,35 @@ export default function MarketSparklines({
             {m.unit}
           </span>
         </div>
-        <div
-          className={`flex items-center justify-between ${
-            large ? "gap-4" : "gap-2"
-          }`}
-        >
-          <div
-            className={`shrink-0 ${large ? "h-14 w-1/2" : "h-8 w-20"}`}
-          >
-            {m.ok && pts.length >= 2 ? (
-              <Sparkline points={pts} up={up} height={large ? 56 : 30} />
-            ) : (
-              <div className="flex h-full items-center justify-center text-[10px] text-white/30">
-                -
-              </div>
-            )}
-          </div>
-          <div className="text-right">
-            <p
+        <div className="flex flex-col gap-1">
+          <div className="flex items-baseline justify-between">
+            <span
               className={`font-mono font-semibold tabular-nums leading-none text-white ${
                 large ? "text-2xl" : "text-lg"
               }`}
             >
               {last != null ? fmt(last, INTEGER_KEYS.has(m.key)) : "-"}
               {m.unit || (m.key === "nikkei" || m.key === "jfe" ? "円" : "")}
-            </p>
+            </span>
             {pts.length >= 2 && (
-              <p
+              <span
                 className={`text-white/40 ${
-                  large ? "mt-1.5 text-xs" : "text-[10px]"
+                  large ? "text-xs" : "text-[10px]"
                 }`}
               >
                 {fmtDate(pts[0].t)}〜{fmtDate(pts[pts.length - 1].t)}
-              </p>
+              </span>
+            )}
+          </div>
+          <div
+            className={`shrink-0 ${large ? "h-14 w-full" : "h-10 w-full"}`}
+          >
+            {m.ok && pts.length >= 2 ? (
+              <Sparkline points={pts} up={up} height={large ? 56 : 40} label={m.unit} />
+            ) : (
+              <div className="flex h-full items-center justify-center text-[10px] text-white/30">
+                -
+              </div>
             )}
           </div>
         </div>
@@ -350,28 +370,6 @@ export default function MarketSparklines({
         </div>
       )}
 
-      {/* Legend: explain graph elements in Japanese. */}
-      {data && (
-        <div
-          className={`mt-3 flex shrink-0 items-center gap-5 ${
-            large ? "text-sm" : "text-xs"
-          } text-white/50`}
-        >
-          <span className="flex items-center gap-1.5">
-            <svg width="24" height="12" viewBox="0 0 24 12">
-              <path d="M1,10 L7,4 L13,7 L23,2" fill="none" stroke="#34d399" strokeWidth="1.5" />
-            </svg>
-            終値の推移
-          </span>
-          <span className="flex items-center gap-1.5">
-            <svg width="12" height="12" viewBox="0 0 12 12">
-              <line x1="6" y1="1" x2="6" y2="11" stroke="rgba(255,255,255,0.55)" strokeWidth="1" />
-              <line x1="3" y1="4" x2="9" y2="4" stroke="rgba(255,255,255,0.55)" strokeWidth="1" />
-            </svg>
-            始値(横線) / 高値・安値(縦線)
-          </span>
-        </div>
-      )}
     </div>
   );
 }
