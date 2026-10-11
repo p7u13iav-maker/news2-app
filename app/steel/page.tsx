@@ -957,6 +957,24 @@ export default function SteelPage() {
                   <p className="shrink-0 text-[11px] font-semibold text-white/80">
                     受注量合計
                   </p>
+                  {(() => {
+                    const missing = orders
+                      .slice(1)
+                      .filter((o, i) => {
+                        const prev = orders[i];
+                        const expected =
+                          prev.month === 12
+                            ? { y: prev.year + 1, m: 1 }
+                            : { y: prev.year, m: prev.month + 1 };
+                        return o.year !== expected.y || o.month !== expected.m;
+                      })
+                      .map((o) => `前月${o.month}月`);
+                    return missing.length > 0 ? (
+                      <p className="mt-0.5 text-[10px] text-amber-300/80">
+                        ※ {missing.join("、")}のデータなし（0として表示）
+                      </p>
+                    ) : null;
+                  })()}
                   {orderLatest && (
                     <div className="mt-0.5">
                       <ValueRow
@@ -1001,10 +1019,13 @@ export default function SteelPage() {
                       });
                       return (
                         <StackedBarChart
-                          labelKeys={["機械", "船舶"]}
+                          labelKeys={["建設", "自動車", "機械", "船舶", "輸出"]}
                           labelColorMap={{
+                            建設: "#0c4a6e",
+                            自動車: "#78350f",
                             機械: "#4c1d95",
                             船舶: "#831843",
+                            輸出: "#064e3b",
                           }}
                           data={chartData}
                           paletteOverride={{

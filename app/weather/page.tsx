@@ -286,17 +286,6 @@ function TideChart({
         </linearGradient>
       </defs>
 
-      {/* Y-axis unit label. */}
-      <text
-        x={4}
-        y={16}
-        fill="rgba(255,255,255,0.45)"
-        fontSize="17"
-        textAnchor="start"
-      >
-        潮位（cm）
-      </text>
-
       {yTicks.map((t, i) => (
         <g key={i}>
           <line
@@ -547,17 +536,6 @@ function HourlyChart({
           <stop offset="100%" stopColor={g1} />
         </linearGradient>
       </defs>
-
-      {/* Y-axis unit label. */}
-      <text
-        x={4}
-        y={16}
-        fill="rgba(255,255,255,0.45)"
-        fontSize="17"
-        textAnchor="start"
-      >
-        気温（℃）
-      </text>
 
       {/* Y-axis gridlines + labels. */}
       {yTicks.map((t, i) => (
@@ -1034,6 +1012,7 @@ export default function WeatherPage() {
               <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="mb-1 shrink-0 text-sm font-medium text-white/50">
                   気温の推移（毎時予報）
+                  <span className="ml-1 text-[11px] text-white/35">単位：℃</span>
                 </p>
                 <div className="flex min-h-0 flex-1 flex-col">
                   <HourlyChart
@@ -1047,6 +1026,7 @@ export default function WeatherPage() {
                   <div className="mb-1 flex items-center justify-between">
                     <p className="text-sm font-medium text-sky-200">
                       潮汐の推移（水島・倉敷）
+                      <span className="ml-1 text-[11px] text-sky-200/50">単位：cm</span>
                     </p>
                     <div className="flex items-center gap-2">
                       <span className="rounded bg-sky-400/20 px-2 py-0.5 text-xs font-bold text-sky-200">
