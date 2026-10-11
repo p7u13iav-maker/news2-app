@@ -482,7 +482,7 @@ function Panel({
   );
 }
 
-/** Column header (粗鋼生産量 / 普通鋼需給量 / 受注量). */
+/** Column header (粗鋼生産量 / 普通鋼需給量 / 普通鋼受注量). */
 function ColHeader({
   children,
   embedded = false,
@@ -983,16 +983,16 @@ function SteelSlide({
               </div>
             </div>
 
-            {/* Column 3: 受注量 (Orders) — single full-height stacked chart. */}
+            {/* Column 3: 普通鋼受注量 (Orders) — single full-height stacked chart. */}
             <div className="flex min-h-0 flex-col">
-              <ColHeader embedded={embedded}>受注量</ColHeader>
+              <ColHeader embedded={embedded}>普通鋼受注量</ColHeader>
               <Panel
                 className={`flex min-h-0 flex-1 flex-col overflow-hidden ${
                   embedded ? "p-1.5" : "p-2"
                 }`}
               >
                 <p className="shrink-0 text-[11px] font-semibold text-white/80">
-                  受注量合計
+                  受注量（合計）
                 </p>
                 {(() => {
                   const missing: string[] = [];
