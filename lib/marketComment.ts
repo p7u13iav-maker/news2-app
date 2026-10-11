@@ -69,30 +69,30 @@ export function buildMarketComment(markets: MarketSeries[]): string[] {
 
   const lines: string[] = [];
 
-  // --- Line 1: FX ---
+  // --- Line 1: FX + US yields ---
   const fx = stat("usdjpy");
+  const y10 = stat("us10y");
+  const line1Parts: string[] = [];
   if (fx) {
     const dir = fx.diff >= 0 ? "円安" : "円高";
     const pctStr = Math.abs(fx.pct) >= 0.5 ? ` (${fx.pct >= 0 ? "+" : ""}${fmtNum(fx.pct, false)}%)` : "";
-    lines.push(
-      `為替: ${dir}傾向で、円/ドルは${fmtNum(fx.last, false)}円${pctStr}。`,
-    );
+    line1Parts.push(`円/ドルは${fmtNum(fx.last, false)}円${pctStr}の${dir}傾向`);
+  }
+  if (y10) {
+    const t10 = trendOf(y10.pct, 0.5, 0.15);
+    const yPhrase =
+      t10 === "flat"
+        ? `横ばい`
+        : t10 === "up" || t10 === "up-strong"
+          ? "上昇"
+          : "下落";
+    line1Parts.push(`米債10年利回りは${fmtNum(y10.last, false)}%で${yPhrase}`);
+  }
+  if (line1Parts.length > 0) {
+    lines.push(`為替/金利: ${line1Parts.join("、")}。`);
   }
 
-  // --- Line 2: US (yields + stocks) ---
-  const usParts: string[] = [];
-  const y10 = stat("us10y");
-  const y2 = stat("us2y");
-  if (y10 && y2) {
-    const t10 = trendOf(y10.pct, 0.5, 0.15);
-    if (t10 === "flat") {
-      usParts.push(`米債10年${fmtNum(y10.last, false)}%は横ばい`);
-    } else {
-      usParts.push(
-        `米債10年${fmtNum(y10.last, false)}%は${trendPhrase(t10)}`,
-      );
-    }
-  }
+  // --- Line 2: US stocks ---
   const sp = stat("sp500");
   const nd = stat("nasdaq");
   if (sp && nd) {
@@ -107,10 +107,9 @@ export function buildMarketComment(markets: MarketSeries[]): string[] {
             : tsp === "down"
               ? "下落"
               : "下落基調";
-    usParts.push(`S&P 500は${inde}(3ヶ月${sp.pct >= 0 ? "+" : ""}${fmtNum(sp.pct, false)}%)`);
-  }
-  if (usParts.length > 0) {
-    lines.push(`米国: ${usParts.join("、")}。`);
+    lines.push(
+      `米国株: S&P 500は${inde}(3ヶ月${sp.pct >= 0 ? "+" : ""}${fmtNum(sp.pct, false)}%)、NASDAQは${fmtNum(nd.last, true)}。`,
+    );
   }
 
   // --- Line 3: JP stocks ---

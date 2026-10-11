@@ -116,26 +116,31 @@ function Sparkline({
   ];
 
   return (
-    <div className="flex h-full w-full items-stretch gap-1">
+    <div className="flex h-full w-full items-center gap-1.5">
       {/* Y-axis labels (HTML — never distorted). */}
       <div
-        className="flex flex-col justify-between py-0.5 text-right font-mono text-[10px] leading-none text-white/40"
-        style={{ width: "2.2rem" }}
+        className="flex shrink-0 flex-col justify-between text-right font-mono text-[10px] leading-none text-white/40"
+        style={{ width: "2.4rem" }}
       >
         {ticks.map((t, i) => (
           <span key={i}>{fmtAxis(t.v, unit)}</span>
         ))}
       </div>
       {/* Chart SVG. */}
-      <div className="relative min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1 overflow-hidden rounded">
         {/* Grid lines (absolute, behind SVG). */}
-        {ticks.map((t, i) => (
-          <div
-            key={i}
-            className="absolute left-0 right-0 h-px bg-white/10"
-            style={{ top: `${t.pct}%` }}
-          />
-        ))}
+        <div
+          className="absolute left-0 right-0 h-px bg-white/[0.07]"
+          style={{ top: "0%" }}
+        />
+        <div
+          className="absolute left-0 right-0 h-px bg-white/[0.07]"
+          style={{ top: "50%" }}
+        />
+        <div
+          className="absolute left-0 right-0 h-px bg-white/[0.07]"
+          style={{ top: "100%" }}
+        />
         <svg
           viewBox={`0 0 ${W} ${H}`}
           preserveAspectRatio="none"
@@ -214,8 +219,8 @@ export default function MarketSparklines({
     return (
       <div
         key={m.key}
-        className={`flex flex-col justify-center rounded-xl border border-white/5 bg-slate-900/40 ${
-          large ? "gap-2 p-4" : "gap-1 p-3"
+        className={`flex flex-col justify-center rounded-xl bg-white/[0.03] ${
+          large ? "gap-2 p-4" : "gap-1.5 p-3"
         }`}
       >
         <div className="flex items-baseline justify-between">
@@ -346,16 +351,16 @@ export default function MarketSparklines({
         <div
           className={`grid grid-cols-3 ${large ? "gap-4" : "gap-3"}`}
         >
-          {groups.map((g) => (
+          {groups.map((g, gi) => (
             <div
               key={g.title}
-              className={`flex flex-col rounded-xl border border-white/5 bg-white/5 ${
-                large ? "gap-3 p-3" : "gap-2 p-2"
-              }`}
+              className={`flex flex-col ${
+                large ? "gap-3" : "gap-2"
+              } ${gi < groups.length - 1 ? (large ? "border-r border-white/5 pr-4" : "border-r border-white/5 pr-3") : ""}`}
             >
               <div
                 className={`flex items-center gap-1.5 ${
-                  large ? "px-2 pt-1" : "px-1 pt-0.5"
+                  large ? "pb-1" : "pb-0.5"
                 }`}
               >
                 <span className={large ? "text-base" : "text-xs"}>{g.icon}</span>
