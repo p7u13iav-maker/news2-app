@@ -398,7 +398,8 @@ function StackedBarChart({
               >
                 {b.total.toFixed(0)}
               </span>
-              {/* Label segment values: centered on each labeled segment. */}
+              {/* Label segment values: centered on each labeled segment.
+                  Latest month → dark color (bright bar); older → light (dimmed bar). */}
               {b.labelSegs.map((ls) =>
                 ls.h > 4 ? (
                   <span
@@ -407,13 +408,14 @@ function StackedBarChart({
                     style={{
                       left: `${cxPct}%`,
                       top: `${((ls.topY + ls.h / 2) / H) * 100}%`,
-                      color:
-                        labelColorMap?.[ls.name] ??
-                        (ls.name === "中国"
-                          ? "#7f1d1d"
-                          : ls.name === "インド"
-                            ? "#7c2d12"
-                            : "rgba(255,255,255,0.85)"),
+                      color: isLatest
+                        ? labelColorMap?.[ls.name] ??
+                          (ls.name === "中国"
+                            ? "#7f1d1d"
+                            : ls.name === "インド"
+                              ? "#7c2d12"
+                              : "rgba(255,255,255,0.95)")
+                        : "rgba(255,255,255,0.9)",
                     }}
                   >
                     {ls.value.toFixed(0)}
