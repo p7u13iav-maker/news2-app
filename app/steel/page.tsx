@@ -710,17 +710,54 @@ export default function SteelPage() {
                     <p className="shrink-0 text-xs font-semibold text-white/80">
                       世界の粗鋼生産（国・地域別）
                     </p>
-                    {data.worldSteel.length > 0 && (
-                      <div className="mt-0.5">
-                        <ValueRow
-                          value={Math.round(data.worldSteel[data.worldSteel.length - 1].worldCrudeSteel * 100).toLocaleString("ja-JP")}
-                          unit="万トン"
-                          change={data.worldSteel[data.worldSteel.length - 1].yoy}
-                          changeLabel="前年比"
-                          period={`${data.worldSteel[data.worldSteel.length - 1].year}年${data.worldSteel[data.worldSteel.length - 1].month}月`}
-                        />
-                      </div>
-                    )}
+                    {data.worldSteel.length > 0 && (() => {
+                      const latest = data.worldSteel[data.worldSteel.length - 1];
+                      const palette: Record<string, string> = {
+                        中国: "#f87171",
+                        日本: "#38bdf8",
+                        米国: "#a78bfa",
+                        EU27: "#34d399",
+                        韓国: "#fbbf24",
+                        インド: "#fb923c",
+                        ロシア: "#f472b6",
+                        台湾: "#22d3ee",
+                        ドイツ: "#818cf8",
+                        トルコ: "#e879f9",
+                        ブラジル: "#facc15",
+                        メキシコ: "#4ade80",
+                        イラン: "#c084fc",
+                        ベトナム: "#2dd4bf",
+                        その他: "#64748b",
+                      };
+                      // Top 5 countries/regions by production, largest first.
+                      const top5 = [...latest.byCountry]
+                        .filter((s) => s.name !== "その他")
+                        .sort((a, b) => b.value - a.value)
+                        .slice(0, 5);
+                      return (
+                        <div className="mt-0.5">
+                          <ValueRow
+                            value={Math.round(latest.worldCrudeSteel * 100).toLocaleString("ja-JP")}
+                            unit="万トン"
+                            change={latest.yoy}
+                            changeLabel="前年比"
+                            period={`${latest.year}年${latest.month}月`}
+                          />
+                          <div className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5">
+                            {top5.map((s) => (
+                              <span
+                                key={s.name}
+                                className="font-mono text-[10px] font-semibold tabular-nums"
+                                style={{ color: palette[s.name] ?? "#94a3b8" }}
+                              >
+                                {s.name} {Math.round(s.value * 100).toLocaleString("ja-JP")}
+                                <span className="ml-0.5 text-[8px] font-normal opacity-60">万t</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div className="min-h-0 flex-1">
                       <StackedBarChart
                         labelKeys={["中国", "インド"]}
