@@ -54,11 +54,14 @@ function parseLine(line: string): TideDay | null {
   const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
   // High tide: 4 slots x 7 chars starting at col 80 (0-based).
+  // Low tide: 4 slots x 7 chars starting at col 108 (0-based).
+  // Each slot: time(4, HHMM, right-aligned so zero-pad to 4) + level(3, cm).
   const high: TideEvent[] = [];
   const low: TideEvent[] = [];
   for (let i = 0; i < 4; i++) {
     const hRaw = line.slice(80 + i * 7, 87 + i * 7);
-    const hTime = hRaw.slice(0, 4).trim();
+    const hTimeRaw = hRaw.slice(0, 4).replace(/\s/g, "");
+    const hTime = hTimeRaw.padStart(4, "0");
     const hLevel = parseInt(hRaw.slice(4).trim(), 10);
     if (hTime !== "9999" && Number.isFinite(hLevel)) {
       high.push({
@@ -67,7 +70,8 @@ function parseLine(line: string): TideDay | null {
       });
     }
     const lRaw = line.slice(108 + i * 7, 115 + i * 7);
-    const lTime = lRaw.slice(0, 4).trim();
+    const lTimeRaw = lRaw.slice(0, 4).replace(/\s/g, "");
+    const lTime = lTimeRaw.padStart(4, "0");
     const lLevel = parseInt(lRaw.slice(4).trim(), 10);
     if (lTime !== "9999" && Number.isFinite(lLevel)) {
       low.push({
