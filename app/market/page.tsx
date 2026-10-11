@@ -40,7 +40,7 @@ export default function MarketPage() {
           </span>
           <div>
             <p className="text-2xl font-bold tracking-tight">
-              製銑部 朝会前のひととき
+              朝会前のひととき
             </p>
             <p className="text-sm text-white/50">
               金利 / 米国株 / 日本株 · 3ヶ月の推移

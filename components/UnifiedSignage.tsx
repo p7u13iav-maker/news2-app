@@ -244,7 +244,7 @@ export default function UnifiedSignage({
           </span>
           <div>
             <p className="text-2xl font-bold tracking-tight">
-              製銑部 朝会前のひととき
+              朝会前のひととき
             </p>
             <p className="text-sm text-white/50">
               <span className="text-white/60">{sectionLabel}</span>

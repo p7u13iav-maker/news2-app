@@ -93,7 +93,7 @@ export default function HoroscopePage() {
           </span>
           <div>
             <p className="text-2xl font-bold tracking-tight">
-              製銑部 朝会前のひととき
+              朝会前のひととき
             </p>
             <p className="text-sm text-white/50">
               今日の運勢 · 12星座 · {data?.date ?? ""}
