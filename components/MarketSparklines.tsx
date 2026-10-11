@@ -349,6 +349,29 @@ export default function MarketSparklines({
           ))}
         </div>
       )}
+
+      {/* Legend: explain graph elements in Japanese. */}
+      {data && (
+        <div
+          className={`mt-3 flex shrink-0 items-center gap-5 ${
+            large ? "text-sm" : "text-xs"
+          } text-white/50`}
+        >
+          <span className="flex items-center gap-1.5">
+            <svg width="24" height="12" viewBox="0 0 24 12">
+              <path d="M1,10 L7,4 L13,7 L23,2" fill="none" stroke="#34d399" strokeWidth="1.5" />
+            </svg>
+            終値の推移
+          </span>
+          <span className="flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 12 12">
+              <line x1="6" y1="1" x2="6" y2="11" stroke="rgba(255,255,255,0.55)" strokeWidth="1" />
+              <line x1="3" y1="4" x2="9" y2="4" stroke="rgba(255,255,255,0.55)" strokeWidth="1" />
+            </svg>
+            始値(横線) / 高値・安値(縦線)
+          </span>
+        </div>
+      )}
     </div>
   );
 }
