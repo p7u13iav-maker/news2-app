@@ -26,126 +26,6 @@ interface MarketResponse {
   markets: MarketData[];
 }
 
-/** Build an SVG path string from points, scaled to the given viewBox. */
-function buildPath(
-  points: Point[],
-  w: number,
-  h: number,
-  pad: number,
-): string {
-  if (points.length < 2) return "";
-  const vals = points.map((p) => p.v);
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  const range = max - min || 1;
-  const x0 = pad;
-  const x1 = w - pad;
-  const y0 = pad;
-  const y1 = h - pad;
-  const n = points.length;
-  return points
-    .map((p, i) => {
-      const x = n === 1 ? x0 : x0 + ((x1 - x0) * i) / (n - 1);
-      const y = y1 - ((y1 - y0) * (p.v - min)) / range;
-      return `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(" ");
-}
-
-function Sparkline({
-  points,
-  up,
-  height = 30,
-  label,
-}: {
-  points: Point[];
-  up: boolean;
-  height?: number;
-  label: string;
-}) {
-  const W = 120;
-  const H = height;
-  const PAD = 2;
-  const AXIS_W = 28; // reserved for Y-axis labels on the left
-
-  const vals = points.map((p) => p.v);
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  const range = max - min || 1;
-  const n = points.length;
-  const x0 = AXIS_W;
-  const x1 = W - PAD;
-  const y0 = PAD;
-  const y1 = H - PAD;
-
-  const xOf = (i: number) => (n === 1 ? x0 : x0 + ((x1 - x0) * i) / (n - 1));
-  const yOf = (v: number) => y1 - ((y1 - y0) * (v - min)) / range;
-
-  const stroke = up ? "#34d399" : "#f87171";
-  const fill = up ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)";
-
-  const d = buildPath(points, W, H, PAD);
-  if (!d) return null;
-
-  const lastV = points[n - 1].v;
-  const lastY = yOf(lastV);
-
-  // Y-axis: 3 ticks (top, middle, bottom).
-  const ticks = [
-    { v: max, y: y0 },
-    { v: (max + min) / 2, y: (y0 + y1) / 2 },
-    { v: min, y: y1 },
-  ];
-
-  const fmtTick = (v: number) => {
-    if (label === "%") return v.toFixed(1);
-    if (label === "円") return v < 10 ? v.toFixed(1) : String(Math.round(v));
-    return v >= 10000 ? (v / 1000).toFixed(0) + "k" : String(Math.round(v));
-  };
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      className="h-full w-full"
-    >
-      {/* Y-axis grid lines. */}
-      {ticks.map((t, i) => (
-        <line
-          key={i}
-          x1={x0}
-          y1={t.y}
-          x2={x1}
-          y2={t.y}
-          stroke="rgba(255,255,255,0.08)"
-          strokeWidth={0.5}
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-      {/* Y-axis labels. */}
-      {ticks.map((t, i) => (
-        <text
-          key={i}
-          x={x0 - 2}
-          y={t.y + 1.5}
-          textAnchor="end"
-          fill="rgba(255,255,255,0.4)"
-          fontSize="4.5"
-          fontFamily="monospace"
-        >
-          {fmtTick(t.v)}
-        </text>
-      ))}
-      {/* Area fill under close line. */}
-      <path d={`${d} L${W - PAD},${H} L${PAD},${H} Z`} fill={fill} stroke="none" />
-      {/* Close trend line. */}
-      <path d={d} fill="none" stroke={stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-      {/* Last point dot. */}
-      <circle cx={W - PAD} cy={lastY} r={2} fill={stroke} />
-    </svg>
-  );
-}
-
 // Indexes / stocks that should be shown as whole numbers (no decimals).
 const INTEGER_KEYS = new Set(["sp500", "nasdaq", "nikkei", "jfe"]);
 
@@ -166,6 +46,118 @@ function fmt(v: number, integer = false): string {
 function fmtDate(t: number): string {
   const d = new Date(t * 1000);
   return d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+}
+
+/** Short label for axis ticks. */
+function fmtAxis(v: number, unit: string): string {
+  if (unit === "%") return v.toFixed(1);
+  if (unit === "円") return v < 10 ? v.toFixed(1) : String(Math.round(v));
+  if (v >= 10000) return (v / 1000).toFixed(0) + "k";
+  return String(Math.round(v));
+}
+
+/**
+ * Sparkline with Y-axis. The axis labels are rendered as HTML (not SVG text)
+ * so they are never distorted by preserveAspectRatio="none".
+ *
+ * Layout: [axis-labels | svg-chart]
+ */
+function Sparkline({
+  points,
+  up,
+  height = 40,
+  unit,
+}: {
+  points: Point[];
+  up: boolean;
+  height?: number;
+  unit: string;
+}) {
+  const vals = points.map((p) => p.v);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const n = points.length;
+
+  // SVG chart area (no axis padding — axis is HTML).
+  const W = 100;
+  const H = height;
+  const PAD = 2;
+  const x0 = PAD;
+  const x1 = W - PAD;
+  const y0 = PAD;
+  const y1 = H - PAD;
+
+  const xOf = (i: number) => (n === 1 ? x0 : x0 + ((x1 - x0) * i) / (n - 1));
+  const yOf = (v: number) => y1 - ((y1 - y0) * (v - min)) / range;
+
+  const stroke = up ? "#34d399" : "#f87171";
+  const fill = up ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)";
+
+  // Build path.
+  const d =
+    points
+      .map((p, i) => {
+        const x = xOf(i);
+        const y = yOf(p.v);
+        return `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+      })
+      .join(" ");
+  if (!d) return null;
+
+  const lastV = points[n - 1].v;
+  const lastY = yOf(lastV);
+
+  // 3 axis ticks.
+  const ticks = [
+    { v: max, pct: 0 },
+    { v: (max + min) / 2, pct: 50 },
+    { v: min, pct: 100 },
+  ];
+
+  return (
+    <div className="flex h-full w-full items-stretch gap-1">
+      {/* Y-axis labels (HTML — never distorted). */}
+      <div
+        className="flex flex-col justify-between py-0.5 text-right font-mono text-[10px] leading-none text-white/40"
+        style={{ width: "2.2rem" }}
+      >
+        {ticks.map((t, i) => (
+          <span key={i}>{fmtAxis(t.v, unit)}</span>
+        ))}
+      </div>
+      {/* Chart SVG. */}
+      <div className="relative min-w-0 flex-1">
+        {/* Grid lines (absolute, behind SVG). */}
+        {ticks.map((t, i) => (
+          <div
+            key={i}
+            className="absolute left-0 right-0 h-px bg-white/10"
+            style={{ top: `${t.pct}%` }}
+          />
+        ))}
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          className="h-full w-full"
+        >
+          <path
+            d={`${d} L${W - PAD},${H} L${PAD},${H} Z`}
+            fill={fill}
+            stroke="none"
+          />
+          <path
+            d={d}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={1.5}
+            vectorEffect="non-scaling-stroke"
+          />
+          <circle cx={W - PAD} cy={lastY} r={2} fill={stroke} />
+        </svg>
+      </div>
+    </div>
+  );
 }
 
 export default function MarketSparklines({
@@ -198,14 +190,12 @@ export default function MarketSparklines({
 
   const markets = data?.markets ?? [];
 
-  // Rule-based commentary derived from the fetched series (no AI).
-  const comment = useMemo(
-    () => (data && markets.length > 0 ? buildMarketComment(markets) : ""),
+  // Rule-based commentary: 3 lines (FX, US, JP).
+  const commentLines = useMemo(
+    () => (data && markets.length > 0 ? buildMarketComment(markets) : []),
     [data, markets],
   );
 
-  // Group the 6 series into 3 columns (yields / US stocks / JP stocks),
-  // each column holding two cards stacked vertically.
   const groups: { title: string; icon: string; keys: string[] }[] = [
     { title: "金利", icon: "🇺🇸", keys: ["us10y", "us2y"] },
     { title: "米国株", icon: "🇺🇸", keys: ["sp500", "nasdaq"] },
@@ -270,7 +260,12 @@ export default function MarketSparklines({
             className={`shrink-0 ${large ? "h-14 w-full" : "h-10 w-full"}`}
           >
             {m.ok && pts.length >= 2 ? (
-              <Sparkline points={pts} up={up} height={large ? 56 : 40} label={m.unit} />
+              <Sparkline
+                points={pts}
+                up={up}
+                height={large ? 56 : 40}
+                unit={m.unit}
+              />
             ) : (
               <div className="flex h-full items-center justify-center text-[10px] text-white/30">
                 -
@@ -304,7 +299,11 @@ export default function MarketSparklines({
                 large ? "text-base" : "text-xs"
               }`}
             >
-              💱 円/ドル {fmt(byKey["usdjpy"].points[byKey["usdjpy"].points.length - 1]?.v ?? 0)}円
+              💱 円/ドル{" "}
+              {fmt(
+                byKey["usdjpy"].points[byKey["usdjpy"].points.length - 1]?.v ?? 0,
+              )}
+              円
             </span>
           )}
           <span className={large ? "text-sm text-white/40" : "text-xs text-white/40"}>
@@ -328,14 +327,18 @@ export default function MarketSparklines({
         <p className="py-4 text-center text-sm text-white/40">読み込み中…</p>
       )}
 
-      {data && comment && (
+      {data && commentLines.length > 0 && (
         <div
           className={`mb-4 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 ${
             large ? "text-lg leading-relaxed" : "text-sm leading-relaxed"
           }`}
         >
-          <span className="mr-2">💬</span>
-          <span className="text-white/85">{comment}</span>
+          {commentLines.map((line, i) => (
+            <p key={i} className="text-white/85">
+              <span className="mr-2">💬</span>
+              {line}
+            </p>
+          ))}
         </div>
       )}
 
@@ -369,7 +372,6 @@ export default function MarketSparklines({
           ))}
         </div>
       )}
-
     </div>
   );
 }

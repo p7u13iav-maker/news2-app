@@ -1,9 +1,10 @@
 /**
  * Rule-based market commentary generator.
  *
- * Takes the fetched market series (3-month daily closes) and produces a short
- * Japanese "one-liner" that summarizes what moved over the period. No AI /
- * Gemini involved, so it works instantly and is never rate-limited.
+ * Returns 3 lines:
+ *   1. 為替 (FX)
+ *   2. 米国 (yields + stocks)
+ *   3. 日本 (stocks)
  */
 
 export interface MarketSeries {
@@ -13,7 +14,6 @@ export interface MarketSeries {
   points: { t: number; v: number }[];
 }
 
-/** Direction bucket for a percentage change over the period. */
 type Trend = "up-strong" | "up" | "flat" | "down" | "down-strong";
 
 function trendOf(pct: number, strongPct = 3, flatPct = 0.5): Trend {
@@ -24,7 +24,6 @@ function trendOf(pct: number, strongPct = 3, flatPct = 0.5): Trend {
   return "flat";
 }
 
-/** Short human phrase for a trend + its sign. */
 function trendPhrase(t: Trend): string {
   switch (t) {
     case "up-strong":
@@ -53,10 +52,9 @@ function fmtNum(v: number, integer: boolean): string {
 const INTEGER_KEYS = new Set(["sp500", "nasdaq", "nikkei", "jfe"]);
 
 /**
- * Build the commentary. Each sentence focuses on one area (yields, US stocks,
- * JP stocks). Missing series are skipped.
+ * Build 3 comment lines: FX, US (yields+stocks), JP (stocks).
  */
-export function buildMarketComment(markets: MarketSeries[]): string {
+export function buildMarketComment(markets: MarketSeries[]): string[] {
   const byKey: Record<string, MarketSeries> = {};
   for (const m of markets) byKey[m.key] = m;
 
@@ -69,64 +67,53 @@ export function buildMarketComment(markets: MarketSeries[]): string {
     return { m, first, last, diff: last - first, pct };
   };
 
-  const sentences: string[] = [];
+  const lines: string[] = [];
 
-  // --- FX (USD/JPY) ---
+  // --- Line 1: FX ---
   const fx = stat("usdjpy");
   if (fx) {
     const dir = fx.diff >= 0 ? "円安" : "円高";
-    sentences.push(
-      `為替は${dir}傾向で、円/ドルは${fmtNum(fx.last, false)}円です。`,
+    const pctStr = Math.abs(fx.pct) >= 0.5 ? ` (${fx.pct >= 0 ? "+" : ""}${fmtNum(fx.pct, false)}%)` : "";
+    lines.push(
+      `為替: ${dir}傾向で、円/ドルは${fmtNum(fx.last, false)}円${pctStr}。`,
     );
   }
 
-  // --- Yields (US 10Y / 2Y) ---
+  // --- Line 2: US (yields + stocks) ---
+  const usParts: string[] = [];
   const y10 = stat("us10y");
   const y2 = stat("us2y");
   if (y10 && y2) {
     const t10 = trendOf(y10.pct, 0.5, 0.15);
-    const t2 = trendOf(y2.pct, 0.5, 0.15);
-    if (t10 === "flat" && t2 === "flat") {
-      sentences.push(
-        `米国の金利はほぼ横ばいで、10年金利は${fmtNum(y10.last, false)}%、2年は${fmtNum(
-          y2.last,
-          false,
-        )}%です。`,
-      );
+    if (t10 === "flat") {
+      usParts.push(`米債10年${fmtNum(y10.last, false)}%は横ばい`);
     } else {
-      sentences.push(
-        `米国の金利は${trendPhrase(t10)}で、10年金利は${fmtNum(
-          y10.last,
-          false,
-        )}%、2年は${fmtNum(y2.last, false)}%と推移しています。`,
+      usParts.push(
+        `米債10年${fmtNum(y10.last, false)}%は${trendPhrase(t10)}`,
       );
     }
   }
-
-  // --- US stocks (S&P 500 / NASDAQ) ---
   const sp = stat("sp500");
   const nd = stat("nasdaq");
   if (sp && nd) {
     const tsp = trendOf(sp.pct);
     const inde =
       tsp === "up-strong"
-        ? "堅調な上昇"
+        ? "上昇基調"
         : tsp === "up"
           ? "上昇"
           : tsp === "flat"
-            ? "小幅な値動き"
+            ? "もみ合い"
             : tsp === "down"
               ? "下落"
-              : "軟調な展開";
-    sentences.push(
-      `米国株は${inde}で、S&P 500は${fmtNum(sp.last, true)}(+${fmtNum(
-        sp.pct,
-        false,
-      )}%)、NASDAQは${fmtNum(nd.last, true)}です。`,
-    );
+              : "下落基調";
+    usParts.push(`S&P 500は${inde}(3ヶ月${sp.pct >= 0 ? "+" : ""}${fmtNum(sp.pct, false)}%)`);
+  }
+  if (usParts.length > 0) {
+    lines.push(`米国: ${usParts.join("、")}。`);
   }
 
-  // --- JP stocks (Nikkei / JFE) ---
+  // --- Line 3: JP stocks ---
   const nk = stat("nikkei");
   const jfe = stat("jfe");
   if (nk && jfe) {
@@ -140,27 +127,14 @@ export function buildMarketComment(markets: MarketSeries[]): string {
             ? "もみ合い"
             : tnk === "down"
               ? "下落"
-              : "軟調";
-    sentences.push(
-      `日本株は${nj}で、日経平均は${fmtNum(
-        nk.last,
-        true,
-      )}円(3ヶ月で${nk.diff >= 0 ? "+" : ""}${fmtNum(nk.diff, true)}円)、JFEは${fmtNum(
-        jfe.last,
-        true,
-      )}円です。`,
+              : "下落基調";
+    lines.push(
+      `日本: 日経平均は${nj}(3ヶ月${nk.diff >= 0 ? "+" : ""}${fmtNum(nk.diff, INTEGER_KEYS.has("nikkei"))}円)、JFEは${fmtNum(jfe.last, true)}円。`,
     );
   }
 
-  if (sentences.length === 0) {
-    return "市場データを取得中です。";
+  if (lines.length === 0) {
+    lines.push("市場データを取得中です。");
   }
-  return sentences.join("");
-}
-
-/** Convenience: pass the API `markets` array straight in. */
-export function marketCommentFor(
-  markets: MarketSeries[],
-): string {
-  return buildMarketComment(markets);
+  return lines;
 }
