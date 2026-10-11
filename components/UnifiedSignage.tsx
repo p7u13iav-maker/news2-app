@@ -187,20 +187,20 @@ function HoroscopeSlide({
   }
   const group = HOROSCOPE_GROUPS[groupIndex];
   return (
-    <div className="grid h-full w-full grid-cols-3 grid-rows-2 gap-3">
+    <div className="flex h-full w-full flex-col gap-2">
       {group.map((s) => (
         <div
           key={s.key}
-          className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-white/5 p-4"
+          className="flex min-h-0 flex-1 items-center gap-4 rounded-xl border border-white/10 bg-white/5 px-5"
         >
-          <div className="mb-1.5 flex items-center gap-2">
-            <span className="text-2xl leading-none">{s.symbol}</span>
+          <div className="flex w-[180px] shrink-0 items-center gap-3">
+            <span className="text-3xl leading-none">{s.symbol}</span>
             <div>
-              <p className="text-base font-bold leading-tight">{s.ja}</p>
+              <p className="text-lg font-bold leading-tight">{s.ja}</p>
               <p className="text-[10px] text-white/40">{s.dateRange}</p>
             </div>
           </div>
-          <p className="min-h-0 flex-1 overflow-hidden text-xs leading-relaxed text-white/80">
+          <p className="min-h-0 flex-1 overflow-hidden text-sm leading-relaxed text-white/80">
             {data.horoscopes![s.key]}
           </p>
         </div>

@@ -135,7 +135,7 @@ export default function HoroscopePage() {
         </div>
       </header>
 
-      {/* Main: 3×2 grid for current group (6 signs). */}
+      {/* Main: vertical list of 6 signs, comment on the right. */}
       <main className="relative z-10 flex min-h-0 flex-1 flex-col p-6">
         {/* Group label. */}
         {hoscopes && !loading && (
@@ -158,27 +158,24 @@ export default function HoroscopePage() {
           </div>
         )}
 
-        {/* 3×2 grid for 6 signs. */}
+        {/* Vertical list: sign name left, comment right. */}
         {hoscopes && !loading && (
-          <div
-            key={slide}
-            className="grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-3"
-          >
+          <div key={slide} className="flex min-h-0 flex-1 flex-col gap-2">
             {currentGroup.map((s) => (
               <div
                 key={s.key}
-                className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-white/5 p-4"
+                className="flex min-h-0 flex-1 items-center gap-4 rounded-xl border border-white/10 bg-white/5 px-5"
               >
-                {/* Sign header. */}
-                <div className="mb-1.5 flex items-center gap-2">
-                  <span className="text-2xl leading-none">{s.symbol}</span>
+                {/* Sign: symbol + name + date range. */}
+                <div className="flex w-[200px] shrink-0 items-center gap-3">
+                  <span className="text-3xl leading-none">{s.symbol}</span>
                   <div>
-                    <p className="text-base font-bold leading-tight">{s.ja}</p>
+                    <p className="text-lg font-bold leading-tight">{s.ja}</p>
                     <p className="text-[10px] text-white/40">{s.dateRange}</p>
                   </div>
                 </div>
-                {/* Horoscope text (no scroll, fills remaining space). */}
-                <p className="min-h-0 flex-1 overflow-hidden text-xs leading-relaxed text-white/80">
+                {/* Horoscope comment (fills remaining width). */}
+                <p className="min-h-0 flex-1 overflow-hidden text-sm leading-relaxed text-white/80">
                   {hoscopes[s.key]}
                 </p>
               </div>
