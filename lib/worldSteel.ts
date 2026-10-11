@@ -7,6 +7,12 @@
 
 import * as XLSX from "xlsx";
 
+/** Country-level crude steel production (million tonnes). */
+export interface CountryProduction {
+  name: string;
+  value: number;
+}
+
 export interface WorldSteelMonth {
   year: number;
   month: number;
@@ -17,6 +23,8 @@ export interface WorldSteelMonth {
   japanCrudeSteel: number;
   /** China crude steel production in million tonnes. */
   chinaCrudeSteel: number;
+  /** Country-level breakdown for stacked bar chart. */
+  byCountry: CountryProduction[];
   /** YoY change for world production (%). */
   yoy: number;
 }
@@ -107,6 +115,37 @@ function parseJisfWorldXls(buf: Buffer): WorldSteelMonth[] {
         typeof china === "number" &&
         typeof world === "number"
       ) {
+        // Country-level data (cols 3-16) for stacked bar chart.
+        const countryCols: [number, string][] = [
+          [3, "日本"],
+          [4, "中国"],
+          [5, "韓国"],
+          [6, "台湾"],
+          [7, "ベトナム"],
+          [8, "インド"],
+          [9, "イラン"],
+          [10, "トルコ"],
+          [11, "ロシア"],
+          [12, "ドイツ"],
+          [13, "米国"],
+          [14, "ブラジル"],
+          [15, "メキシコ"],
+          [16, "EU27"],
+        ];
+        const byCountry: CountryProduction[] = [];
+        for (const [col, name] of countryCols) {
+          const v = row[col];
+          if (typeof v === "number" && v > 0) {
+            byCountry.push({ name, value: v / 1000 });
+          }
+        }
+        // "Other" = world total minus all listed countries.
+        const listedTotal = byCountry.reduce((s, c) => s + c.value, 0);
+        const other = world / 1000 - listedTotal;
+        if (other > 0.05) {
+          byCountry.push({ name: "その他", value: other });
+        }
+
         results.push({
           year: currentYear,
           month: monthVal,
@@ -114,6 +153,7 @@ function parseJisfWorldXls(buf: Buffer): WorldSteelMonth[] {
           japanCrudeSteel: japan / 1000, // Convert from thousand tonnes to million tonnes
           chinaCrudeSteel: china / 1000,
           worldCrudeSteel: world / 1000,
+          byCountry,
           yoy: 0, // Will calculate later
         });
       }

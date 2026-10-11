@@ -10,12 +10,18 @@ interface ProductionMonth {
   yoy: number;
 }
 
+interface CountryProduction {
+  name: string;
+  value: number;
+}
+
 interface WorldSteelMonth {
   year: number;
   month: number;
   period: string;
   worldCrudeSteel: number;
   japanCrudeSteel?: number;
+  byCountry: CountryProduction[];
   yoy: number;
 }
 
@@ -53,6 +59,8 @@ interface OrderMonth {
   electrical: number;
   ships: number;
   automobiles: number;
+  railway: number;
+  otherTransport: number;
   export: number;
 }
 
@@ -197,6 +205,115 @@ function BarChart({
       <div className="flex shrink-0 pt-0.5" style={{ paddingLeft: PAD, paddingRight: PAD }}>
         {data.map((d, i) => (
           <span key={i} className="flex-1 text-center text-[8px] leading-none text-white/35">
+            {i === 0 || i === n - 1 ? d.label : ""}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Stacked bar chart for country-level world production. Fills its parent. */
+function StackedBarChart({
+  data,
+}: {
+  data: { label: string; segments: { name: string; value: number }[] }[];
+}) {
+  if (data.length === 0) return null;
+  const n = data.length;
+  const W = 100;
+  const H = 100;
+  const PAD = 2;
+  const slot = (W - 2 * PAD) / n;
+  const barW = Math.max(slot - 2, 1);
+
+  // Compute the max total for scaling.
+  const maxTotal = Math.max(
+    ...data.map((d) => d.segments.reduce((s, seg) => s + seg.value, 0)),
+  );
+
+  // Build the segment name list in stacking order (bottom → top).
+  const segNames: string[] = [];
+  for (const d of data) {
+    for (const s of d.segments) {
+      if (!segNames.includes(s.name)) segNames.push(s.name);
+    }
+  }
+  const palette: Record<string, string> = {
+    中国: "#f87171",
+    日本: "#38bdf8",
+    米国: "#a78bfa",
+    EU27: "#34d399",
+    韓国: "#fbbf24",
+    インド: "#fb923c",
+    ロシア: "#f472b6",
+    台湾: "#22d3ee",
+    ドイツ: "#818cf8",
+    トルコ: "#e879f9",
+    ブラジル: "#facc15",
+    メキシコ: "#4ade80",
+    イラン: "#c084fc",
+    ベトナム: "#2dd4bf",
+    その他: "#64748b",
+  };
+
+  return (
+    <div className="flex h-full w-full flex-col">
+      <div className="min-h-0 flex-1">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="h-full w-full"
+          preserveAspectRatio="none"
+        >
+          {/* baseline */}
+          <line
+            x1={PAD}
+            y1={H - 8}
+            x2={W - PAD}
+            y2={H - 8}
+            stroke="rgba(255,255,255,0.15)"
+            strokeWidth={0.5}
+            vectorEffect="non-scaling-stroke"
+          />
+          {data.map((d, i) => {
+            const x = PAD + i * slot + (slot - barW) / 2;
+            const total = d.segments.reduce((s, seg) => s + seg.value, 0);
+            const scale = (H - 16) / (maxTotal || 1);
+            let yCursor = H - 8;
+            return (
+              <g key={i}>
+                {d.segments.map((seg, si) => {
+                  const segH = seg.value * scale;
+                  const y = yCursor - segH;
+                  const isLatest = i === n - 1;
+                  const fill = palette[seg.name] ?? "#94a3b8";
+                  yCursor = y;
+                  return (
+                    <rect
+                      key={si}
+                      x={x}
+                      y={y}
+                      width={barW}
+                      height={Math.max(segH, 0.3)}
+                      fill={isLatest ? fill : fill + "66"}
+                    />
+                  );
+                })}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      {/* Month labels. */}
+      <div
+        className="flex shrink-0 pt-0.5"
+        style={{ paddingLeft: PAD, paddingRight: PAD }}
+      >
+        {data.map((d, i) => (
+          <span
+            key={i}
+            className="flex-1 text-center text-[8px] leading-none text-white/35"
+          >
             {i === 0 || i === n - 1 ? d.label : ""}
           </span>
         ))}
@@ -429,19 +546,65 @@ export default function SteelPage() {
 
                   <Panel className="flex flex-col overflow-hidden">
                     <p className="mb-1 shrink-0 text-xs font-semibold text-white/80">
-                      世界の粗鋼生産
+                      世界の粗鋼生産（国・地域別）
                     </p>
                     <div className="min-h-0 flex-1">
-                      <BarChart
+                      <StackedBarChart
                         data={data.worldSteel.map((w) => ({
                           label: `${w.month}月`,
-                          value: w.worldCrudeSteel,
+                          segments: w.byCountry,
                         }))}
-                        color="#34d399"
                       />
                     </div>
+                    {/* Legend: top countries by latest-month share. */}
+                    {data.worldSteel.length > 0 && (() => {
+                      const latest = data.worldSteel[data.worldSteel.length - 1];
+                      const sorted = [...latest.byCountry].sort(
+                        (a, b) => b.value - a.value,
+                      );
+                      const palette: Record<string, string> = {
+                        中国: "#f87171",
+                        日本: "#38bdf8",
+                        米国: "#a78bfa",
+                        EU27: "#34d399",
+                        韓国: "#fbbf24",
+                        インド: "#fb923c",
+                        ロシア: "#f472b6",
+                        台湾: "#22d3ee",
+                        ドイツ: "#818cf8",
+                        トルコ: "#e879f9",
+                        ブラジル: "#facc15",
+                        メキシコ: "#4ade80",
+                        イラン: "#c084fc",
+                        ベトナム: "#2dd4bf",
+                        その他: "#64748b",
+                      };
+                      return (
+                        <div className="mt-1 flex shrink-0 flex-wrap gap-x-2 gap-y-0.5">
+                          {sorted.slice(0, 6).map((c) => (
+                            <span
+                              key={c.name}
+                              className="flex items-center gap-0.5 text-[8px] text-white/50"
+                            >
+                              <span
+                                className="inline-block h-1.5 w-1.5 rounded-sm"
+                                style={{
+                                  backgroundColor: palette[c.name] ?? "#94a3b8",
+                                }}
+                              />
+                              {c.name}
+                            </span>
+                          ))}
+                          {sorted.length > 6 && (
+                            <span className="text-[8px] text-white/35">
+                              +{sorted.length - 6}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                     {data.worldSteel.length > 0 && (
-                      <p className="mt-1 shrink-0 text-xs text-white/70">
+                      <p className="mt-0.5 shrink-0 text-xs text-white/70">
                         最新{" "}
                         <span className="font-mono font-bold text-emerald-300">
                           {data.worldSteel[data.worldSteel.length - 1].worldCrudeSteel.toFixed(1)}
@@ -470,38 +633,7 @@ export default function SteelPage() {
               {/* Column 2: 鋼材需給 (Supply-demand). */}
               <div className="flex min-h-0 flex-col">
                 <ColHeader>鋼材需給</ColHeader>
-                <div className="grid min-h-0 flex-1 grid-rows-4 gap-2">
-                  {/* Inventory ratio highlight (compact, full-width). */}
-                  <Panel className="flex flex-row items-center gap-3 overflow-hidden">
-                    {sd?.summary ? (
-                      <>
-                        <div className="shrink-0 text-center">
-                          <p
-                            className={`font-mono text-2xl font-bold leading-none tabular-nums ${
-                              sd.summary.inventoryRatio >= 100
-                                ? "text-amber-300"
-                                : "text-emerald-300"
-                            }`}
-                          >
-                            {sd.summary.inventoryRatio.toFixed(1)}
-                            <span className="text-xs">%</span>
-                          </p>
-                          <p className="text-[8px] text-white/40">在庫率</p>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-semibold text-sky-200">
-                            最新月の在庫率と受給のコメント
-                          </p>
-                          <p className="text-[10px] leading-snug text-white/70">
-                            {sdComment()}
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-xs text-white/40">取得中…</p>
-                    )}
-                  </Panel>
-
+                <div className="grid min-h-0 flex-1 grid-rows-3 gap-2">
                   {/* Production trend. */}
                   <Panel className="flex flex-col overflow-hidden">
                     <p className="mb-0.5 shrink-0 text-[11px] font-semibold text-white/80">
@@ -552,11 +684,27 @@ export default function SteelPage() {
                     )}
                   </Panel>
 
-                  {/* Inventory trend (proper bar chart of inventory, no cutoff). */}
+                  {/* Inventory trend + inventory ratio (integrated). */}
                   <Panel className="flex flex-col overflow-hidden">
-                    <p className="mb-0.5 shrink-0 text-[11px] font-semibold text-white/80">
-                      在庫量の月別
-                    </p>
+                    <div className="mb-0.5 flex shrink-0 items-center justify-between">
+                      <p className="text-[11px] font-semibold text-white/80">
+                        在庫量の月別
+                      </p>
+                      {sd?.summary && (
+                        <p className="text-[10px] text-white/50">
+                          在庫率{" "}
+                          <span
+                            className={`font-mono font-bold tabular-nums ${
+                              sd.summary.inventoryRatio >= 100
+                                ? "text-amber-300"
+                                : "text-emerald-300"
+                            }`}
+                          >
+                            {sd.summary.inventoryRatio.toFixed(1)}%
+                          </span>
+                        </p>
+                      )}
+                    </div>
                     <div className="min-h-0 flex-1">
                       <BarChart
                         data={sdTrend.map((t) => ({
@@ -567,18 +715,18 @@ export default function SteelPage() {
                       />
                     </div>
                     {sdTrend.length > 0 && (
-                      <p className="mt-0.5 shrink-0 text-[10px] text-white/70">
-                        最新{" "}
-                        <span className="font-mono font-bold text-amber-300">
-                          {sdTrend[sdTrend.length - 1].inventory.toFixed(1)}
-                        </span>
-                        万トン
-                        {sdTrend[sdTrend.length - 1].inventoryRatio > 0 && (
-                          <span className="ml-1 text-white/40">
-                            (在庫率{sdTrend[sdTrend.length - 1].inventoryRatio.toFixed(0)}%)
+                      <div className="mt-0.5 shrink-0">
+                        <p className="text-[10px] text-white/70">
+                          最新{" "}
+                          <span className="font-mono font-bold text-amber-300">
+                            {sdTrend[sdTrend.length - 1].inventory.toFixed(1)}
                           </span>
-                        )}
-                      </p>
+                          万トン
+                        </p>
+                        <p className="mt-0.5 text-[9px] leading-snug text-white/55">
+                          {sdComment()}
+                        </p>
+                      </div>
                     )}
                   </Panel>
                 </div>
@@ -631,30 +779,42 @@ export default function SteelPage() {
                     )}
                   </Panel>
 
-                  {/* Orders table: 前々月/前月/最新月 × 建設/自動車/機械/輸出 (spans 2 rows, bottom). */}
+                  {/* Orders table by sector (spans 2 rows, bottom). */}
                   <Panel className="row-span-2 flex flex-col overflow-hidden">
                     <p className="mb-1 shrink-0 text-[11px] font-semibold text-sky-200">
-                      受注 品目別(前々月→最新月)
+                      受注 品目別
                     </p>
                     <div className="flex min-h-0 flex-1 flex-col justify-start">
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="text-white/50">
                             <th className="pb-1 text-left font-normal">品目</th>
-                            <th className="pb-1 text-right font-normal">
-                              前々月
-                            </th>
-                            <th className="pb-1 text-right font-normal">前月</th>
-                            <th className="pb-1 text-right font-normal text-sky-300">
-                              最新月
-                            </th>
+                            {orderPrevPrev && (
+                              <th className="pb-1 text-right font-normal">
+                                {orderPrevPrev.month}月
+                              </th>
+                            )}
+                            {orderPrev && (
+                              <th className="pb-1 text-right font-normal">
+                                {orderPrev.month}月
+                              </th>
+                            )}
+                            {orderLatest && (
+                              <th className="pb-1 text-right font-normal text-sky-300">
+                                {orderLatest.month}月
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
                           {([
-                            ["建設", "construction"],
-                            ["自動車", "automobiles"],
-                            ["機械", "machinery"],
+                            ["建設用", "construction"],
+                            ["産業機械用", "machinery"],
+                            ["電気機械用", "electrical"],
+                            ["船舶用", "ships"],
+                            ["自動車用", "automobiles"],
+                            ["鉄道車両用", "railway"],
+                            ["その他輸送機械", "otherTransport"],
                             ["輸出", "export"],
                           ] as const).map(([label, key]) => {
                             const pp = orderPrevPrev?.[key] ?? 0;
@@ -664,14 +824,14 @@ export default function SteelPage() {
                               pv > 0 ? ((lt - pv) / pv) * 100 : 0;
                             return (
                               <tr key={key} className="border-t border-white/10">
-                                <td className="py-1.5 text-white/70">{label}</td>
-                                <td className="py-1.5 text-right font-mono tabular-nums text-white/50">
+                                <td className="py-1 text-white/70">{label}</td>
+                                <td className="py-1 text-right font-mono tabular-nums text-white/50">
                                   {pp > 0 ? pp.toFixed(1) : "-"}
                                 </td>
-                                <td className="py-1.5 text-right font-mono tabular-nums text-white/70">
+                                <td className="py-1 text-right font-mono tabular-nums text-white/70">
                                   {pv > 0 ? pv.toFixed(1) : "-"}
                                 </td>
-                                <td className="py-1.5 text-right font-mono tabular-nums">
+                                <td className="py-1 text-right font-mono tabular-nums">
                                   <span className="font-bold text-white">
                                     {lt > 0 ? lt.toFixed(1) : "-"}
                                   </span>

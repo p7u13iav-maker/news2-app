@@ -13,6 +13,8 @@
  *   col 16: 電気機械用 (electrical machinery)
  *   col 18: 船舶用 (ships)
  *   col 19: 自動車用 (automobiles)
+ *   col 20: 鉄道車両用 (railway vehicles)
+ *   col 21: その他輸送機械 (other transport machinery)
  *   col 27: 輸出 (export)
  *
  * Units: トン (tonnes). Convert to 万トン by dividing by 10,000.
@@ -38,6 +40,10 @@ export interface OrderMonth {
   ships: number;
   /** Automobiles (10k tonnes). */
   automobiles: number;
+  /** Railway vehicles (10k tonnes). */
+  railway: number;
+  /** Other transport machinery (10k tonnes). */
+  otherTransport: number;
   /** Export (10k tonnes). */
   export: number;
 }
@@ -119,6 +125,8 @@ function parseOrderXls(buf: Buffer): OrderMonth[] {
       electrical: Number(row[16]) / 10000,
       ships: Number(row[18]) / 10000,
       automobiles: Number(row[19]) / 10000,
+      railway: Number(row[20]) / 10000,
+      otherTransport: Number(row[21]) / 10000,
       export: Number(row[27]) / 10000,
     });
   }
