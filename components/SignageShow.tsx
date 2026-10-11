@@ -114,12 +114,6 @@ export default function SignageShow({
         </div>
         <div className="flex items-center gap-4">
           <a
-            href="/summary"
-            className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur transition hover:bg-white/20"
-          >
-            📋 ニュースサマリー
-          </a>
-          <a
             href="/market"
             className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur transition hover:bg-white/20"
           >

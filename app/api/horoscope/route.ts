@@ -25,25 +25,26 @@ function sigastraUrl(period: Period): string {
 
 /**
  * Sigastra returns full-length comments (100-700 chars). To display without
- * scrolling on a signage screen, we keep only the first 3 sentences
- * (up to the 3rd "。"). If there are fewer than 3 sentences, we keep all.
+ * scrolling on a signage screen, we keep only the first 4 sentences
+ * (up to the 4th "。"), counted from the original un-truncated text.
+ * If there are fewer than 4 sentences, we keep all.
  */
 
 /**
- * Keep the first 3 sentences (up to and including the 3rd "。").
- * If fewer than 3 sentences, return the text as-is.
+ * Keep the first 4 sentences (up to and including the 4th "。").
+ * If fewer than 4 sentences, return the text as-is.
  */
-function keepThreeSentences(text: string): string {
+function keepFourSentences(text: string): string {
   let count = 0;
   for (let i = 0; i < text.length; i++) {
     if (text[i] === "。") {
       count++;
-      if (count === 3) {
+      if (count === 4) {
         return text.slice(0, i + 1);
       }
     }
   }
-  // Fewer than 3 sentences — return as-is.
+  // Fewer than 4 sentences — return as-is.
   return text;
 }
 
@@ -98,7 +99,7 @@ export async function POST(req: Request) {
             s.key.charAt(0).toUpperCase() + s.key.slice(1),
       );
       const raw = item?.text ?? "";
-      horoscopes[s.key] = keepThreeSentences(raw);
+      horoscopes[s.key] = keepFourSentences(raw);
     }
 
     // Verify we got at least some data.

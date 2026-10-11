@@ -9,13 +9,6 @@ const SLIDE_MS = 10_000;
 
 /* ---------- Types ---------- */
 
-interface SummaryData {
-  ok: boolean;
-  date?: string;
-  summary?: { domestic: string[]; international: string[]; economy: string[] };
-  error?: string;
-}
-
 interface HoroscopeData {
   ok: boolean;
   date?: string;
@@ -25,7 +18,7 @@ interface HoroscopeData {
 
 /* ---------- Slide definitions ---------- */
 
-type SlideKind = "summary" | "market" | "news" | "horoscope";
+type SlideKind = "market" | "news" | "horoscope";
 
 interface SlideDef {
   kind: SlideKind;
@@ -35,11 +28,10 @@ interface SlideDef {
 
 /**
  * Build the slide sequence:
- *   1 summary, 1 market, N news, 3 horoscope
+ *   1 market, N news, 3 horoscope
  */
 function buildSlides(newsCount: number): SlideDef[] {
   const slides: SlideDef[] = [];
-  slides.push({ kind: "summary" });
   slides.push({ kind: "market" });
   for (let i = 0; i < newsCount; i++) slides.push({ kind: "news", sub: i });
   for (let i = 0; i < 3; i++) slides.push({ kind: "horoscope", sub: i });
@@ -48,82 +40,11 @@ function buildSlides(newsCount: number): SlideDef[] {
 
 /* ---------- Sub-components ---------- */
 
-const CATEGORIES: {
-  key: "domestic" | "international" | "economy";
-  label: string;
-  icon: string;
-  accent: string;
-  dot: string;
-}[] = [
-  {
-    key: "domestic",
-    label: "国内の出来事",
-    icon: "🇯🇵",
-    accent: "from-blue-500/20 to-blue-500/5 border-blue-500/30",
-    dot: "bg-blue-400",
-  },
-  {
-    key: "international",
-    label: "国外の出来事",
-    icon: "🌍",
-    accent: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/30",
-    dot: "bg-emerald-400",
-  },
-  {
-    key: "economy",
-    label: "経済ニュース",
-    icon: "📈",
-    accent: "from-amber-500/20 to-amber-500/5 border-amber-500/30",
-    dot: "bg-amber-400",
-  },
-];
-
 const HOROSCOPE_GROUPS = [
   ZODIAC_SIGNS.slice(0, 4),
   ZODIAC_SIGNS.slice(4, 8),
   ZODIAC_SIGNS.slice(8, 12),
 ];
-
-function SummarySlide({ data }: { data: SummaryData | null }) {
-  if (!data?.summary) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-xl text-white/40">要約を読み込み中…</p>
-      </div>
-    );
-  }
-  return (
-    <div className="grid h-full w-full grid-cols-3 gap-5">
-      {CATEGORIES.map((cat) => {
-        const items = data.summary![cat.key] ?? [];
-        return (
-          <div
-            key={cat.key}
-            className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-gradient-to-br p-5 ${cat.accent}`}
-          >
-            <div className="mb-3 flex shrink-0 items-center gap-3">
-              <span className="text-2xl">{cat.icon}</span>
-              <h2 className="text-xl font-bold tracking-tight">{cat.label}</h2>
-            </div>
-            <ul className="min-h-0 flex-1 space-y-3 overflow-hidden">
-              {items.map((item, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-3 text-lg leading-snug text-white/90"
-                >
-                  <span
-                    className={`mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full ${cat.dot}`}
-                  />
-                  <span className="line-clamp-3">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 function NewsSlide({ article, index }: { article: Article; index: number }) {
   const time = new Date(article.publishedAt);
@@ -227,7 +148,6 @@ export default function UnifiedSignage({
   const start = useRef<number>(0);
 
   // Data fetching (client-side, cached server-side for the day).
-  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [horoscopeData, setHoroscopeData] = useState<HoroscopeData | null>(null);
   const [clock, setClock] = useState<Date | null>(null);
 
@@ -238,16 +158,7 @@ export default function UnifiedSignage({
     return () => clearInterval(id);
   }, []);
 
-  // Fetch summary immediately (server caches for the day).
-  useEffect(() => {
-    fetch("/api/summary", { method: "POST" })
-      .then((r) => r.json())
-      .then((json) => setSummaryData(json))
-      .catch(() => setSummaryData({ ok: false, error: "fetch failed" }));
-  }, []);
-
-  // Fetch horoscope after 5 min delay to stagger the Gemini calls
-  // (avoids two simultaneous requests hitting rate limits).
+  // Fetch horoscope (server caches for the day).
   useEffect(() => {
     const id = setTimeout(() => {
       fetch("/api/horoscope", {
@@ -301,13 +212,11 @@ export default function UnifiedSignage({
 
   // Section label shown as a small badge (title is unified across pages).
   const sectionLabel =
-    current.kind === "summary"
-      ? "📋 ニュースサマリー"
-      : current.kind === "market"
-        ? "📊 市場データ"
-        : current.kind === "news"
-          ? "📰 ニューストピック"
-          : "✨ 今日の運勢";
+    current.kind === "market"
+      ? "📊 市場データ"
+      : current.kind === "news"
+        ? "📰 ニューストピック"
+        : "✨ 今日の運勢";
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-zinc-950 text-white">
@@ -371,10 +280,6 @@ export default function UnifiedSignage({
         className="relative z-10 flex h-full min-h-0 flex-col px-14 pb-16 pt-24"
       >
         <div className="slide-enter h-full min-h-0 w-full">
-          {current.kind === "summary" && (
-            <SummarySlide data={summaryData} />
-          )}
-
           {current.kind === "market" && <MarketSparklines size="large" />}
 
           {current.kind === "news" && current.sub != null && (
