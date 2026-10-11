@@ -482,7 +482,7 @@ function Panel({
   );
 }
 
-/** Column header (粗鋼生産 / 普通鋼需給 / 受注量). */
+/** Column header (粗鋼生産量 / 普通鋼需給量 / 受注量). */
 function ColHeader({
   children,
   embedded = false,
@@ -688,7 +688,7 @@ function SteelSlide({
           >
             {/* Column 1: 粗鋼生産 (Japan + World production). */}
             <div className="flex min-h-0 flex-col">
-              <ColHeader embedded={embedded}>粗鋼生産</ColHeader>
+              <ColHeader embedded={embedded}>粗鋼生産量</ColHeader>
               <div className="grid min-h-0 flex-1 grid-rows-2 gap-2">
                 <Panel
                   className={`flex flex-col overflow-hidden ${
@@ -862,9 +862,9 @@ function SteelSlide({
               </div>
             </div>
 
-            {/* Column 2: 普通鋼需給 (carbon steel supply-demand). */}
+            {/* Column 2: 普通鋼需給量 (carbon steel supply-demand). */}
             <div className="flex min-h-0 flex-col">
-              <ColHeader embedded={embedded}>普通鋼需給</ColHeader>
+              <ColHeader embedded={embedded}>普通鋼需給量</ColHeader>
               <div className="grid min-h-0 flex-1 grid-rows-3 gap-2">
                 {/* Production trend. */}
                 <Panel
