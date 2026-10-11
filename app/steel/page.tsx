@@ -242,6 +242,7 @@ function StackedBarChart({
   data,
   paletteOverride,
   labelKey,
+  labelKeys,
 }: {
   data: {
     label: string;
@@ -250,8 +251,9 @@ function StackedBarChart({
   }[];
   /** Override the default color palette (e.g. for sector charts). */
   paletteOverride?: Record<string, string>;
-  /** Which segment name gets the inline value label (default: 中国). */
+  /** Which segment names get inline value labels (default: 中国). */
   labelKey?: string;
+  labelKeys?: string[];
 }) {
   if (data.length === 0) return null;
   const n = data.length;
@@ -260,7 +262,7 @@ function StackedBarChart({
   const PAD = 2;
   const slot = (W - 2 * PAD) / n;
   const barW = Math.max(slot - 1, 1);
-  const labelName = labelKey ?? "中国";
+  const labelNames: string[] = labelKeys ?? [labelKey ?? "中国"];
 
   // Compute the max total for scaling.
   const maxTotal = Math.max(...data.map((d) => d.total));
@@ -299,14 +301,12 @@ function StackedBarChart({
     const cx = PAD + i * slot + slot / 2; // center x in SVG units
     const x = PAD + i * slot + (slot - barW) / 2;
     let yCursor = H - 8;
-    let labelTopY = 0;
-    let labelH = 0;
+    const labelSegs: { name: string; topY: number; h: number; value: number }[] = [];
     for (const seg of d.segments) {
       const segH = seg.value * scale;
       const y = yCursor - segH;
-      if (seg.name === labelName) {
-        labelTopY = y;
-        labelH = segH;
+      if (labelNames.includes(seg.name)) {
+        labelSegs.push({ name: seg.name, topY: y, h: segH, value: seg.value });
       }
       yCursor = y;
     }
@@ -314,10 +314,8 @@ function StackedBarChart({
       cx,
       x,
       topY: yCursor, // top of the bar
-      labelTopY,
-      labelH,
+      labelSegs,
       total: d.total,
-      labelValue: d.segments.find((s) => s.name === labelName)?.value ?? 0,
     };
   });
 
@@ -395,18 +393,26 @@ function StackedBarChart({
               >
                 {b.total.toFixed(0)}
               </span>
-              {/* Label segment value: centered on the segment (red for 中国). */}
-              {b.labelH > 4 && (
-                <span
-                  className="absolute -translate-x-1/2 -translate-y-1/2 font-mono text-[8px] font-bold leading-none tabular-nums"
-                  style={{
-                    left: `${cxPct}%`,
-                    top: `${((b.labelTopY + b.labelH / 2) / H) * 100}%`,
-                    color: labelName === "中国" ? "#fca5a5" : "rgba(255,255,255,0.85)",
-                  }}
-                >
-                  {b.labelValue.toFixed(0)}
-                </span>
+              {/* Label segment values: centered on each labeled segment. */}
+              {b.labelSegs.map((ls) =>
+                ls.h > 4 ? (
+                  <span
+                    key={ls.name}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 font-mono text-[8px] font-bold leading-none tabular-nums"
+                    style={{
+                      left: `${cxPct}%`,
+                      top: `${((ls.topY + ls.h / 2) / H) * 100}%`,
+                      color:
+                        ls.name === "中国"
+                          ? "#fca5a5"
+                          : ls.name === "インド"
+                            ? "#fdba74"
+                            : "rgba(255,255,255,0.85)",
+                    }}
+                  >
+                    {ls.value.toFixed(0)}
+                  </span>
+                ) : null,
               )}
             </div>
           );
@@ -704,29 +710,20 @@ export default function SteelPage() {
                     <p className="shrink-0 text-xs font-semibold text-white/80">
                       世界の粗鋼生産（国・地域別）
                     </p>
-                    {data.worldSteel.length > 0 && (() => {
-                      const latest = data.worldSteel[data.worldSteel.length - 1];
-                      const india = latest.byCountry.find((s) => s.name === "インド");
-                      return (
-                        <div className="mt-0.5">
-                          <ValueRow
-                            value={Math.round(latest.worldCrudeSteel * 100).toLocaleString("ja-JP")}
-                            unit="万トン"
-                            change={latest.yoy}
-                            changeLabel="前年比"
-                            period={`${latest.year}年${latest.month}月`}
-                          />
-                          {india && (
-                            <p className="mt-0.5 font-mono text-[11px] font-semibold tabular-nums text-[#fb923c]">
-                              インド {Math.round(india.value * 100).toLocaleString("ja-JP")}
-                              <span className="ml-1 text-[9px] font-medium text-[#fb923c]/70">万トン</span>
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })()}
+                    {data.worldSteel.length > 0 && (
+                      <div className="mt-0.5">
+                        <ValueRow
+                          value={Math.round(data.worldSteel[data.worldSteel.length - 1].worldCrudeSteel * 100).toLocaleString("ja-JP")}
+                          unit="万トン"
+                          change={data.worldSteel[data.worldSteel.length - 1].yoy}
+                          changeLabel="前年比"
+                          period={`${data.worldSteel[data.worldSteel.length - 1].year}年${data.worldSteel[data.worldSteel.length - 1].month}月`}
+                        />
+                      </div>
+                    )}
                     <div className="min-h-0 flex-1">
                       <StackedBarChart
+                        labelKeys={["中国", "インド"]}
                         data={data.worldSteel.map((w) => ({
                           label: `${w.month}月`,
                           // Convert Mt → 万トン (×100) for display.
