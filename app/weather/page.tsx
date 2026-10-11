@@ -68,6 +68,72 @@ function fmtTime(iso: string): string {
   });
 }
 
+/** Background gradient based on weather type. */
+function skyGradient(code: number): string {
+  const isRain = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+  const isSnow = (code >= 71 && code <= 77) || (code >= 85 && code <= 86);
+  const isCloud = code === 2 || code === 3;
+  const isFog = code === 45 || code === 48;
+  if (isRain)
+    return "radial-gradient(120% 120% at 15% 10%, #1e293b 0%, #0f172a 45%, #020617 100%)";
+  if (isSnow)
+    return "radial-gradient(120% 120% at 15% 10%, #1e293b 0%, #1e293b 45%, #0f172a 100%)";
+  if (isCloud || isFog)
+    return "radial-gradient(120% 120% at 15% 10%, #334155 0%, #1e293b 45%, #0f172a 100%)";
+  if (code === 1)
+    return "radial-gradient(120% 120% at 15% 10%, #0e7490 0%, #155e75 45%, #0c4a6e 100%)";
+  // Clear (code 0) — brightest.
+  return "radial-gradient(120% 120% at 15% 10%, #0369a1 0%, #075985 45%, #0c4a6e 100%)";
+}
+
+/** Accent color for the current-temperature hero number. */
+function tempColor(code: number): string {
+  const isRain = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+  const isSnow = (code >= 71 && code <= 77) || (code >= 85 && code <= 86);
+  const isCloud = code === 2 || code === 3 || code === 45 || code === 48;
+  if (isSnow) return "text-sky-100";
+  if (isRain) return "text-blue-200";
+  if (isCloud) return "text-slate-200";
+  return "text-amber-200";
+}
+
+/** Area gradient stops for the hourly chart, keyed by weather. */
+function chartGradient(code: number): [string, string] {
+  const isRain = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+  const isSnow = (code >= 71 && code <= 77) || (code >= 85 && code <= 86);
+  const isCloud = code === 2 || code === 3 || code === 45 || code === 48;
+  if (isRain) return ["#60a5fa", "#3b82f6"];
+  if (isSnow) return ["#e2e8f0", "#94a3b8"];
+  if (isCloud) return ["#94a3b8", "#64748b"];
+  return ["#f59e0b", "#f97316"];
+}
+
+/** Rule-based one-line weather summary for the morning meeting. */
+function weatherSummary(c: WeatherCurrent, d: WeatherDaily): string {
+  const parts: string[] = [];
+  const code = c.weatherCode;
+  const isRain = (code >= 51 && code <= 67) || (code >= 80 && code <= 82);
+  const isThunder = code >= 95;
+  const isCloud = code === 2 || code === 3;
+  const isClear = code === 0 || code === 1;
+
+  if (isThunder) parts.push("雷雨の可能性があるので、屋外作業は注意を");
+  else if (isRain)
+    parts.push(d.maxPrecipProb >= 70 ? "強い雨の見込み、傘は必須です" : "雨の日、傘をお持ちください");
+  else if (isCloud) parts.push("曇り空ですが、大きな雨はなさそうです");
+  else if (isClear) parts.push("気持ちの良い晴天です");
+
+  if (d.maxTemp >= 30) parts.push("最高" + Math.round(d.maxTemp) + "℃まで上がる暑い一日、熱中症に気をつけて");
+  else if (d.maxTemp >= 25) parts.push("暑めの一日、水分補給を忘れずに");
+  else if (d.maxTemp >= 18) parts.push("過ごしやすい気温です");
+  else if (d.maxTemp >= 10) parts.push("肌寒い一日、羽織ものがあると安心です");
+  else parts.push("厳しい寒さ、防寒着を忘れずに");
+
+  if (c.windSpeed >= 20) parts.push("強めの風が吹く見込み、小物や帽子に注意を");
+
+  return parts.join("。") + "。";
+}
+
 function fmtHour(iso: string): string {
   const d = new Date(iso);
   return d
@@ -80,11 +146,34 @@ function fmtHour(iso: string): string {
     .replace(":00", "");
 }
 
-/** Simple inline SVG temperature chart for the 24 hourly values. */
-function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
+/** Build a smooth Catmull-Rom spline path through the given points. */
+function splinePath(pts: { x: number; y: number }[]): string {
+  if (pts.length < 2) return "";
+  let d = `M ${pts[0].x},${pts[0].y}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
+/** Smooth temperature chart for the 24 hourly values. */
+function HourlyChart({
+  hourly,
+  weatherCode,
+}: {
+  hourly: WeatherHourly[];
+  weatherCode: number;
+}) {
   const W = 1000;
   const H = 260;
-  const PAD = 10;
   if (hourly.length === 0) return null;
 
   const temps = hourly.map((h) => h.temperature);
@@ -92,31 +181,60 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
   const max = Math.max(...temps);
   const range = max - min || 1;
 
-  // Axis padding: room for Y-labels (left) and X-labels + weather icons (bottom).
-  const L = 60; // left padding for Y-axis labels
-  const B = 90; // bottom padding for hour labels + weather icons
+  const L = 60;
+  const B = 90;
   const plotW = W - L - 20;
   const plotH = H - B - 20;
+  const top = 10;
 
   const step = hourly.length > 1 ? plotW / (hourly.length - 1) : 0;
   const points = hourly.map((h, i) => {
     const x = L + i * step;
-    const y = 10 + plotH - ((h.temperature - min) / range) * plotH;
+    const y = top + plotH - ((h.temperature - min) / range) * plotH;
     return { x, y, h };
   });
 
-  const line = points.map((p) => `${p.x},${p.y}`).join(" ");
-  const area = `${L},${10 + plotH} ${line} ${L + plotW},${10 + plotH}`;
+  const lineD = splinePath(points);
+  const areaD = `${lineD} L ${points[points.length - 1].x},${top + plotH} L ${points[0].x},${top + plotH} Z`;
 
-  // Y-axis: 3 tick labels (max / mid / min).
+  const [g1, g2] = chartGradient(weatherCode);
+  const lineColor = g1;
+
+  // Y-axis: 3 tick labels.
   const yTicks = [
-    { v: max, y: 10 },
-    { v: (max + min) / 2, y: 10 + plotH / 2 },
-    { v: min, y: 10 + plotH },
+    { v: max, y: top },
+    { v: (max + min) / 2, y: top + plotH / 2 },
+    { v: min, y: top + plotH },
   ];
 
-  // X-axis: hour labels + weather icons every 2 hours.
-  const xTicks = points.filter((_, i) => i % 2 === 0);
+  // X-axis: hour labels + weather icons every 3 hours.
+  const xTicks = points.filter((_, i) => i % 3 === 0);
+
+  // "Now" marker: find the current hour position.
+  const now = new Date();
+  const nowHM =
+    now.getHours() + now.getMinutes() / 60;
+  let nowX: number | null = null;
+  let nowY: number | null = null;
+  let nowTemp: number | null = null;
+  for (let i = 0; i < points.length; i++) {
+    const hd = new Date(points[i].h.time);
+    const hHM = hd.getHours() + hd.getMinutes() / 60;
+    if (hHM <= nowHM) {
+      const prev = i > 0 ? points[i - 1] : null;
+      const prevHM = prev ? new Date(prev.h.time).getHours() + new Date(prev.h.time).getMinutes() / 60 : null;
+      if (prev && prevHM !== null && hHM > prevHM) {
+        const frac = (nowHM - prevHM) / (hHM - prevHM);
+        nowX = prev.x + (points[i].x - prev.x) * frac;
+        nowY = prev.y + (points[i].y - prev.y) * frac;
+        nowTemp = prev.h.temperature + (points[i].h.temperature - prev.h.temperature) * frac;
+      } else {
+        nowX = points[i].x;
+        nowY = points[i].y;
+        nowTemp = points[i].h.temperature;
+      }
+    }
+  }
 
   return (
     <svg
@@ -126,12 +244,16 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
     >
       <defs>
         <linearGradient id="tempGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+          <stop offset="0%" stopColor={g1} stopOpacity="0.45" />
+          <stop offset="100%" stopColor={g2} stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={g2} />
+          <stop offset="100%" stopColor={g1} />
         </linearGradient>
       </defs>
 
-      {/* Y-axis gridlines + scale labels. */}
+      {/* Y-axis gridlines + labels. */}
       {yTicks.map((t, i) => (
         <g key={i}>
           <line
@@ -139,13 +261,14 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
             y1={t.y}
             x2={L + plotW}
             y2={t.y}
-            stroke="rgba(255,255,255,0.1)"
+            stroke="rgba(255,255,255,0.08)"
             strokeWidth="1"
+            strokeDasharray="4 4"
           />
           <text
             x={L - 8}
-            y={t.y + 4}
-            fill="rgba(255,255,255,0.6)"
+            y={t.y + 5}
+            fill="rgba(255,255,255,0.55)"
             fontSize="16"
             fontFamily="monospace"
             textAnchor="end"
@@ -155,45 +278,84 @@ function HourlyChart({ hourly }: { hourly: WeatherHourly[] }) {
         </g>
       ))}
 
-      {/* Area + line. */}
-      <polygon points={area} fill="url(#tempGrad)" />
-      <polyline
-        points={line}
+      {/* Smooth area + line. */}
+      <path d={areaD} fill="url(#tempGrad)" />
+      <path
+        d={lineD}
         fill="none"
-        stroke="#f59e0b"
+        stroke="url(#lineGrad)"
         strokeWidth="3"
         strokeLinejoin="round"
         strokeLinecap="round"
       />
 
-      {/* Dots. */}
+      {/* Dots every 3 hours. */}
       {points.map((p, i) => (
         <circle
           key={i}
           cx={p.x}
           cy={p.y}
-          r="3"
-          fill="#fbbf24"
-          opacity={i % 3 === 0 ? 1 : 0.4}
+          r={i % 3 === 0 ? 3.5 : 0}
+          fill={lineColor}
         />
       ))}
 
-      {/* X-axis: hour labels + weather icons below the chart. */}
+      {/* X-axis: hour labels + weather icons. */}
       {xTicks.map((p, i) => (
         <g key={i}>
           <text
             x={p.x}
-            y={10 + plotH + 22}
+            y={top + plotH + 24}
             fill="rgba(255,255,255,0.5)"
-            fontSize="13"
+            fontSize="14"
             fontFamily="monospace"
             textAnchor="middle"
           >
             {fmtHour(p.h.time)}時
           </text>
-          <WeatherIcon code={p.h.weatherCode} cx={p.x} cy={10 + plotH + 42} size={24} />
+          <WeatherIcon code={p.h.weatherCode} cx={p.x} cy={top + plotH + 48} size={26} />
         </g>
       ))}
+
+      {/* "Now" marker: vertical line + dot + current temp badge. */}
+      {nowX !== null && nowY !== null && (
+        <g>
+          <line
+            x1={nowX}
+            y1={top}
+            x2={nowX}
+            y2={top + plotH}
+            stroke="rgba(255,255,255,0.4)"
+            strokeWidth="1.5"
+            strokeDasharray="5 4"
+          />
+          <circle cx={nowX} cy={nowY} r="6" fill="#fff" opacity="0.9" />
+          <circle cx={nowX} cy={nowY} r="3" fill={lineColor} />
+          {nowTemp !== null && (
+            <g>
+              <rect
+                x={nowX - 28}
+                y={nowY - 34}
+                width="56"
+                height="24"
+                rx="6"
+                fill="rgba(255,255,255,0.92)"
+              />
+              <text
+                x={nowX}
+                y={nowY - 17}
+                fill="#0f172a"
+                fontSize="15"
+                fontWeight="bold"
+                fontFamily="monospace"
+                textAnchor="middle"
+              >
+                {nowTemp.toFixed(1)}°
+              </text>
+            </g>
+          )}
+        </g>
+      )}
     </svg>
   );
 }
@@ -332,18 +494,6 @@ function WeatherIcon({
   );
 }
 
-/** Single tip row: emoji + text. */
-function TipItem({ emoji, text }: { emoji: string; text: string }) {
-  return (
-    <div className="flex items-start gap-2 rounded-lg bg-white/5 px-3 py-2">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-base">
-        {emoji}
-      </span>
-      <p className="text-sm leading-snug text-white/80">{text}</p>
-    </div>
-  );
-}
-
 export default function WeatherPage() {
   const [clock, setClock] = useState<Date | null>(null);
   const [data, setData] = useState<WeatherData | null>(null);
@@ -379,16 +529,15 @@ export default function WeatherPage() {
 
   const c = data?.current;
   const d = data?.daily;
+  const bg = c ? skyGradient(c.weatherCode) : skyGradient(0);
+  const tColor = c ? tempColor(c.weatherCode) : "text-amber-200";
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-slate-950 text-white">
-      {/* Background gradient (sky-themed). */}
+      {/* Background gradient (changes with the weather). */}
       <div
         className="absolute inset-0 opacity-90"
-        style={{
-          background:
-            "radial-gradient(120% 120% at 15% 10%, #0c4a6e 0%, #082f49 45%, #020617 100%)",
-        }}
+        style={{ background: bg }}
       />
 
       {/* Header. */}
@@ -439,150 +588,119 @@ export default function WeatherPage() {
           </div>
         ) : (
           <>
-            {/* Top: current weather + today summary + tips (3 columns). */}
+            {/* Top: current weather + today summary (2 columns). */}
             <div className="flex min-h-0 flex-1 gap-4">
-              {/* Column 1: Current conditions. */}
-              <div className="flex w-[34%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
-                <div className="mb-3 flex items-center gap-3">
-                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-4xl">
-                    {c!.emoji}
-                  </span>
+              {/* Column 1: Current conditions (hero). */}
+              <div className="flex w-[42%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
+                <div className="mb-2 flex items-center gap-3">
+                  <span className="text-5xl leading-none">{c!.emoji}</span>
                   <div>
-                    <p className="text-xl font-semibold">{c!.label}</p>
-                    <p className="text-xs text-white/50">
+                    <p className="text-2xl font-bold">{c!.label}</p>
+                    <p className="text-sm text-white/50">
                       {fmtTime(c!.time)} 現在
                     </p>
                   </div>
                 </div>
-                <p className="font-mono text-6xl font-light tabular-nums">
+                <p
+                  className={`font-mono text-8xl font-bold leading-none tabular-nums ${tColor}`}
+                >
                   {Math.round(c!.temperature)}
-                  <span className="text-3xl">°C</span>
+                  <span className="text-4xl font-medium">°C</span>
                 </p>
-                <p className="mt-1 text-sm text-white/60">
+                <p className="mt-2 font-mono text-base tabular-nums text-white/60">
                   体感 {Math.round(c!.apparentTemperature)}°C
                 </p>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-lg bg-white/5 p-2">
+                <div className="mt-5 grid grid-cols-2 gap-3 text-xs">
+                  <div className="rounded-xl bg-white/5 p-3">
                     <p className="text-white/50">湿度</p>
-                    <p className="mt-0.5 font-mono text-base font-semibold">
+                    <p className="mt-1 font-mono text-2xl font-bold tabular-nums">
                       {c!.humidity}%
                     </p>
                   </div>
-                  <div className="rounded-lg bg-white/5 p-2">
+                  <div className="rounded-xl bg-white/5 p-3">
                     <p className="text-white/50">風</p>
-                    <p className="mt-0.5 font-mono text-base font-semibold">
+                    <p className="mt-1 font-mono text-2xl font-bold tabular-nums">
                       {c!.windDirectionLabel} {c!.windSpeed.toFixed(1)}
+                      <span className="ml-0.5 text-xs font-normal text-white/40">
+                        m/s
+                      </span>
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Column 2: Today summary. */}
-              <div className="flex w-[34%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
+              <div className="flex w-[58%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
                 <p className="mb-3 text-sm font-medium text-white/50">
                   今日の天気
                 </p>
-                <div className="flex items-center gap-5">
+                <div className="flex items-end gap-6">
                   <div className="flex flex-col">
                     <p className="text-xs font-medium text-white/50">
                       最高気温
                     </p>
-                    <p className="font-light tabular-nums text-orange-300">
-                      <span className="text-4xl">{Math.round(d!.maxTemp)}</span>
-                      <span className="text-xl">°C</span>
+                    <p className="font-mono text-5xl font-bold tabular-nums text-orange-300">
+                      {Math.round(d!.maxTemp)}
+                      <span className="text-2xl font-medium">°C</span>
                     </p>
                   </div>
                   <div className="flex flex-col">
                     <p className="text-xs font-medium text-white/50">
                       最低気温
                     </p>
-                    <p className="font-light tabular-nums text-sky-300">
-                      <span className="text-4xl">{Math.round(d!.minTemp)}</span>
-                      <span className="text-xl">°C</span>
+                    <p className="font-mono text-5xl font-bold tabular-nums text-sky-300">
+                      {Math.round(d!.minTemp)}
+                      <span className="text-2xl font-medium">°C</span>
+                    </p>
+                  </div>
+                  <div className="mb-1 flex flex-col">
+                    <p className="text-xs font-medium text-white/50">
+                      降水確率
+                    </p>
+                    <p className="font-mono text-3xl font-bold tabular-nums text-blue-200">
+                      {d!.maxPrecipProb}
+                      <span className="text-xl font-medium">%</span>
                     </p>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-sm">
-                    🌧
-                  </span>
-                  <span className="font-mono font-semibold">
-                    降水 {d!.maxPrecipProb}%
-                  </span>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2 rounded-xl bg-white/5 p-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-lg">
-                      🌅
-                    </span>
+                <div className="mt-5 grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
+                    <span className="text-2xl">🌅</span>
                     <div>
-                      <p className="text-[10px] text-white/50">日の出</p>
-                      <p className="font-mono text-base font-semibold">
+                      <p className="text-[11px] text-white/50">日の出</p>
+                      <p className="font-mono text-xl font-bold tabular-nums">
                         {fmtTime(d!.sunrise)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 rounded-xl bg-white/5 p-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-lg">
-                      🌇
-                    </span>
+                  <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
+                    <span className="text-2xl">🌇</span>
                     <div>
-                      <p className="text-[10px] text-white/50">日の入り</p>
-                      <p className="font-mono text-base font-semibold">
+                      <p className="text-[11px] text-white/50">日の入り</p>
+                      <p className="font-mono text-xl font-bold tabular-nums">
                         {fmtTime(d!.sunset)}
                       </p>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Column 3: Outgoing tips. */}
-              <div className="flex w-[32%] flex-col justify-center rounded-2xl border border-white/10 bg-white/5 p-6">
-                <p className="mb-3 text-sm font-medium text-white/50">
-                  今日のヒント
-                </p>
-                <div className="flex flex-col gap-3">
-                  <TipItem
-                    emoji="🌡️"
-                    text={
-                      d!.maxTemp >= 30
-                        ? "暑い日。水分補給を忘れずに。"
-                        : d!.maxTemp >= 25
-                          ? "暖かい日。薄着でも快適です。"
-                          : d!.maxTemp >= 18
-                            ? "肌寒い日。羽織ものがあると安心。"
-                            : d!.maxTemp >= 10
-                              ? "寒い日。防寒着を忘れずに。"
-                              : "真冬。重ね着で防寒しましょう。"
-                    }
-                  />
-                  <TipItem
-                    emoji={d!.maxPrecipProb >= 50 ? "☂️" : "🌂"}
-                    text={
-                      d!.maxPrecipProb >= 70
-                        ? "雨の可能性大。傘をお持ちください。"
-                        : d!.maxPrecipProb >= 40
-                          ? "雨の可能性あり。折りたたみ傘が安心。"
-                          : "傘は不要。晴れの日です。"
-                    }
-                  />
-                  <TipItem
-                    emoji={c!.windSpeed >= 20 ? "💨" : "🍃"}
-                    text={
-                      c!.windSpeed >= 30
-                        ? "強風注意。帽子や小物に気をつけて。"
-                        : c!.windSpeed >= 15
-                          ? "やや風が強い日。"
-                          : "風は穏やかです。"
-                    }
-                  />
+                {/* Rule-based one-line summary (replaces the tips list). */}
+                <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="mb-1 text-xs font-semibold text-sky-200">
+                    今日の一言
+                  </p>
+                  <p className="text-base leading-relaxed text-white/85">
+                    {weatherSummary(c!, d!)}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Bottom: hourly temperature chart (fixed height, no scroll). */}
+            {/* Bottom: hourly temperature chart (smooth spline + now marker). */}
             <div className="shrink-0" style={{ height: "38%" }}>
-              <HourlyChart hourly={data.hourly} />
+              <HourlyChart
+                hourly={data.hourly}
+                weatherCode={c!.weatherCode}
+              />
             </div>
           </>
         )}
