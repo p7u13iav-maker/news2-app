@@ -480,6 +480,17 @@ export default function SteelPage() {
     return `${ratioText}(在庫率${ratio.toFixed(0)}%)。生産は${prodDir}。`;
   }
 
+  // Month-over-month change (%) for the latest vs previous trend entry.
+  function sdMom(
+    key: "carbonSteel" | "shipmentsTotal" | "inventory",
+  ): number | null {
+    if (sdTrend.length < 2) return null;
+    const cur = sdTrend[sdTrend.length - 1][key];
+    const prev = sdTrend[sdTrend.length - 2][key];
+    if (!prev || prev === 0) return null;
+    return ((cur - prev) / prev) * 100;
+  }
+
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-slate-950 text-white">
       <div
@@ -734,12 +745,27 @@ export default function SteelPage() {
                       />
                     </div>
                     {sdTrend.length > 0 && (
-                      <p className="mt-0.5 shrink-0 font-mono text-lg font-bold tabular-nums text-white">
-                        {sdTrend[sdTrend.length - 1].carbonSteel.toFixed(1)}
-                        <span className="ml-0.5 text-xs font-normal text-white/40">
-                          万トン
-                        </span>
-                      </p>
+                      <div className="mt-0.5 flex shrink-0 items-end justify-between">
+                        <p className="font-mono text-lg font-bold tabular-nums text-white">
+                          {sdTrend[sdTrend.length - 1].carbonSteel.toFixed(1)}
+                          <span className="ml-0.5 text-xs font-normal text-white/40">
+                            万トン
+                          </span>
+                        </p>
+                        {(() => {
+                          const mom = sdMom("carbonSteel");
+                          if (mom === null) return null;
+                          return (
+                            <span
+                              className={`font-mono text-xs tabular-nums ${mom >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                            >
+                              {mom >= 0 ? "+" : ""}
+                              {mom.toFixed(1)}%
+                              <span className="ml-0.5 text-[9px] text-white/30">前月比</span>
+                            </span>
+                          );
+                        })()}
+                      </div>
                     )}
                   </Panel>
 
@@ -758,12 +784,27 @@ export default function SteelPage() {
                       />
                     </div>
                     {sdTrend.length > 0 && (
-                      <p className="mt-0.5 shrink-0 font-mono text-lg font-bold tabular-nums text-white">
-                        {sdTrend[sdTrend.length - 1].shipmentsTotal.toFixed(1)}
-                        <span className="ml-0.5 text-xs font-normal text-white/40">
-                          万トン
-                        </span>
-                      </p>
+                      <div className="mt-0.5 flex shrink-0 items-end justify-between">
+                        <p className="font-mono text-lg font-bold tabular-nums text-white">
+                          {sdTrend[sdTrend.length - 1].shipmentsTotal.toFixed(1)}
+                          <span className="ml-0.5 text-xs font-normal text-white/40">
+                            万トン
+                          </span>
+                        </p>
+                        {(() => {
+                          const mom = sdMom("shipmentsTotal");
+                          if (mom === null) return null;
+                          return (
+                            <span
+                              className={`font-mono text-xs tabular-nums ${mom >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                            >
+                              {mom >= 0 ? "+" : ""}
+                              {mom.toFixed(1)}%
+                              <span className="ml-0.5 text-[9px] text-white/30">前月比</span>
+                            </span>
+                          );
+                        })()}
+                      </div>
                     )}
                   </Panel>
 
@@ -799,12 +840,27 @@ export default function SteelPage() {
                     </div>
                     {sdTrend.length > 0 && (
                       <div className="mt-0.5 shrink-0">
-                        <p className="font-mono text-lg font-bold tabular-nums text-white">
-                          {sdTrend[sdTrend.length - 1].inventory.toFixed(1)}
-                          <span className="ml-0.5 text-xs font-normal text-white/40">
-                            万トン
-                          </span>
-                        </p>
+                        <div className="flex items-end justify-between">
+                          <p className="font-mono text-lg font-bold tabular-nums text-white">
+                            {sdTrend[sdTrend.length - 1].inventory.toFixed(1)}
+                            <span className="ml-0.5 text-xs font-normal text-white/40">
+                              万トン
+                            </span>
+                          </p>
+                          {(() => {
+                            const mom = sdMom("inventory");
+                            if (mom === null) return null;
+                            return (
+                              <span
+                                className={`font-mono text-xs tabular-nums ${mom >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                              >
+                                {mom >= 0 ? "+" : ""}
+                                {mom.toFixed(1)}%
+                                <span className="ml-0.5 text-[9px] text-white/30">前月比</span>
+                              </span>
+                            );
+                          })()}
+                        </div>
                         <p className="mt-0.5 text-[9px] leading-snug text-white/55">
                           {sdComment()}
                         </p>
