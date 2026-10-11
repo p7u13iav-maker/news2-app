@@ -24,6 +24,10 @@ export interface SupplyDemandMonth {
   shipmentsDomestic: number;
   /** Export shipments (10k tonnes). */
   shipmentsExport: number;
+  /** Total inventory (10k tonnes). */
+  inventory: number;
+  /** Inventory ratio (%) — 在庫 ÷ 出荷. */
+  inventoryRatio: number;
 }
 
 export interface SupplyDemandSummary {
@@ -198,6 +202,8 @@ function parseTrend(sheet: XLSX.WorkSheet | undefined): SupplyDemandMonth[] {
     const shipmentsTotal = Number(row[3]);
     const shipmentsDomestic = Number(row[4]);
     const shipmentsExport = Number(row[5]);
+    const inventoryTotal = Number(row[8]);
+    const inventoryRatio = Number(row[11]);
 
     if (Number.isFinite(crudeSteel) && Number.isFinite(carbonSteel)) {
       results.push({
@@ -209,6 +215,8 @@ function parseTrend(sheet: XLSX.WorkSheet | undefined): SupplyDemandMonth[] {
         shipmentsTotal: Number.isFinite(shipmentsTotal) ? shipmentsTotal / 10 : 0,
         shipmentsDomestic: Number.isFinite(shipmentsDomestic) ? shipmentsDomestic / 10 : 0,
         shipmentsExport: Number.isFinite(shipmentsExport) ? shipmentsExport / 10 : 0,
+        inventory: Number.isFinite(inventoryTotal) ? inventoryTotal / 10 : 0,
+        inventoryRatio: Number.isFinite(inventoryRatio) ? inventoryRatio : 0,
       });
     }
   }
