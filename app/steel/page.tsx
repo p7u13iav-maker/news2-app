@@ -408,14 +408,13 @@ function StackedBarChart({
                     style={{
                       left: `${cxPct}%`,
                       top: `${((ls.topY + ls.h / 2) / H) * 100}%`,
-                      color: isLatest
-                        ? "rgba(255,255,255,0.95)"
-                        : labelColorMap?.[ls.name] ??
-                          (ls.name === "中国"
-                            ? "#7f1d1d"
-                            : ls.name === "インド"
-                              ? "#7c2d12"
-                              : "rgba(255,255,255,0.9)"),
+                      color:
+                        labelColorMap?.[ls.name] ??
+                        (ls.name === "中国"
+                          ? "#7f1d1d"
+                          : ls.name === "インド"
+                            ? "#7c2d12"
+                            : "rgba(255,255,255,0.95)"),
                     }}
                   >
                     {ls.value.toFixed(0)}
