@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { fetchHeadlines } from "@/lib/newsApi";
 import { NEWS_TAG } from "@/lib/news";
-import { fetchAllHoroscopes, todayKey } from "@/lib/zodiac";
+import { todayKey } from "@/lib/zodiac";
 
 /**
  * Vercel Cron target (see vercel.json). Runs once daily at 6:30 JST and:
@@ -22,11 +22,20 @@ export async function GET() {
     const count = (await fetchHeadlines()).length;
     revalidateTag(NEWS_TAG, "max");
 
-    // Warm the horoscope raw-data path (validates API reachability).
+    // Warm the horoscope cache by calling the internal horoscope API
+    // (Sigastra, Japanese, no AI). This populates the 24h daily cache.
     let horoscopeOk = false;
     try {
-      const raw = await fetchAllHoroscopes("daily");
-      horoscopeOk = Object.keys(raw).length === 12;
+      const res = await fetch("http://localhost/api/horoscope", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ period: "daily" }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (res.ok) {
+        const j = await res.json();
+        horoscopeOk = j.ok === true;
+      }
     } catch {
       // Non-fatal: horoscope will still work on demand.
     }

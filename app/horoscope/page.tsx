@@ -198,7 +198,15 @@ export default function HoroscopePage() {
         </a>
         <div className="flex items-center gap-4">
           <span className="text-xs text-white/30">
-            毎朝 6:30 に更新 · 出典: freehoroscopeapi.com
+            毎朝 6:30 に更新 ·{" "}
+            <a
+              href="https://sigastra.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/40 underline decoration-white/30 transition hover:text-white/70"
+            >
+              Powered by Sigastra
+            </a>
           </span>
           <a
             href="/weather"
