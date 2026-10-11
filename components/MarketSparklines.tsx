@@ -5,7 +5,10 @@ import { buildMarketComment } from "@/lib/marketComment";
 
 interface Point {
   t: number;
-  v: number;
+  v: number; // close
+  o: number; // open
+  h: number; // high
+  l: number; // low
 }
 
 interface MarketData {
@@ -61,24 +64,59 @@ function Sparkline({
   const W = 100;
   const H = height;
   const PAD = 2;
-  const d = buildPath(points, W, H, PAD);
-  if (!d) return null;
+
+  // Scale to include high/low for proper candle rendering.
+  const allVals = points.flatMap((p) => [p.h, p.l]);
+  const min = Math.min(...allVals);
+  const max = Math.max(...allVals);
+  const range = max - min || 1;
+  const n = points.length;
+  const x0 = PAD;
+  const x1 = W - PAD;
+  const y0 = PAD;
+  const y1 = H - PAD;
+
+  const xOf = (i: number) => (n === 1 ? x0 : x0 + ((x1 - x0) * i) / (n - 1));
+  const yOf = (v: number) => y1 - ((y1 - y0) * (v - min)) / range;
+
   const stroke = up ? "#34d399" : "#f87171";
   const fill = up ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)";
-  const lastVals = points.map((p) => p.v);
-  const min = Math.min(...lastVals);
-  const max = Math.max(...lastVals);
-  const range = max - min || 1;
-  const lastV = lastVals[lastVals.length - 1];
-  const lastY = H - PAD - ((H - 2 * PAD) * (lastV - min)) / range;
+  const candleColor = "rgba(255,255,255,0.55)";
+
+  // Close line path.
+  const d = buildPath(points, W, H, PAD);
+  if (!d) return null;
+
+  // Candle width (thin, so they don't overwhelm the sparkline).
+  const cw = Math.max(0.6, (x1 - x0) / n * 0.35);
+
+  const lastV = points[n - 1].v;
+  const lastY = yOf(lastV);
+
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
       className="h-full w-full"
     >
+      {/* Area fill under close line. */}
       <path d={`${d} L${W - PAD},${H} L${PAD},${H} Z`} fill={fill} stroke="none" />
+      {/* Close trend line. */}
       <path d={d} fill="none" stroke={stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+      {/* OHLC candles: high-low vertical + open tick. */}
+      {points.map((p, i) => {
+        const cx = xOf(i);
+        const yh = yOf(p.h);
+        const yl = yOf(p.l);
+        const yo = yOf(p.o);
+        return (
+          <g key={i} stroke={candleColor} strokeWidth={0.4} vectorEffect="non-scaling-stroke">
+            <line x1={cx} y1={yh} x2={cx} y2={yl} />
+            <line x1={cx - cw / 2} y1={yo} x2={cx + cw / 2} y2={yo} />
+          </g>
+        );
+      })}
+      {/* Last point dot. */}
       <circle cx={W - PAD} cy={lastY} r={2} fill={stroke} />
     </svg>
   );

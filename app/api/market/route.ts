@@ -30,10 +30,13 @@ const MARKET: MarketItem[] = [
 
 const FETCH_TIMEOUT_MS = 12_000;
 
-/** One data point: Unix epoch seconds + closing price. */
+/** One data point: Unix epoch seconds + OHLC. */
 interface Point {
   t: number;
-  v: number;
+  v: number;   // close
+  o: number;   // open
+  h: number;   // high
+  l: number;   // low
 }
 
 async function fetchSeries(symbol: string): Promise<Point[] | null> {
@@ -56,20 +59,29 @@ async function fetchSeries(symbol: string): Promise<Point[] | null> {
       chart?: {
         result?: Array<{
           timestamp?: number[];
-          indicators?: { quote?: Array<{ close?: (number | null)[] }> };
+          indicators?: {
+            quote?: Array<{
+              close?: (number | null)[];
+              open?: (number | null)[];
+              high?: (number | null)[];
+              low?: (number | null)[];
+            }>;
+          };
         }>;
       };
     };
     const r = json.chart?.result?.[0];
     const ts = r?.timestamp;
-    const closes = r?.indicators?.quote?.[0]?.close;
-    if (!ts || !closes) return null;
+    const q = r?.indicators?.quote?.[0];
+    if (!ts || !q) return null;
     const points: Point[] = [];
     for (let i = 0; i < ts.length; i++) {
-      const v = closes[i];
-      if (typeof v === "number" && !Number.isNaN(v)) {
-        points.push({ t: ts[i], v });
-      }
+      const v = q.close?.[i];
+      if (typeof v !== "number" || Number.isNaN(v)) continue;
+      const o = typeof q.open?.[i] === "number" ? q.open[i]! : v;
+      const h = typeof q.high?.[i] === "number" ? q.high[i]! : Math.max(o, v);
+      const l = typeof q.low?.[i] === "number" ? q.low[i]! : Math.min(o, v);
+      points.push({ t: ts[i], v, o, h, l });
     }
     return points.length > 1 ? points : null;
   } catch {
