@@ -12,13 +12,14 @@ interface HoroscopeData {
 
 const SLIDE_MS = 10_000;
 
-/** Split 12 signs into 2 groups of 6. */
+/** Split 12 signs into 3 groups of 4. */
 const GROUPS = [
-  ZODIAC_SIGNS.slice(0, 6), // Aries - Virgo
-  ZODIAC_SIGNS.slice(6, 12), // Libra - Pisces
+  ZODIAC_SIGNS.slice(0, 4), // Aries - Cancer
+  ZODIAC_SIGNS.slice(4, 8), // Leo - Scorpio
+  ZODIAC_SIGNS.slice(8, 12), // Sagittarius - Pisces
 ];
 
-const GROUP_LABELS = ["前半 (牡羊〜乙女)", "後半 (天秤〜魚)"];
+const GROUP_LABELS = ["前半 (牡羊〜蟹)", "中盤 (獅子〜蠍)", "後半 (射手〜魚)"];
 
 export default function HoroscopePage() {
   const [data, setData] = useState<HoroscopeData | null>(null);
@@ -34,7 +35,7 @@ export default function HoroscopePage() {
     return () => clearInterval(id);
   }, []);
 
-  // Auto-advance slide every 10s (2 pages = 20s full cycle).
+  // Auto-advance slide every 10s (3 pages = 30s full cycle).
   useEffect(() => {
     const id = setInterval(
       () => setSlide((s) => (s + 1) % GROUPS.length),
@@ -100,7 +101,7 @@ export default function HoroscopePage() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {/* Slide indicator (2 dots). */}
+          {/* Slide indicator (3 dots). */}
           <div className="flex items-center gap-1.5">
             {GROUPS.map((_, i) => (
               <button
@@ -140,7 +141,7 @@ export default function HoroscopePage() {
         {/* Group label. */}
         {hoscopes && !loading && (
           <p className="mb-3 text-center text-sm text-white/40">
-            {GROUP_LABELS[slide]} · {slide + 1}/2
+            {GROUP_LABELS[slide]} · {slide + 1}/3
           </p>
         )}
 
@@ -158,24 +159,28 @@ export default function HoroscopePage() {
           </div>
         )}
 
-        {/* Vertical list: sign name left, comment right. */}
+        {/* Vertical list: 4 signs, sign name left, comment right.
+            Only 4 rows so each gets ample height — full comment fits
+            without scrolling on a 1080p signage display. */}
         {hoscopes && !loading && (
-          <div key={slide} className="flex min-h-0 flex-1 flex-col gap-2">
+          <div key={slide} className="flex min-h-0 flex-1 flex-col gap-3">
             {currentGroup.map((s) => (
               <div
                 key={s.key}
-                className="flex min-h-0 flex-1 items-center gap-4 rounded-xl border border-white/10 bg-white/5 px-5"
+                className="flex min-h-0 flex-1 items-center gap-5 rounded-xl border border-white/10 bg-white/5 px-6 py-3"
               >
                 {/* Sign: symbol + name + date range. */}
-                <div className="flex w-[200px] shrink-0 items-center gap-3">
-                  <span className="text-3xl leading-none">{s.symbol}</span>
+                <div className="flex w-[220px] shrink-0 items-center gap-3">
+                  <span className="text-4xl leading-none">{s.symbol}</span>
                   <div>
-                    <p className="text-lg font-bold leading-tight">{s.ja}</p>
-                    <p className="text-[10px] text-white/40">{s.dateRange}</p>
+                    <p className="text-xl font-bold leading-tight">{s.ja}</p>
+                    <p className="text-xs text-white/40">{s.dateRange}</p>
                   </div>
                 </div>
-                {/* Horoscope comment (fills remaining width). */}
-                <p className="min-h-0 flex-1 overflow-hidden text-sm leading-relaxed text-white/80">
+                {/* Horoscope comment (fills remaining width).
+                    leading-snug + text-base so ~150 chars fits 2-3 lines
+                    in the available height. */}
+                <p className="min-h-0 flex-1 text-base leading-snug text-white/85">
                   {hoscopes[s.key]}
                 </p>
               </div>

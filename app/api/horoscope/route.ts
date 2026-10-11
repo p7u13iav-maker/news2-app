@@ -24,6 +24,28 @@ function sigastraUrl(period: Period): string {
 }
 
 /**
+ * Sigastra returns full-length comments (300-700 chars). To display without
+ * scrolling on a signage screen, we truncate to the first N characters,
+ * cutting at a natural sentence boundary (。or 、) so the text reads cleanly.
+ */
+const MAX_CHARS = 120;
+
+function truncateAtBoundary(text: string, max: number): string {
+  if (text.length <= max) return text;
+  // Try to cut at the last sentence boundary within the limit.
+  const window = text.slice(0, max);
+  const lastPeriod = window.lastIndexOf("。");
+  const lastComma = window.lastIndexOf("、");
+  const cut = Math.max(lastPeriod, lastComma);
+  if (cut > max * 0.5) {
+    // Cut at the boundary, keeping the trailing punctuation.
+    return window.slice(0, cut + 1);
+  }
+  // No good boundary found — hard cut at max chars.
+  return window;
+}
+
+/**
  * POST /api/horoscope  { period: "daily" | "weekly" | "monthly" }
  *
  * 1. Fetches Japanese horoscopes for all 12 signs from Sigastra.
@@ -71,7 +93,8 @@ export async function POST(req: Request) {
           it.sign?.toLowerCase() === s.key ||
           it.sign?.toLowerCase() === s.key.charAt(0).toUpperCase() + s.key.slice(1),
       );
-      horoscopes[s.key] = item?.text ?? "";
+      const raw = item?.text ?? "";
+      horoscopes[s.key] = truncateAtBoundary(raw, MAX_CHARS);
     }
 
     // Verify we got at least some data.
