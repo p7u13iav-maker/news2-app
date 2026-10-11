@@ -203,7 +203,7 @@ function TideChart({
   low: { time: string; level: number }[];
 }) {
   const W = 1000;
-  const H = 260;
+  const H = 320;
   if (hourly.length === 0) return null;
 
   const levels = hourly.map((h) => h.level);
@@ -283,7 +283,7 @@ function TideChart({
         x={4}
         y={16}
         fill="rgba(255,255,255,0.45)"
-        fontSize="15"
+        fontSize="17"
         textAnchor="start"
       >
         潮位（cm）
@@ -302,9 +302,9 @@ function TideChart({
           />
           <text
             x={L - 8}
-            y={t.y + 5}
+            y={t.y + 6}
             fill="rgba(255,255,255,0.55)"
-            fontSize="16"
+            fontSize="18"
             fontFamily="monospace"
             textAnchor="end"
           >
@@ -337,9 +337,9 @@ function TideChart({
         <g key={i}>
           <text
             x={p.x}
-            y={top + plotH + 24}
+            y={top + plotH + 28}
             fill="rgba(255,255,255,0.5)"
-            fontSize="14"
+            fontSize="16"
             fontFamily="monospace"
             textAnchor="middle"
           >
@@ -448,7 +448,7 @@ function HourlyChart({
   weatherCode: number;
 }) {
   const W = 1000;
-  const H = 260;
+  const H = 320;
   if (hourly.length === 0) return null;
 
   const temps = hourly.map((h) => h.temperature);
@@ -533,7 +533,7 @@ function HourlyChart({
         x={4}
         y={16}
         fill="rgba(255,255,255,0.45)"
-        fontSize="15"
+        fontSize="17"
         textAnchor="start"
       >
         気温（℃）
@@ -553,9 +553,9 @@ function HourlyChart({
           />
           <text
             x={L - 8}
-            y={t.y + 5}
+            y={t.y + 6}
             fill="rgba(255,255,255,0.55)"
-            fontSize="16"
+            fontSize="18"
             fontFamily="monospace"
             textAnchor="end"
           >
@@ -591,15 +591,15 @@ function HourlyChart({
         <g key={i}>
           <text
             x={p.x}
-            y={top + plotH + 24}
+            y={top + plotH + 28}
             fill="rgba(255,255,255,0.5)"
-            fontSize="14"
+            fontSize="16"
             fontFamily="monospace"
             textAnchor="middle"
           >
             {fmtHour(p.h.time)}時
           </text>
-          <WeatherIcon code={p.h.weatherCode} cx={p.x} cy={top + plotH + 44} size={24} />
+          <WeatherIcon code={p.h.weatherCode} cx={p.x} cy={top + plotH + 46} size={30} />
         </g>
       ))}
 
