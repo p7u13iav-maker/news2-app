@@ -36,27 +36,28 @@ interface HoroscopeData {
 
 /* ---------- Horoscope (astro) styling ---------- */
 
-/** Element accent per sign (morning-show palette, shared with /horoscope). */
+/** Element accent per sign (dark morning-show palette, shared with /horoscope). */
 const HORO_ELEMENTS: Record<
   ZodiacKey,
   { label: string; accent: string; soft: string }
 > = {
-  aries: { label: "火", accent: "#f43f5e", soft: "#ffe4e6" },
-  taurus: { label: "地", accent: "#10b981", soft: "#d1fae5" },
-  gemini: { label: "風", accent: "#f59e0b", soft: "#fef3c7" },
-  cancer: { label: "水", accent: "#0ea5e9", soft: "#e0f2fe" },
-  leo: { label: "火", accent: "#f97316", soft: "#ffedd5" },
-  virgo: { label: "地", accent: "#14b8a6", soft: "#ccfbf1" },
-  libra: { label: "風", accent: "#eab308", soft: "#fef9c3" },
-  scorpio: { label: "水", accent: "#6366f1", soft: "#e0e7ff" },
-  sagittarius: { label: "火", accent: "#f97316", soft: "#ffedd5" },
-  capricorn: { label: "地", accent: "#22c55e", soft: "#dcfce7" },
-  aquarius: { label: "風", accent: "#eab308", soft: "#fef9c3" },
-  pisces: { label: "水", accent: "#8b5cf6", soft: "#ede9fe" },
+  aries: { label: "火", accent: "#fb7185", soft: "rgba(244,63,94,0.16)" },
+  taurus: { label: "地", accent: "#34d399", soft: "rgba(16,185,129,0.16)" },
+  gemini: { label: "風", accent: "#fbbf24", soft: "rgba(245,158,11,0.16)" },
+  cancer: { label: "水", accent: "#38bdf8", soft: "rgba(14,165,233,0.16)" },
+  leo: { label: "火", accent: "#fb923c", soft: "rgba(249,115,22,0.16)" },
+  virgo: { label: "地", accent: "#2dd4bf", soft: "rgba(20,184,166,0.16)" },
+  libra: { label: "風", accent: "#facc15", soft: "rgba(234,179,8,0.16)" },
+  scorpio: { label: "水", accent: "#818cf8", soft: "rgba(99,102,241,0.16)" },
+  sagittarius: { label: "火", accent: "#fb923c", soft: "rgba(249,115,22,0.16)" },
+  capricorn: { label: "地", accent: "#4ade80", soft: "rgba(34,197,94,0.16)" },
+  aquarius: { label: "風", accent: "#facc15", soft: "rgba(234,179,8,0.16)" },
+  pisces: { label: "水", accent: "#a78bfa", soft: "rgba(139,92,246,0.16)" },
 };
 
-/** Bright morning sky for the horoscope slide (same as /horoscope). */
-const HORO_BG = "linear-gradient(160deg, #fef9c3 0%, #e0f2fe 45%, #dbeafe 100%)";
+/** Dark slate base for the horoscope slide (matches the other signage slides). */
+const HORO_BG =
+  "radial-gradient(120% 120% at 15% 10%, #1e293b 0%, #0b1120 45%, #020617 100%)";
 
 /* ---------- Slide definitions ---------- */
 
@@ -142,12 +143,12 @@ function HoroscopeSlide({ data }: { data: HoroscopeData | null }) {
   }
   return (
     <div className="relative h-full w-full">
-      {/* Bright morning-sky background (same as /horoscope). */}
+      {/* Dark slate base (matches the other signage slides). */}
       <div className="absolute inset-0" style={{ background: HORO_BG }} />
-      {/* Sunrise glow. */}
+      {/* Warm sunrise glow (upper-right) - the "morning" accent. */}
       <div
-        className="absolute -right-32 -top-32 h-[60vh] w-[60vh] rounded-full opacity-70 blur-3xl"
-        style={{ background: "radial-gradient(circle, #fde68a 0%, #fdba74 40%, transparent 70%)" }}
+        className="absolute -right-32 -top-32 h-[60vh] w-[60vh] rounded-full opacity-40 blur-3xl"
+        style={{ background: "radial-gradient(circle, #fdba74 0%, #fb923c 45%, transparent 72%)" }}
       />
       {/* Card entrance animation (staggered per sign). */}
       <style>{`
@@ -163,7 +164,7 @@ function HoroscopeSlide({ data }: { data: HoroscopeData | null }) {
           return (
             <div
               key={s.key}
-              className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm shadow-slate-200/50"
+              className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur-sm"
               style={{ animation: `hSignIn 0.5s ease ${i * 40}ms both` }}
             >
               {/* Element accent bar at the top. */}
@@ -176,10 +177,10 @@ function HoroscopeSlide({ data }: { data: HoroscopeData | null }) {
                   {s.animal}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[15px] font-bold leading-tight text-slate-800">
+                  <p className="truncate text-[15px] font-bold leading-tight text-white">
                     {s.ja}
                   </p>
-                  <p className="font-mono text-[10px] tabular-nums text-slate-400">
+                  <p className="font-mono text-[10px] tabular-nums text-white/40">
                     {s.dateRange}
                   </p>
                 </div>
@@ -190,7 +191,7 @@ function HoroscopeSlide({ data }: { data: HoroscopeData | null }) {
                   {el.label}
                 </span>
               </div>
-              <p className="min-h-0 flex-1 overflow-hidden text-[11px] leading-snug text-slate-600">
+              <p className="min-h-0 flex-1 overflow-hidden text-[11px] leading-snug text-white/75">
                 {data.horoscopes![s.key]}
               </p>
             </div>
@@ -342,16 +343,13 @@ export default function UnifiedSignage({
         className="absolute inset-0 opacity-90 transition-all duration-1000"
         style={{ background: signageBackground }}
       />
-      {/* Accent glow that shifts hue per slide (hidden on the light
-          horoscope slide, which has its own sunrise glow). */}
-      {!isHoro && (
-        <div
-          className="absolute -right-40 -top-40 h-[60vh] w-[60vh] rounded-full opacity-20 blur-3xl transition-all duration-1000"
-          style={{
-            background: `hsl(${(index * 28) % 360} 70% 55%)`,
-          }}
-        />
-      )}
+      {/* Accent glow that shifts hue per slide. */}
+      <div
+        className="absolute -right-40 -top-40 h-[60vh] w-[60vh] rounded-full opacity-20 blur-3xl transition-all duration-1000"
+        style={{
+          background: `hsl(${(index * 28) % 360} 70% 55%)`,
+        }}
+      />
 
       {/* Header. */}
       <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-10 pt-8">
@@ -359,42 +357,32 @@ export default function UnifiedSignage({
           <span
             className={`flex h-11 w-11 items-center justify-center rounded-full text-2xl ${
               isHoro
-                ? "bg-gradient-to-br from-amber-300 to-orange-400 shadow-lg shadow-orange-200/60"
+                ? "bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-orange-900/40"
                 : "bg-white/10"
             }`}
           >
             {isHoro ? "🌅" : "☀️"}
           </span>
           <div>
-            <p
-              className={`text-2xl font-bold tracking-tight ${
-                isHoro ? "text-slate-800" : "text-white"
-              }`}
-            >
+            <p className="text-2xl font-bold tracking-tight text-white">
               朝会前のひととき
             </p>
-            <p className={`text-sm ${isHoro ? "text-slate-500" : "text-white/50"}`}>
-              <span className={isHoro ? "text-slate-600" : "text-white/60"}>
-                {sectionLabel}
-              </span>
+            <p className="text-sm text-white/50">
+              <span className="text-white/60">{sectionLabel}</span>
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           {clock && (
             <div className="text-right">
-              <p
-                className={`font-mono text-3xl font-light tabular-nums ${
-                  isHoro ? "text-slate-800" : "text-white"
-                }`}
-              >
+              <p className="font-mono text-3xl font-light tabular-nums text-white">
                 {clock.toLocaleTimeString("ja-JP", {
                   hour: "2-digit",
                   minute: "2-digit",
                   second: "2-digit",
                 })}
               </p>
-              <p className={`text-xs ${isHoro ? "text-slate-500" : "text-white/50"}`}>
+              <p className="text-xs text-white/50">
                 {clock.toLocaleDateString("ja-JP", {
                   year: "numeric",
                   month: "long",
@@ -465,11 +453,8 @@ export default function UnifiedSignage({
                   className="h-1.5 rounded-full transition-all duration-500"
                   style={{
                     width: i === index ? "1.2rem" : "0.4rem",
-                    background: isHoro
-                      ? i === index
-                        ? "#f97316"
-                        : "rgba(15,23,42,0.30)"
-                      : i === index
+                    background:
+                      i === index
                         ? "#fff"
                         : s.kind === current.kind
                           ? "rgba(255,255,255,0.4)"
@@ -479,21 +464,15 @@ export default function UnifiedSignage({
               ))}
             </div>
             {/* Progress bar — same fixed width as the dots row. */}
-            <div
-              className={`h-1 overflow-hidden rounded-full ${
-                isHoro ? "bg-slate-900/10" : "bg-white/10"
-              }`}
-            >
+            <div className="h-1 overflow-hidden rounded-full bg-white/10">
               <div
-                className={`h-full ${isHoro ? "bg-orange-400" : "bg-white/60"}`}
+                className="h-full bg-white/60"
                 style={{ width: `${progress}%` }}
               />
             </div>
           </div>
           {/* Page number, right of the dots. */}
-          <span
-            className={`text-sm tabular-nums ${isHoro ? "text-slate-500" : "text-white/40"}`}
-          >
+          <span className="text-sm tabular-nums text-white/40">
             {index + 1} / {total}
           </span>
         </div>

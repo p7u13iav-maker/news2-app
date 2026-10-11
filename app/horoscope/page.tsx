@@ -12,21 +12,21 @@ interface HoroscopeData {
 
 /**
  * Element accent per sign (fire/earth/air/water). Used for the top accent bar,
- * the animal badge ring and the element tag on the bright morning-show cards.
+ * the animal badge tint and the element tag on the dark morning-show cards.
  */
 const ELEMENTS: Record<ZodiacKey, { label: string; accent: string; soft: string }> = {
-  aries: { label: "火", accent: "#f43f5e", soft: "#ffe4e6" },
-  taurus: { label: "地", accent: "#10b981", soft: "#d1fae5" },
-  gemini: { label: "風", accent: "#f59e0b", soft: "#fef3c7" },
-  cancer: { label: "水", accent: "#0ea5e9", soft: "#e0f2fe" },
-  leo: { label: "火", accent: "#f97316", soft: "#ffedd5" },
-  virgo: { label: "地", accent: "#14b8a6", soft: "#ccfbf1" },
-  libra: { label: "風", accent: "#eab308", soft: "#fef9c3" },
-  scorpio: { label: "水", accent: "#6366f1", soft: "#e0e7ff" },
-  sagittarius: { label: "火", accent: "#f97316", soft: "#ffedd5" },
-  capricorn: { label: "地", accent: "#22c55e", soft: "#dcfce7" },
-  aquarius: { label: "風", accent: "#eab308", soft: "#fef9c3" },
-  pisces: { label: "水", accent: "#8b5cf6", soft: "#ede9fe" },
+  aries: { label: "火", accent: "#fb7185", soft: "rgba(244,63,94,0.16)" },
+  taurus: { label: "地", accent: "#34d399", soft: "rgba(16,185,129,0.16)" },
+  gemini: { label: "風", accent: "#fbbf24", soft: "rgba(245,158,11,0.16)" },
+  cancer: { label: "水", accent: "#38bdf8", soft: "rgba(14,165,233,0.16)" },
+  leo: { label: "火", accent: "#fb923c", soft: "rgba(249,115,22,0.16)" },
+  virgo: { label: "地", accent: "#2dd4bf", soft: "rgba(20,184,166,0.16)" },
+  libra: { label: "風", accent: "#facc15", soft: "rgba(234,179,8,0.16)" },
+  scorpio: { label: "水", accent: "#818cf8", soft: "rgba(99,102,241,0.16)" },
+  sagittarius: { label: "火", accent: "#fb923c", soft: "rgba(249,115,22,0.16)" },
+  capricorn: { label: "地", accent: "#4ade80", soft: "rgba(34,197,94,0.16)" },
+  aquarius: { label: "風", accent: "#facc15", soft: "rgba(234,179,8,0.16)" },
+  pisces: { label: "水", accent: "#a78bfa", soft: "rgba(139,92,246,0.16)" },
 };
 
 export default function HoroscopePage() {
@@ -72,7 +72,7 @@ export default function HoroscopePage() {
   const horoscopes = data?.horoscopes;
 
   return (
-    <div className="relative flex h-dvh flex-col overflow-hidden bg-sky-100 text-slate-800">
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-slate-950 text-white">
       {/* Card entrance animation (staggered per sign). */}
       <style>{`
         @keyframes signIn {
@@ -80,50 +80,45 @@ export default function HoroscopePage() {
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
-      {/* Bright morning sky: sunlight glow (upper-right) + soft sky wash. */}
+      {/* Base gradient matching the rest of the signage (dark slate). */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 opacity-90"
         style={{
           background:
-            "linear-gradient(160deg, #fef9c3 0%, #e0f2fe 45%, #dbeafe 100%)",
+            "radial-gradient(120% 120% at 15% 10%, #1e293b 0%, #0b1120 45%, #020617 100%)",
         }}
       />
-      {/* Sunrise glow. */}
+      {/* Warm sunrise glow (upper-right) - the "morning" accent. */}
       <div
-        className="absolute -right-32 -top-32 h-[60vh] w-[60vh] rounded-full opacity-70 blur-3xl"
-        style={{ background: "radial-gradient(circle, #fde68a 0%, #fdba74 40%, transparent 70%)" }}
-      />
-      {/* Faint sun. */}
-      <div
-        className="absolute right-24 top-10 h-24 w-24 rounded-full"
-        style={{ background: "radial-gradient(circle, #fff7cc 0%, #fde047 60%, transparent 72%)", opacity: 0.8 }}
+        className="absolute -right-32 -top-32 h-[60vh] w-[60vh] rounded-full opacity-40 blur-3xl"
+        style={{ background: "radial-gradient(circle, #fdba74 0%, #fb923c 45%, transparent 72%)" }}
       />
 
       {/* Header (morning-show title bar). */}
-      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/60 bg-white/50 px-10 py-3.5 backdrop-blur-md">
+      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 px-10 py-3.5">
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 to-orange-400 text-2xl shadow-lg shadow-orange-200/60">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-2xl shadow-lg shadow-orange-900/40">
             🌅
           </span>
           <div>
-            <p className="text-2xl font-extrabold tracking-tight text-slate-800">
+            <p className="text-2xl font-extrabold tracking-tight text-white">
               朝会前のひととき
             </p>
-            <p className="text-sm font-medium text-slate-500">
+            <p className="text-sm font-medium text-white/50">
               今日の運勢 · 12星座 · {data?.date ?? ""}
             </p>
           </div>
         </div>
         {clock && (
           <div className="text-right">
-            <p className="font-mono text-3xl font-bold tabular-nums text-slate-800">
+            <p className="font-mono text-3xl font-bold tabular-nums text-white">
               {clock.toLocaleTimeString("ja-JP", {
                 hour: "2-digit",
                 minute: "2-digit",
                 second: "2-digit",
               })}
             </p>
-            <p className="text-xs font-medium text-slate-500">
+            <p className="text-xs font-medium text-white/50">
               {clock.toLocaleDateString("ja-JP", {
                 year: "numeric",
                 month: "long",
@@ -140,7 +135,7 @@ export default function HoroscopePage() {
         {/* Error state. */}
         {error && (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-slate-500">{error}</p>
+            <p className="text-white/40">{error}</p>
           </div>
         )}
 
@@ -148,8 +143,8 @@ export default function HoroscopePage() {
         {loading && !error && (
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
-              <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-orange-400" />
-              <p className="text-slate-500">占いを読み込み中…</p>
+              <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-orange-400" />
+              <p className="text-white/40">占いを読み込み中…</p>
             </div>
           </div>
         )}
@@ -162,7 +157,7 @@ export default function HoroscopePage() {
               return (
                 <div
                   key={s.key}
-                  className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm shadow-slate-200/50 backdrop-blur-sm"
+                  className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur-sm"
                   style={{ animation: `signIn 0.5s ease ${i * 40}ms both` }}
                 >
                   {/* Element accent bar at the top. */}
@@ -179,10 +174,10 @@ export default function HoroscopePage() {
                       {s.animal}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-bold leading-tight text-slate-800">
+                      <p className="truncate text-[15px] font-bold leading-tight text-white">
                         {s.ja}
                       </p>
-                      <p className="font-mono text-[10px] tabular-nums text-slate-400">
+                      <p className="font-mono text-[10px] tabular-nums text-white/40">
                         {s.dateRange}
                       </p>
                     </div>
@@ -194,7 +189,7 @@ export default function HoroscopePage() {
                     </span>
                   </div>
                   {/* Horoscope comment (clamped to fit the cell). */}
-                  <p className="min-h-0 flex-1 overflow-hidden text-[11px] leading-snug text-slate-600">
+                  <p className="min-h-0 flex-1 overflow-hidden text-[11px] leading-snug text-white/75">
                     {horoscopes[s.key]}
                   </p>
                 </div>
@@ -205,28 +200,28 @@ export default function HoroscopePage() {
       </main>
 
       {/* Footer: navigation. */}
-      <footer className="relative z-10 flex shrink-0 items-center justify-between border-t border-white/60 bg-white/50 px-10 py-3 backdrop-blur-md">
+      <footer className="relative z-10 flex shrink-0 items-center justify-between border-t border-white/10 px-10 py-3">
         <a
           href="/"
-          className="text-sm font-medium text-slate-500 transition hover:text-slate-700"
+          className="text-sm font-medium text-white/40 transition hover:text-white/70"
         >
           ← メインニュースに戻る
         </a>
         <div className="flex items-center gap-4">
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-white/30">
             毎朝 7:30 に更新 ·{" "}
             <a
               href="https://sigastra.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-slate-500 underline decoration-slate-300 transition hover:text-slate-700"
+              className="text-white/40 underline decoration-white/30 transition hover:text-white/70"
             >
               Powered by Sigastra
             </a>
           </span>
           <a
             href="/weather"
-            className="text-sm font-medium text-slate-500 transition hover:text-slate-700"
+            className="text-sm font-medium text-white/40 transition hover:text-white/70"
           >
             ⛅ 天気 →
           </a>
