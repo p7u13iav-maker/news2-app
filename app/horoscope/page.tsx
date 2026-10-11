@@ -100,12 +100,10 @@ export default function HoroscopePage() {
     { top: "35%", left: "70%", size: 12, o: 0.3 },
   ];
 
-  // Shooting stars: each is a thin streak that sweeps across the background
-  // toward the lower-right (uniform direction). (top/left = start point,
-  // dur/delay = timing.)
+  // Shooting star: a thin streak that sweeps across the background from the
+  // upper-right toward the lower-left. (top/left = start point, dur = timing.)
   const shootingStars = [
-    { top: "10%", left: "12%", dur: 9, delay: 0 },
-    { top: "4%", left: "55%", dur: 10, delay: 4.5 },
+    { top: "6%", left: "82%", dur: 10, delay: 0 },
   ];
 
   return (
@@ -116,14 +114,14 @@ export default function HoroscopePage() {
           from { opacity: 0; transform: translateY(10px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
-        /* Shooting star: a streak that fades in, sweeps toward the lower-right
-           (45deg, 500px in x and 500px in y), then fades out. */
+        /* Shooting star: a streak that fades in, sweeps from upper-right to
+           lower-left (45deg, -500px in x and +500px in y), then fades out. */
         @keyframes shoot {
           0%   { transform: translate(0, 0) rotate(45deg); opacity: 0; }
           12%  { opacity: 0; }
           30%  { opacity: 1; }
           75%  { opacity: 0.9; }
-          100% { transform: translate(500px, 500px) rotate(45deg); opacity: 0; }
+          100% { transform: translate(-500px, 500px) rotate(45deg); opacity: 0; }
         }
       `}</style>
       {/* Deep-space gradient background. */}
