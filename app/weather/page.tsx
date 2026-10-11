@@ -211,7 +211,7 @@ function TideChart({
   const max = Math.max(...levels) + 20;
   const range = max - min || 1;
 
-  const L = 60;
+  const L = 96;
   const B = 90;
   const plotW = W - L - 20;
   const plotH = H - B - 20;
@@ -277,6 +277,17 @@ function TideChart({
           <stop offset="100%" stopColor={g1} />
         </linearGradient>
       </defs>
+
+      {/* Y-axis unit label. */}
+      <text
+        x={4}
+        y={16}
+        fill="rgba(255,255,255,0.45)"
+        fontSize="15"
+        textAnchor="start"
+      >
+        潮位（cm）
+      </text>
 
       {yTicks.map((t, i) => (
         <g key={i}>
@@ -445,7 +456,7 @@ function HourlyChart({
   const max = Math.max(...temps);
   const range = max - min || 1;
 
-  const L = 60;
+  const L = 96;
   const B = 90;
   const plotW = W - L - 20;
   const plotH = H - B - 20;
@@ -516,6 +527,17 @@ function HourlyChart({
           <stop offset="100%" stopColor={g1} />
         </linearGradient>
       </defs>
+
+      {/* Y-axis unit label. */}
+      <text
+        x={4}
+        y={16}
+        fill="rgba(255,255,255,0.45)"
+        fontSize="15"
+        textAnchor="start"
+      >
+        気温（℃）
+      </text>
 
       {/* Y-axis gridlines + labels. */}
       {yTicks.map((t, i) => (
@@ -988,12 +1010,12 @@ export default function WeatherPage() {
             </div>
 
             {/* Middle row: temperature chart (left) + tide chart (right). */}
-            <div className="flex shrink-0 gap-4" style={{ height: "34%" }}>
+            <div className="flex min-h-0 flex-1 gap-4">
               <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="mb-1 text-sm font-medium text-white/50">
+                <p className="mb-1 shrink-0 text-sm font-medium text-white/50">
                   気温の推移（毎時予報）
                 </p>
-                <div className="min-h-0 flex-1">
+                <div className="flex min-h-0 flex-1 flex-col">
                   <HourlyChart
                     hourly={data.hourly}
                     weatherCode={c!.weatherCode}
@@ -1026,17 +1048,15 @@ export default function WeatherPage() {
               )}
             </div>
 
-            {/* Bottom row: today's summary only. */}
-            <div className="min-h-0 flex-1">
-              <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5">
+            {/* Bottom row: today's summary only (compact height). */}
+            <div className="shrink-0">
+              <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-5 py-3">
                 <p className="shrink-0 text-sm font-semibold text-sky-200">
                   今日の一言
                 </p>
-                <div className="mt-2 flex min-h-0 flex-1 items-center">
-                  <p className="text-lg leading-relaxed text-white/85">
-                    {weatherSummary(c!, d!)}
-                  </p>
-                </div>
+                <p className="mt-1 text-base leading-snug text-white/85">
+                  {weatherSummary(c!, d!)}
+                </p>
               </div>
             </div>
           </>

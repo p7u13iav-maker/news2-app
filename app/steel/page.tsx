@@ -245,6 +245,7 @@ function StackedBarChart({
   paletteOverride,
   labelKey,
   labelKeys,
+  labelColorMap,
 }: {
   data: {
     label: string;
@@ -256,6 +257,8 @@ function StackedBarChart({
   /** Which segment names get inline value labels (default: 中国). */
   labelKey?: string;
   labelKeys?: string[];
+  /** Explicit color for each labeled segment's number (defaults to white-ish). */
+  labelColorMap?: Record<string, string>;
 }) {
   if (data.length === 0) return null;
   const n = data.length;
@@ -405,11 +408,12 @@ function StackedBarChart({
                       left: `${cxPct}%`,
                       top: `${((ls.topY + ls.h / 2) / H) * 100}%`,
                       color:
-                        ls.name === "中国"
+                        labelColorMap?.[ls.name] ??
+                        (ls.name === "中国"
                           ? "#fca5a5"
                           : ls.name === "インド"
                             ? "#fdba74"
-                            : "rgba(255,255,255,0.85)",
+                            : "rgba(255,255,255,0.85)"),
                     }}
                   >
                     {ls.value.toFixed(0)}
@@ -700,6 +704,7 @@ export default function SteelPage() {
                     <div className="min-h-0 flex-1">
                       <StackedBarChart
                         labelKeys={["普通鋼", "特殊鋼"]}
+                        labelColorMap={{ 普通鋼: "#7dd3fc", 特殊鋼: "#c4b5fd" }}
                         paletteOverride={{ 普通鋼: "#38bdf8", 特殊鋼: "#a78bfa" }}
                         data={data.production.map((p) => ({
                           label: `${p.month}月`,
@@ -996,6 +1001,13 @@ export default function SteelPage() {
                       return (
                         <StackedBarChart
                           labelKeys={["建設", "自動車", "機械", "船舶", "輸出"]}
+                          labelColorMap={{
+                            建設: "#7dd3fc",
+                            自動車: "#fcd34d",
+                            機械: "#c4b5fd",
+                            船舶: "#f9a8d4",
+                            輸出: "#6ee7b7",
+                          }}
                           data={chartData}
                           paletteOverride={{
                             建設: "#38bdf8",
