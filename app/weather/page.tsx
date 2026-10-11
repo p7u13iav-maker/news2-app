@@ -213,7 +213,7 @@ function TideChart({
 
   const L = 118;
   const B = 46;
-  const plotW = W - L - 20;
+  const plotW = W - L - 44;
   const plotH = H - B - 12;
   const top = 12;
 
