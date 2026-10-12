@@ -75,11 +75,11 @@ interface SlideDef {
  */
 function buildSlides(newsCount: number): SlideDef[] {
   const slides: SlideDef[] = [];
+  slides.push({ kind: "weather" });
+  slides.push({ kind: "horoscope" });
   slides.push({ kind: "steel" });
   slides.push({ kind: "market" });
-  slides.push({ kind: "weather" });
   for (let i = 0; i < newsCount; i++) slides.push({ kind: "news", sub: i });
-  slides.push({ kind: "horoscope" });
   return slides;
 }
 
