@@ -51,15 +51,6 @@ const FEEDS = [
     label: "日経ビジネス",
     url: "https://business.nikkei.com/rss/sns/nb.rdf",
   },
-  // International (English) sources — added for the AI summary page.
-  {
-    label: "BBC",
-    url: "http://feeds.bbci.co.uk/news/world/rss.xml",
-  },
-  {
-    label: "Guardian",
-    url: "https://www.theguardian.com/world/rss",
-  },
   // Sports: Nishinippon Shimbun (Kyushu regional paper with national sports
   // coverage — MLB, J.League, Ekiden, Sumo, etc.). Verified: 30 items,
   // 100% og:image + og:description.
@@ -127,7 +118,7 @@ const TRIM_TO_FIRST_SENTENCE_SOURCES = new Set(["日経新聞", "日経ビジネ
  * Sources that already carry a usable <description> in their RSS feed, so we
  * skip the extra per-article page fetch for them (keeps the request fast).
  */
-const NO_ENRICH_SOURCES = new Set(["BBC", "Guardian"]);
+const NO_ENRICH_SOURCES = new Set<string>([]);
 
 const FETCH_TIMEOUT_MS = 10_000;
 
@@ -350,9 +341,9 @@ export async function fetchArticleMeta(
  * article page.
  *
  * `sources` (optional) limits which feed labels are included. When omitted,
- * ALL feeds (NHK + Nikkei + BBC + Guardian) are returned — used by the AI
- * summary page. The digital-signage page passes `["NHK", "日経新聞",
- * "日経ビジネス"]` so it only shows domestic sources.
+ * ALL feeds (NHK + Nikkei + sports + tech) are returned. The digital-
+ * signage page passes `["NHK", "日経新聞", "日経ビジネス"]` so it only
+ * shows domestic sources.
  *
  * - NHK: body text already comes from the RSS <description>, so only the
  *   image (og:image) is fetched.
@@ -382,8 +373,6 @@ export async function fetchHeadlines(
   const toEnrich = merged.slice(0, ENRICH_LIMIT);
   await Promise.all(
     toEnrich.map(async (a) => {
-      // BBC / Guardian already include a description in the RSS; no need to
-      // fetch their (often slow, overseas) article pages.
       if (NO_ENRICH_SOURCES.has(a.source)) return;
       const isNikkei = TRIM_TO_FIRST_SENTENCE_SOURCES.has(a.source);
       const needsDesc = isNikkei && !a.description;

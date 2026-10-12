@@ -100,28 +100,20 @@ function isTabloidTitle(title: string): boolean {
  * With direct RSS sources we can't measure cross-outlet coverage the way we
  * could with a single aggregator feed. Instead we rank by:
  *   1. Prestige  — well-known outlets (NHK, Nikkei, BBC, Guardian) weigh
- *                  higher. The weight is reduced for the sports and
- *                  technology segments so that freshness and specificity
- *                  (title length) matter more than the outlet's name —
- *                  these segments have many specialist sources (日刊スポーツ,
- *                  朝日, ITmedia, Gizmodo) and we don't want one outlet to
- *                  dominate the ranking.
+ *                  higher.
  *   2. Readability proxy — longer, more informative titles tend to be the
  *                  lead articles, not short follow-ups.
  *   3. Recency   — fresher articles win ties.
  *
- *   score = prestigeWeight(segment)·prestige
+ *   score = 3·prestige
  *           + 0.5·min(5, floor(title_length / 20))
  *           + 1.0·exp(-age/τ)   (τ = 12h)
- *
- *   prestigeWeight: 3.0 (world/japan), 1.5 (sports/technology)
  *
  * Same-story dedupe: two articles are considered the same story when ≥ 45%
  * of their significant Japanese 2-3 char n-grams overlap (Jaccard).
  */
 const RECENCY_TAU_MS = 12 * 60 * 60 * 1000;
 const PRESTIGE_WEIGHT = 3.0;
-const SPORTS_TECH_PRESTIGE_WEIGHT = 1.5;
 const LENGTH_WEIGHT = 0.5;
 const RECENCY_WEIGHT = 1.0;
 const SIMILARITY_THRESHOLD = 0.45;
@@ -184,12 +176,8 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   return union === 0 ? 0 : inter / union;
 }
 
-function storyScore(a: TrendingArticle, nowMs: number, segment: Segment): number {
-  const prestigeWeight =
-    segment === "sports" || segment === "technology"
-      ? SPORTS_TECH_PRESTIGE_WEIGHT
-      : PRESTIGE_WEIGHT;
-  const prestige = prestigeWeight * sourcePrestige(a.source);
+function storyScore(a: TrendingArticle, nowMs: number): number {
+  const prestige = PRESTIGE_WEIGHT * sourcePrestige(a.source);
   const length = LENGTH_WEIGHT * Math.min(5, Math.floor(a.title.length / 20));
   const ageMs = nowMs - new Date(a.publishedAt).getTime();
   const recency = RECENCY_WEIGHT * Math.exp(-Math.max(0, ageMs) / RECENCY_TAU_MS);
@@ -229,11 +217,7 @@ function clusterStories(items: TrendingArticle[]): StoryCluster[] {
  * Dedupe by URL, cluster into stories, pick the best representative per
  * story, and sort by attention score. Cap at TOP_N.
  */
-function rankByAttention(
-  items: TrendingArticle[],
-  nowMs: number,
-  segment: Segment,
-): TrendingArticle[] {
+function rankByAttention(items: TrendingArticle[], nowMs: number): TrendingArticle[] {
   const seen = new Set<string>();
   const unique: TrendingArticle[] = [];
   for (const a of items) {
@@ -248,7 +232,7 @@ function rankByAttention(
     let best = c.members[0];
     let bestScore = -Infinity;
     for (const m of c.members) {
-      const s = storyScore(m, nowMs, segment);
+      const s = storyScore(m, nowMs);
       if (s > bestScore + 1e-9) {
         best = m;
         bestScore = s;
@@ -258,7 +242,7 @@ function rankByAttention(
   }
 
   representatives.sort((a, b) => {
-    const d = storyScore(b, nowMs, segment) - storyScore(a, nowMs, segment);
+    const d = storyScore(b, nowMs) - storyScore(a, nowMs);
     if (Math.abs(d) < 1e-9) {
       return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
     }
@@ -297,9 +281,9 @@ export async function fetchTrendingNews(): Promise<TrendingData> {
   }
 
   return {
-    world: rankByAttention(bySegment.world, nowMs, "world"),
-    japan: rankByAttention(bySegment.japan, nowMs, "japan"),
-    sports: rankByAttention(bySegment.sports, nowMs, "sports"),
-    technology: rankByAttention(bySegment.technology, nowMs, "technology"),
+    world: rankByAttention(bySegment.world, nowMs),
+    japan: rankByAttention(bySegment.japan, nowMs),
+    sports: rankByAttention(bySegment.sports, nowMs),
+    technology: rankByAttention(bySegment.technology, nowMs),
   };
 }
