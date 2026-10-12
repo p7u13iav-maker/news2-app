@@ -240,8 +240,11 @@ function metaContent(html: string, name: string): string | null {
  * first sentence (up to the second "。").
  *
  * Returns null if the article can't be fetched at all.
+ *
+ * Exported so the trending pipeline (lib/news.ts) can enrich Google News
+ * redirect URLs with a lead paragraph + og:image.
  */
-async function fetchArticleMeta(
+export async function fetchArticleMeta(
   url: string,
   trimDescription = false,
 ): Promise<ArticleMeta | null> {

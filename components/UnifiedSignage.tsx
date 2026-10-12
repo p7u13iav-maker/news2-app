@@ -11,6 +11,7 @@ import {
 } from "@/components/WeatherSlide";
 import SteelSlide, { type SteelData } from "@/components/SteelSlide";
 import { ZODIAC_SIGNS, type ZodiacKey } from "@/lib/zodiac";
+import type { TrendingData } from "@/lib/trending";
 
 /** Per-kind slide durations (ms). */
 const SLIDE_DURATIONS: Record<SlideKind, number> = {
@@ -19,6 +20,7 @@ const SLIDE_DURATIONS: Record<SlideKind, number> = {
   weather: 10_000,
   news: 10_000,
   horoscope: 10_000,
+  trending: 10_000,
 };
 
 function slideDuration(kind: SlideKind): number {
@@ -61,7 +63,7 @@ const HORO_BG =
 
 /* ---------- Slide definitions ---------- */
 
-type SlideKind = "steel" | "market" | "weather" | "news" | "horoscope";
+type SlideKind = "steel" | "market" | "weather" | "news" | "horoscope" | "trending";
 
 interface SlideDef {
   kind: SlideKind;
@@ -71,15 +73,17 @@ interface SlideDef {
 
 /**
  * Build the slide sequence:
- *   1 steel, 1 market, 1 weather, N news, 1 horoscope (all 12 signs)
+ *   1 weather, 2 steel, 3 market, 4 trending ranking,
+ *   5..12 news (8 slides), 13 horoscope (all 12 signs)
  */
 function buildSlides(newsCount: number): SlideDef[] {
   const slides: SlideDef[] = [];
   slides.push({ kind: "weather" });
-  slides.push({ kind: "horoscope" });
   slides.push({ kind: "steel" });
   slides.push({ kind: "market" });
+  slides.push({ kind: "trending" });
   for (let i = 0; i < newsCount; i++) slides.push({ kind: "news", sub: i });
+  slides.push({ kind: "horoscope" });
   return slides;
 }
 
@@ -202,6 +206,106 @@ function HoroscopeSlide({ data }: { data: HoroscopeData | null }) {
   );
 }
 
+/* ---------- Trending ranking slide (2×2 grid of 4 segments × top 2) ---------- */
+
+const TRENDING_SEGMENTS: Array<{
+  key: keyof TrendingData;
+  label: string;
+  icon: string;
+  accent: string;
+  soft: string;
+}> = [
+  { key: "world", label: "世界", icon: "🌍", accent: "#60a5fa", soft: "rgba(96,165,250,0.15)" },
+  { key: "japan", label: "日本", icon: "🇯🇵", accent: "#f472b6", soft: "rgba(244,114,182,0.15)" },
+  { key: "sports", label: "スポーツ", icon: "⚾", accent: "#34d399", soft: "rgba(52,211,153,0.15)" },
+  { key: "technology", label: "テクノロジー", icon: "💡", accent: "#fbbf24", soft: "rgba(251,191,36,0.15)" },
+];
+
+function timeAgoShort(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "たった今";
+  if (min < 60) return `${min}分前`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}時間前`;
+  return `${Math.floor(hr / 24)}日前`;
+}
+
+function TrendingSlide({ data }: { data: TrendingData | null }) {
+  if (!data) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-xl text-white/40">注目ニュースを取得中…</p>
+      </div>
+    );
+  }
+  return (
+    <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-4">
+      {TRENDING_SEGMENTS.map((seg) => {
+        const items = data[seg.key].slice(0, 2);
+        return (
+          <section
+            key={seg.key}
+            className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm"
+            style={{ borderTop: `2px solid ${seg.accent}` }}
+          >
+            <header className="flex shrink-0 items-center gap-2.5 border-b border-white/10 px-4 py-2">
+              <span
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lg"
+                style={{ backgroundColor: seg.soft }}
+              >
+                {seg.icon}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-base font-bold leading-tight text-white">
+                  {seg.label}
+                </p>
+                <p className="font-mono text-[10px] tabular-nums text-white/40">
+                  過去48時間 · TOP {items.length}
+                </p>
+              </div>
+            </header>
+            <ol className="flex min-h-0 flex-1 flex-col gap-1 p-2">
+              {items.map((a, i) => (
+                <li key={a.url} className="min-h-0">
+                  <a
+                    href={a.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex h-full items-center gap-2.5 rounded-md px-2.5 py-1.5 transition hover:bg-white/[0.06]"
+                  >
+                    <span
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded font-mono text-xs font-bold tabular-nums"
+                      style={{
+                        color: seg.accent,
+                        backgroundColor: seg.soft,
+                      }}
+                    >
+                      {i + 1}
+                    </span>
+                    <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                      <p className="line-clamp-1 text-sm font-medium leading-tight text-white/90 group-hover:text-white">
+                        {a.title}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-[11px] text-white/40">
+                        <span className="min-w-0 truncate">{a.source}</span>
+                        <span className="shrink-0">·</span>
+                        <span className="shrink-0 font-mono tabular-nums">
+                          {timeAgoShort(a.publishedAt)}
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ---------- Main component ---------- */
 
 export default function UnifiedSignage({
@@ -226,6 +330,7 @@ export default function UnifiedSignage({
   const [steelLoading, setSteelLoading] = useState(true);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [tideData, setTideData] = useState<TideData | null>(null);
+  const [trendingData, setTrendingData] = useState<TrendingData | null>(null);
   const [clock, setClock] = useState<Date | null>(null);
 
   // Live clock.
@@ -258,7 +363,7 @@ export default function UnifiedSignage({
     };
   }, []);
 
-  // Fetch steel + weather on mount (parallel; server caches for the day).
+  // Fetch steel + weather + trending on mount (parallel; server caches for the day).
   useEffect(() => {
     let cancelled = false;
     // Steel
@@ -271,6 +376,11 @@ export default function UnifiedSignage({
     fetch("/api/weather")
       .then((r) => r.json())
       .then((j) => { if (!cancelled && j.ok && j.weather) { setWeatherData(j.weather); setTideData(j.tide ?? null); } })
+      .catch(() => {});
+    // Trending
+    fetch("/api/trending")
+      .then((r) => r.json())
+      .then((j) => { if (!cancelled && j.ok) setTrendingData(j); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -333,7 +443,9 @@ export default function UnifiedSignage({
           ? "⛅ 倉敷の天気"
           : current.kind === "news"
             ? "📰 ニューストピック"
-            : "✨ 今日の運勢";
+            : current.kind === "trending"
+              ? "🔥 注目ニュースランキング"
+              : "✨ 今日の運勢";
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-zinc-950 text-white">
@@ -421,6 +533,10 @@ export default function UnifiedSignage({
 
           {current.kind === "market" && <MarketSparklines size="large" />}
 
+          {current.kind === "trending" && (
+            <TrendingSlide data={trendingData} />
+          )}
+
           {current.kind === "news" && current.sub != null && (
             <NewsSlide
               article={articles[current.sub]}
@@ -443,7 +559,7 @@ export default function UnifiedSignage({
           {/* Dots + progress bar (fixed 9.2rem width, aligned). */}
           <div
             className="flex flex-col items-stretch gap-2"
-            style={{ width: "9.2rem" }}
+            style={{ width: "10.8rem" }}
           >
             {/* Dots row (fixed width). */}
             <div className="flex items-center gap-1.5">
