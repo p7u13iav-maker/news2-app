@@ -211,9 +211,12 @@ function TideChart({
   const max = Math.max(...levels) + 20;
   const range = max - min || 1;
 
-  const L = 118;
+  // Left padding for Y-axis labels, right padding for the last tick label
+  // and high/low tide markers that may extend beyond the plot area.
+  const L = 70;
+  const R = 70;
   const B = 46;
-  const plotW = W - L - 44;
+  const plotW = W - L - R;
   const plotH = H - B - 12;
   const top = 12;
 
