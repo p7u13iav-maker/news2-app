@@ -60,6 +60,19 @@ const FEEDS = [
     label: "Guardian",
     url: "https://www.theguardian.com/world/rss",
   },
+  // Sports: Nishinippon Shimbun (Kyushu regional paper with national sports
+  // coverage — MLB, J.League, Ekiden, Sumo, etc.). Verified: 30 items,
+  // 100% og:image + og:description.
+  {
+    label: "西日本新聞",
+    url: "https://www.nishinippon.co.jp/feed",
+  },
+  // Sports: Football Channel (soccer-focused, also covers J.League, EPL,
+  // and general sports). Verified: 10 items, 100% og:image + og:description.
+  {
+    label: "Football Channel",
+    url: "https://www.footballchannel.jp/feed",
+  },
 ];
 
 /**
