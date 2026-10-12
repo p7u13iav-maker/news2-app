@@ -7,6 +7,133 @@ export interface TrendingArticle {
   publishedAt: string;
 }
 
+/**
+ * A single article from a Google News RSS feed, used only to count how many
+ * distinct outlets are covering the same story (for the coverage bonus).
+ * The article itself is NOT displayed — we only use it to build the coverage
+ * index.
+ */
+interface GoogleNewsItem {
+  title: string;
+  source: string;
+}
+
+/**
+ * Fetch Google News RSS for a topic and return the parsed items.
+ * Used only for coverage counting, not for display.
+ */
+async function fetchGoogleNews(
+  url: string,
+): Promise<GoogleNewsItem[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        accept: "application/rss+xml, application/xml",
+      },
+      signal: controller.signal,
+    });
+    if (!res.ok) return [];
+    const xml = await res.text();
+    const items = xml
+      .split(/<item(?:\s[^>]*)?[\s>]/)
+      .slice(1)
+      .map((block) => {
+        const closeIdx = block.indexOf("</item>");
+        return "<item>" + (closeIdx >= 0 ? block.slice(0, closeIdx) : block);
+      });
+    const out: GoogleNewsItem[] = [];
+    for (const item of items) {
+      const titleMatch = item.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/);
+      const sourceMatch = item.match(/<source(?:\s[^>]*)?>([\s\S]*?)<\/source>/);
+      if (!titleMatch || !sourceMatch) continue;
+      const title = decodeXml(titleMatch[1]).trim();
+      const source = decodeXml(sourceMatch[1]).trim();
+      if (title && source) out.push({ title, source });
+    }
+    return out;
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Decode XML entities. */
+function decodeXml(s: string): string {
+  return s
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/**
+ * Build a coverage index from Google News RSS: maps each story (by title
+ * n-gram Jaccard similarity) to the set of distinct outlets that reported it.
+ * Used to count how many outlets covered the same news.
+ */
+async function buildCoverageIndex(
+  items: GoogleNewsItem[],
+): Promise<Map<string, Set<string>>> {
+  // Group items by story using the same Jaccard similarity as the main
+  // ranking. Returns a map from representative title -> set of outlet names.
+  const withTokens = items.map((it) => ({
+    it,
+    tokens: titleTokens(it.title),
+  }));
+  const clusters: Array<{ rep: GoogleNewsItem; outlets: Set<string> }> = [];
+  for (const { it, tokens } of withTokens) {
+    let placed = false;
+    for (const c of clusters) {
+      const repTokens = titleTokens(c.rep.title);
+      if (jaccard(tokens, repTokens) >= SIMILARITY_THRESHOLD) {
+        c.outlets.add(it.source);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      clusters.push({ rep: it, outlets: new Set([it.source]) });
+    }
+  }
+  // Build a map: normalized title -> outlets. We use the first 20 chars of
+  // the representative title as the key (good enough for lookup).
+  const index = new Map<string, Set<string>>();
+  for (const c of clusters) {
+    const key = c.rep.title.slice(0, 20);
+    if (!index.has(key)) index.set(key, c.outlets);
+  }
+  return index;
+}
+
+/**
+ * Count how many distinct outlets (from Google News) covered a story with a
+ * title similar to `title`. Returns the count (0 if no match found).
+ */
+function countCoverage(
+  title: string,
+  index: Map<string, Set<string>>,
+): number {
+  const tokens = titleTokens(title);
+  // Find the best-matching cluster by Jaccard similarity.
+  let best = 0;
+  for (const [key, outlets] of index) {
+    const repTokens = titleTokens(key);
+    const sim = jaccard(tokens, repTokens);
+    if (sim >= SIMILARITY_THRESHOLD && outlets.size > best) {
+      best = outlets.size;
+    }
+  }
+  return best;
+}
+
 export type Segment = "world" | "japan" | "sports" | "technology";
 
 export interface TrendingData {
@@ -220,9 +347,17 @@ function clusterStories(items: TrendingArticle[]): StoryCluster[] {
 
 /**
  * Dedupe by URL, cluster into stories, pick the best representative per
- * story, and sort by attention score. Cap at TOP_N.
+ * story, and sort by attention score + Google News coverage. Cap at TOP_N.
+ *
+ * The coverage bonus uses Google News RSS to count how many distinct outlets
+ * reported the same story. This is the main "trending" signal: a story
+ * covered by 10 outlets outranks one covered by 2.
  */
-function rankByAttention(items: TrendingArticle[], nowMs: number): TrendingArticle[] {
+function rankByAttention(
+  items: TrendingArticle[],
+  nowMs: number,
+  coverageIndex: Map<string, Set<string>>,
+): TrendingArticle[] {
   const seen = new Set<string>();
   const unique: TrendingArticle[] = [];
   for (const a of items) {
@@ -244,10 +379,10 @@ function rankByAttention(items: TrendingArticle[], nowMs: number): TrendingArtic
         bestScore = s;
       }
     }
-    // Coverage: how many distinct outlets reported this story. The cluster
-    // bonus is added on top of the representative's individual score.
-    const outlets = new Set(c.members.map((m) => m.source));
-    const coverage = COVERAGE_PER_OUTLET * Math.sqrt(outlets.size);
+    // Coverage: how many distinct outlets (per Google News) reported this
+    // story. Added on top of the representative's individual score.
+    const outletCount = countCoverage(best.title, coverageIndex);
+    const coverage = COVERAGE_PER_OUTLET * Math.sqrt(outletCount);
     scored.push({ article: best, score: bestScore + coverage });
   }
 
@@ -263,14 +398,35 @@ function rankByAttention(items: TrendingArticle[], nowMs: number): TrendingArtic
 }
 
 /**
+ * Google News RSS URLs for coverage detection. We fetch all four topic
+ * feeds in parallel and merge them into a single coverage index.
+ */
+const GOOGLE_NEWS_URLS = [
+  "https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja",
+  "https://news.google.com/rss/headlines/section/topic/WORLD?hl=ja&gl=JP&ceid=JP:ja",
+  "https://news.google.com/rss/headlines/section/topic/SPORTS?hl=ja&gl=JP&ceid=JP:ja",
+  "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=ja&gl=JP&ceid=JP:ja",
+];
+
+/**
  * Fetch all verified RSS feeds in parallel, classify each article into at
  * most one segment, drop tabloid titles, and rank. A failing feed never
  * takes down the whole page.
+ *
+ * Coverage detection uses Google News RSS (fetched separately) to count how
+ * many distinct outlets reported each story. The displayed articles still
+ * come from the verified direct sources.
  */
 export async function fetchTrendingNews(): Promise<TrendingData> {
   const nowMs = Date.now();
 
-  const pool = await fetchFeedArticles().catch(() => []);
+  // Fetch direct-source pool and Google News coverage in parallel.
+  const [pool, googleNews] = await Promise.all([
+    fetchFeedArticles().catch(() => []),
+    Promise.all(GOOGLE_NEWS_URLS.map((url) => fetchGoogleNews(url))),
+  ]);
+  const googleItems = googleNews.flat();
+  const coverageIndex = await buildCoverageIndex(googleItems);
 
   const bySegment: Record<Segment, TrendingArticle[]> = {
     world: [],
@@ -291,9 +447,9 @@ export async function fetchTrendingNews(): Promise<TrendingData> {
   }
 
   return {
-    world: rankByAttention(bySegment.world, nowMs),
-    japan: rankByAttention(bySegment.japan, nowMs),
-    sports: rankByAttention(bySegment.sports, nowMs),
-    technology: rankByAttention(bySegment.technology, nowMs),
+    world: rankByAttention(bySegment.world, nowMs, coverageIndex),
+    japan: rankByAttention(bySegment.japan, nowMs, coverageIndex),
+    sports: rankByAttention(bySegment.sports, nowMs, coverageIndex),
+    technology: rankByAttention(bySegment.technology, nowMs, coverageIndex),
   };
 }
