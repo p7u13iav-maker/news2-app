@@ -99,13 +99,18 @@ function parseLine(line: string): TideDay | null {
   const maxRange = maxHigh - minLow;
 
   // Hourly tide levels: cols 0-71, 3 digits x 24 hours (cm).
+  // We build a FULL 24-slot array (0-23) so the chart's index-based X axis
+  // (i * step) lines up with the actual hour. Previously we skipped slots
+  // that were "999" (no reading), which caused the index to drift and made
+  // the high/low tide markers (positioned by hour) appear shifted.
   const hourly: TideHourly[] = [];
   for (let h = 0; h < 24; h++) {
     const raw = line.slice(h * 3, h * 3 + 3).trim();
     const v = parseInt(raw, 10);
-    if (Number.isFinite(v) && raw !== "999") {
-      hourly.push({ hour: h, level: v });
-    }
+    hourly.push({
+      hour: h,
+      level: Number.isFinite(v) && raw !== "999" ? v : 0,
+    });
   }
 
   return {
