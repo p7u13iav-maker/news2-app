@@ -113,9 +113,12 @@ function isTabloidTitle(title: string): boolean {
  * of their significant Japanese 2-3 char n-grams overlap (Jaccard).
  */
 const RECENCY_TAU_MS = 12 * 60 * 60 * 1000;
-const PRESTIGE_WEIGHT = 3.0;
+// Recency dominates: a fresher article should outrank an older one even if
+// the older one is from a more prestigious outlet. Prestige is a small tie-
+// breaker (same story covered by multiple outlets → the bigger name wins).
+const PRESTIGE_WEIGHT = 0.5;
 const LENGTH_WEIGHT = 0.5;
-const RECENCY_WEIGHT = 1.0;
+const RECENCY_WEIGHT = 12.0;
 const SIMILARITY_THRESHOLD = 0.45;
 
 /** Source prestige (1-5). */
