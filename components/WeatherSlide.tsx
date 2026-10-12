@@ -1065,7 +1065,6 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
               {c.windSpeed.toFixed(1)}
               <span className="text-sm font-medium">m/s</span>
             </p>
-            <p className="text-[9px] text-white/40">{c.windDirectionLabel}</p>
           </div>
         </div>
       </div>
