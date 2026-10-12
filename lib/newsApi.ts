@@ -111,12 +111,6 @@ const FEEDS = [
 ];
 
 /**
- * Sources whose body text is longer and should be trimmed to the first
- * sentence (up to the second "。").
- */
-const TRIM_TO_FIRST_SENTENCE_SOURCES = new Set(["日経新聞", "日経ビジネス"]);
-
-/**
  * Sources that already carry a usable <description> in their RSS feed, so we
  * skip the extra per-article page fetch for them (keeps the request fast).
  */
@@ -246,20 +240,25 @@ interface ArticleMeta {
 }
 
 /**
- * Trim a lead paragraph to its first sentence (up to and including the second
- * "。"). Used for Nikkei, whose og:description is often a full multi-sentence
- * lead. Keeps the signage display concise while still conveying the gist.
+ * Keep a lead text up to its last complete sentence. If the text ends in the
+ * middle of a sentence (no trailing "。"), cut back to the last "。" so the
+ * display never shows a dangling fragment. A trailing "。" is preserved.
  *
- *   "AAA。BBB。CCC。" -> "AAA。BBB。"
- *   "AAA。"           -> "AAA。"
- *   "AAA"             -> "AAA"   (no "。" at all, unchanged)
+ *   "AAA。BBB。"        -> "AAA。BBB。"   (already ends on a sentence)
+ *   "AAA。BBB"          -> "AAA。"        (drop the partial "BBB")
+ *   "AAA。BBB。CCC"      -> "AAA。BBB。CCC"
+ *   "No period here"    -> "No period here"
+ *
+ * "。" is a UTF-16 surrogate pair, so we locate the cut by re-joining the
+ * split parts rather than slicing at a raw index.
  */
-function trimToSecondPeriod(s: string): string {
-  const first = s.indexOf("。");
-  if (first === -1) return s;
-  const second = s.indexOf("。", first + 1);
-  if (second === -1) return s.slice(0, first + 1);
-  return s.slice(0, second + 1);
+function cutToLastCompleteSentence(s: string): string {
+  const parts = s.split("。");
+  if (parts.length < 2) return s;
+  // Last part empty => text already ends with "。": return as-is.
+  if (parts[parts.length - 1] === "") return s;
+  // Otherwise the last part is a partial sentence: drop it and re-append "。".
+  return parts.slice(0, -1).join("。") + "。";
 }
 
 /**
@@ -292,10 +291,7 @@ function metaContent(html: string, name: string): string | null {
  * Exported so the trending pipeline (lib/news.ts) can enrich Google News
  * redirect URLs with a lead paragraph + og:image.
  */
-export async function fetchArticleMeta(
-  url: string,
-  trimDescription = false,
-): Promise<ArticleMeta | null> {
+export async function fetchArticleMeta(url: string): Promise<ArticleMeta | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -315,10 +311,11 @@ export async function fetchArticleMeta(
       metaContent(html, "og:description") ?? metaContent(html, "description");
     let description: string | null = null;
     if (rawDesc) {
-      let plain = decodeEntities(rawDesc).replace(/\s+/g, " ").trim();
+      const plain = decodeEntities(rawDesc).replace(/\s+/g, " ").trim();
       if (plain.length > 0) {
-        if (trimDescription) plain = trimToSecondPeriod(plain);
-        description = plain.slice(0, 400);
+        // Show the full lead text, but if it ends mid-sentence, cut back to
+        // the last complete "。" so the display never shows a fragment.
+        description = cutToLastCompleteSentence(plain);
       }
     }
 
@@ -376,14 +373,10 @@ export async function fetchHeadlines(
   await Promise.all(
     toEnrich.map(async (a) => {
       if (NO_ENRICH_SOURCES.has(a.source)) return;
-      const isNikkei = TRIM_TO_FIRST_SENTENCE_SOURCES.has(a.source);
-      const needsDesc = isNikkei && !a.description;
-      const needsImg = !a.urlToImage;
-      if (!needsDesc && !needsImg) return; // Nothing to fetch.
-      const meta = await fetchArticleMeta(a.url, isNikkei);
+      if (a.urlToImage) return; // Image already present, nothing to fetch.
+      const meta = await fetchArticleMeta(a.url);
       if (!meta) return;
-      if (needsDesc && meta.description) a.description = meta.description;
-      if (needsImg && meta.image) a.urlToImage = meta.image;
+      if (!a.urlToImage && meta.image) a.urlToImage = meta.image;
     }),
   );
   return merged;

@@ -40,9 +40,7 @@ async function enrichArticles(
 ): Promise<Article[]> {
   const enriched = await Promise.all(
     items.map(async ({ article: a, segment }): Promise<Article> => {
-      const isNikkei = a.source.startsWith("日経");
-
-      const meta = await fetchArticleMeta(a.url, isNikkei);
+      const meta = await fetchArticleMeta(a.url);
       let description: string | null = null;
       let image: string | null = null;
 
