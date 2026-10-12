@@ -113,13 +113,15 @@ function isTabloidTitle(title: string): boolean {
  * of their significant Japanese 2-3 char n-grams overlap (Jaccard).
  */
 const RECENCY_TAU_MS = 12 * 60 * 60 * 1000;
-// Recency dominates: a fresher article should outrank an older one even if
-// the older one is from a more prestigious outlet. Prestige is a small tie-
-// breaker (same story covered by multiple outlets → the bigger name wins).
-const PRESTIGE_WEIGHT = 0.5;
+const PRESTIGE_WEIGHT = 3.0;
 const LENGTH_WEIGHT = 0.5;
-const RECENCY_WEIGHT = 12.0;
+const RECENCY_WEIGHT = 1.0;
 const SIMILARITY_THRESHOLD = 0.45;
+// A story covered by N different outlets gets a coverage bonus. This is the
+// main signal of "trending": the same news reported by many sites means it's
+// the big story. Each additional outlet adds COVERAGE_PER_OUTLET points,
+// with diminishing returns (sqrt) so 5 outlets ≈ 2.2× a single-outlet story.
+const COVERAGE_PER_OUTLET = 3.0;
 
 /** Source prestige (1-5). */
 const SOURCE_PRESTIGE: Record<string, number> = {
@@ -230,8 +232,9 @@ function rankByAttention(items: TrendingArticle[], nowMs: number): TrendingArtic
   }
 
   const clusters = clusterStories(unique);
-  const representatives: TrendingArticle[] = [];
+  const scored: Array<{ article: TrendingArticle; score: number }> = [];
   for (const c of clusters) {
+    // Pick the best representative article by its individual score.
     let best = c.members[0];
     let bestScore = -Infinity;
     for (const m of c.members) {
@@ -241,18 +244,22 @@ function rankByAttention(items: TrendingArticle[], nowMs: number): TrendingArtic
         bestScore = s;
       }
     }
-    representatives.push(best);
+    // Coverage: how many distinct outlets reported this story. The cluster
+    // bonus is added on top of the representative's individual score.
+    const outlets = new Set(c.members.map((m) => m.source));
+    const coverage = COVERAGE_PER_OUTLET * Math.sqrt(outlets.size);
+    scored.push({ article: best, score: bestScore + coverage });
   }
 
-  representatives.sort((a, b) => {
-    const d = storyScore(b, nowMs) - storyScore(a, nowMs);
+  scored.sort((a, b) => {
+    const d = b.score - a.score;
     if (Math.abs(d) < 1e-9) {
-      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+      return new Date(b.article.publishedAt).getTime() - new Date(a.article.publishedAt).getTime();
     }
     return d;
   });
 
-  return representatives.slice(0, TOP_N);
+  return scored.slice(0, TOP_N).map((s) => s.article);
 }
 
 /**
