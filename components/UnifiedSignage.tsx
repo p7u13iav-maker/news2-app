@@ -89,12 +89,32 @@ function buildSlides(newsCount: number): SlideDef[] {
 
 /* ---------- Sub-components ---------- */
 
+const SEGMENT_BADGES: Record<
+  NonNullable<Article["segment"]>,
+  { label: string; icon: string; accent: string; soft: string }
+> = {
+  world: { label: "世界", icon: "🌍", accent: "#60a5fa", soft: "rgba(96,165,250,0.18)" },
+  japan: { label: "日本", icon: "🇯🇵", accent: "#f472b6", soft: "rgba(244,114,182,0.18)" },
+  sports: { label: "スポーツ", icon: "⚾", accent: "#34d399", soft: "rgba(52,211,153,0.18)" },
+  technology: { label: "テクノロジー", icon: "💡", accent: "#fbbf24", soft: "rgba(251,191,36,0.18)" },
+};
+
 function NewsSlide({ article, index }: { article: Article; index: number }) {
   const time = new Date(article.publishedAt);
+  const seg = article.segment ? SEGMENT_BADGES[article.segment] : null;
   return (
     <div className="flex items-center gap-12">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="mb-5 flex items-center gap-3">
+          {seg && (
+            <span
+              className="flex items-center gap-1.5 rounded-full px-3.5 py-1 text-base font-bold backdrop-blur"
+              style={{ backgroundColor: seg.soft, color: seg.accent }}
+            >
+              <span className="text-base leading-none">{seg.icon}</span>
+              {seg.label}
+            </span>
+          )}
           <span className="rounded-full bg-white/10 px-3.5 py-1 text-base font-semibold backdrop-blur">
             {article.source}
           </span>

@@ -5,6 +5,8 @@ export interface Article {
   url: string;
   urlToImage: string | null;
   publishedAt: string;
+  /** Trending segment the article was classified into (if any). */
+  segment?: "world" | "japan" | "sports" | "technology";
 }
 
 export const TOP_HEADLINES = 10;
