@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { fetchHeadlines, type Article } from "./newsApi";
+import { fetchTrendingNews } from "./trending";
 
 /**
  * Cache tag used to invalidate the news cache on-demand. The morning cron
@@ -18,6 +19,10 @@ export const NEWS_TAG = "news";
  *
  * This runs in a `'use cache'` scope, so it is NOT called from a Route
  * Handler (the cron revalidates the tag instead of calling this directly).
+ *
+ * The signage news slides now come from the trending API (4 segments × top
+ * 2 = 8 slides) instead of the raw RSS headline list, so the slideshow shows
+ * the most attention-grabbing stories of the past 48 hours.
  */
 export async function getMorningNews(): Promise<Article[]> {
   "use cache";
@@ -25,12 +30,30 @@ export async function getMorningNews(): Promise<Article[]> {
   cacheTag(NEWS_TAG);
 
   try {
-    // Digital signage shows domestic sources only (NHK + Nikkei). The
-    // international feeds (BBC / Guardian) are reserved for the AI summary
-    // page and are intentionally excluded here.
-    return await fetchHeadlines(["NHK", "日経新聞", "日経ビジネス"]);
+    // Fetch the 4 trending segments (world / japan / sports / technology).
+    const trending = await fetchTrendingNews();
+    // Take the top 2 from each segment → 8 slides total.
+    const top2 = [
+      ...trending.world.slice(0, 2),
+      ...trending.japan.slice(0, 2),
+      ...trending.sports.slice(0, 2),
+      ...trending.technology.slice(0, 2),
+    ];
+    // Map TrendingArticle → Article (add empty description/image).
+    return top2.map((a) => ({
+      source: a.source,
+      title: a.title,
+      description: null,
+      url: a.url,
+      urlToImage: null,
+      publishedAt: a.publishedAt,
+    }));
   } catch {
-    // On any upstream failure, return an empty list; the page shows a hint.
-    return [];
+    // Fallback: if the trending API fails, use the legacy RSS headlines.
+    try {
+      return await fetchHeadlines(["NHK", "日経新聞", "日経ビジネス"]);
+    } catch {
+      return [];
+    }
   }
 }
