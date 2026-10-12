@@ -1,4 +1,3 @@
-import { cacheLife, cacheTag } from "next/cache";
 import {
   fetchHeadlines,
   fetchArticleMeta,
@@ -7,7 +6,8 @@ import {
 import { fetchTrendingNews, type TrendingArticle } from "./trending";
 
 /**
- * Cache tag used to invalidate the news cache on-demand.
+ * Cache tag (kept for the cron revalidate call; the news itself is now
+ * fetched fresh on every request, so the tag no longer gates a cache).
  */
 export const NEWS_TAG = "news";
 
@@ -65,18 +65,15 @@ async function enrichArticles(
 }
 
 /**
- * Cached access to the morning news.
+ * The signage news slides, fetched fresh on every request (no cache) so they
+ * stay in sync with the trending ranking, which is also computed live.
  *
- * The signage news slides come from the trending pipeline (4 segments ×
- * top 2 = 8 slides). Each article is enriched with the full lead paragraph
- * + og:image by fetching the article page directly. The slide wraps the
- * paragraph naturally (line-clamp) rather than cutting it to one sentence.
+ * The 8 slides come from the trending pipeline (4 segments × top 2). Each
+ * article is enriched with the full lead paragraph + og:image by fetching the
+ * article page directly. The slide wraps the paragraph naturally
+ * (line-clamp) rather than cutting it to one sentence.
  */
 export async function getMorningNews(): Promise<Article[]> {
-  "use cache";
-  cacheLife("minutes");
-  cacheTag(NEWS_TAG);
-
   try {
     const trending = await fetchTrendingNews();
     const top2: SegmentArticle[] = [

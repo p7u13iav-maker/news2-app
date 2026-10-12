@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { connection } from "next/server";
 import { getMorningNews } from "@/lib/news";
 import UnifiedSignage from "@/components/UnifiedSignage";
 
@@ -11,10 +13,25 @@ import UnifiedSignage from "@/components/UnifiedSignage";
  *   11-13. ✨ Horoscope (12 zodiac signs, 4 per page × 3 pages)
  *
  * Each slide shows for 10 seconds. Full cycle: 130 seconds (2 min 10 sec).
- * Data is fetched server-side and cached for the day (refreshed by cron at 6:30).
+ *
+ * The news + trending data are fetched fresh at request time (no cache) so
+ * the 8 news slides stay in sync with the trending ranking. The fetch is
+ * wrapped in <Suspense> so the static shell ships instantly while the live
+ * data streams in.
  */
-export default async function Home() {
-  const articles = await getMorningNews();
 
+async function SignageContent() {
+  // Defer to request time so Date.now() inside the trending pipeline is
+  // evaluated per-request, not at build time.
+  await connection();
+  const articles = await getMorningNews();
   return <UnifiedSignage articles={articles} newsCount={8} />;
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <SignageContent />
+    </Suspense>
+  );
 }
