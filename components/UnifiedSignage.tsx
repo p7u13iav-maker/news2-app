@@ -556,7 +556,7 @@ export default function UnifiedSignage({
           below it can use the exact same width without jittering. */}
       <footer className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2">
         <div className="flex items-center gap-3">
-          {/* Dots + progress bar (fixed 9.2rem width, aligned). */}
+          {/* Dots + progress bar (fixed 10.8rem width, aligned). */}
           <div
             className="flex flex-col items-stretch gap-2"
             style={{ width: "10.8rem" }}

@@ -64,45 +64,23 @@ function parseLine(line: string): TideDay | null {
   const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
   // High tide: 4 slots x 7 chars starting at col 80 (0-based).
-  // Low tide: 4 slots x 7 chars starting at col 108 (0-based).
-  // Each slot: time(4, HHMM, right-aligned so zero-pad to 4) + level(3, cm).
+  // Each slot: time(4, HHMM) + level(3, cm).
   const high: TideEvent[] = [];
-  const low: TideEvent[] = [];
   for (let i = 0; i < 4; i++) {
     const hRaw = line.slice(80 + i * 7, 87 + i * 7);
-    const hTimeRaw = hRaw.slice(0, 4).replace(/\s/g, "");
-    const hTime = hTimeRaw.padStart(4, "0");
+    const hTimeNum = parseInt(hRaw.slice(0, 4).replace(/\s/g, ""), 10);
     const hLevel = parseInt(hRaw.slice(4).trim(), 10);
-    if (hTime !== "9999" && Number.isFinite(hLevel)) {
-      high.push({
-        time: `${hTime.slice(0, 2)}:${hTime.slice(2, 4)}`,
-        level: hLevel,
-      });
-    }
-    const lRaw = line.slice(108 + i * 7, 115 + i * 7);
-    const lTimeRaw = lRaw.slice(0, 4).replace(/\s/g, "");
-    const lTime = lTimeRaw.padStart(4, "0");
-    const lLevel = parseInt(lRaw.slice(4).trim(), 10);
-    if (lTime !== "9999" && Number.isFinite(lLevel)) {
-      low.push({
-        time: `${lTime.slice(0, 2)}:${lTime.slice(2, 4)}`,
-        level: lLevel,
-      });
+    if (hTimeNum !== 9999 && Number.isFinite(hLevel)) {
+      const hh = String(Math.floor(hTimeNum / 100)).padStart(2, "0");
+      const mm = String(hTimeNum % 100).padStart(2, "0");
+      high.push({ time: `${hh}:${mm}`, level: hLevel });
     }
   }
 
-  if (high.length === 0 || low.length === 0) return null;
-
-  // Max range = max high level - min low level.
-  const maxHigh = Math.max(...high.map((h) => h.level));
-  const minLow = Math.min(...low.map((l) => l.level));
-  const maxRange = maxHigh - minLow;
-
-  // Hourly tide levels: cols 0-71, 3 digits x 24 hours (cm).
-  // We build a FULL 24-slot array (0-23) so the chart's index-based X axis
-  // (i * step) lines up with the actual hour. Previously we skipped slots
-  // that were "999" (no reading), which caused the index to drift and made
-  // the high/low tide markers (positioned by hour) appear shifted.
+  // Low tide: the JMA low-tide section uses variable-width spacing that
+  // makes fixed-slot parsing unreliable. Instead, derive the low-tide
+  // events from the hourly data: find local minima (points lower than
+  // both neighbors) and use their hour as the approximate time.
   const hourly: TideHourly[] = [];
   for (let h = 0; h < 24; h++) {
     const raw = line.slice(h * 3, h * 3 + 3).trim();
@@ -112,6 +90,33 @@ function parseLine(line: string): TideDay | null {
       level: Number.isFinite(v) && raw !== "999" ? v : 0,
     });
   }
+
+  const low: TideEvent[] = [];
+  for (let h = 0; h < 24; h++) {
+    const prev = hourly[(h + 23) % 24].level;
+    const curr = hourly[h].level;
+    const next = hourly[(h + 1) % 24].level;
+    // Local minimum: lower than both neighbors (handle flat minimums).
+    if (curr <= prev && curr <= next && curr < 900) {
+      // Skip if the previous hour is also a minimum (flat bottom).
+      if (h > 0 && hourly[h - 1].level === curr) continue;
+      const hh = String(h).padStart(2, "0");
+      low.push({ time: `${hh}:00`, level: curr });
+    }
+  }
+  // Keep at most 2 low-tide events (a day has at most 2).
+  if (low.length > 2) {
+    low.sort((a, b) => a.level - b.level);
+    low.length = 2;
+    low.sort((a, b) => a.time.localeCompare(b.time));
+  }
+
+  if (high.length === 0 || low.length === 0) return null;
+
+  // Max range = max high level - min low level.
+  const maxHigh = Math.max(...high.map((h) => h.level));
+  const minLow = Math.min(...low.map((l) => l.level));
+  const maxRange = maxHigh - minLow;
 
   return {
     date,
