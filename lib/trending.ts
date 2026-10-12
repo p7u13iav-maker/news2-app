@@ -49,15 +49,24 @@ const WORLD_RE =
 
 /**
  * Classify an article into exactly one segment, or null if it doesn't fit
- * any. Order matters: sports first (most specific), then world (named
- * countries / international affairs), then technology (business/economy/
- * tech keywords), and finally a domestic-Japan fallback for NHK/Nikkei
- * articles that aren't clearly about the world.
+ * any. Order matters:
+ *   1. sports — sport keywords (most specific).
+ *   2. world  — named countries / international affairs.
+ *   3. technology — business/economy/tech keywords, OR any article from a
+ *      dedicated tech source (ITmedia / Gizmodo) that didn't match sports
+ *      or world. This ensures tech-source articles always land in the
+ *      technology segment, even when their titles lack explicit tech words.
+ *   4. japan  — domestic fallback for NHK / Nikkei articles that aren't
+ *      clearly about the world.
  */
 function classifySegment(title: string, source: string): Segment | null {
   if (SPORTS_RE.test(title)) return "sports";
   if (WORLD_RE.test(title)) return "world";
   if (TECH_RE.test(title)) return "technology";
+  // Dedicated tech sources: everything that didn't match sports/world is
+  // technology (their entire content is tech-focused).
+  if (source === "ITmedia" || source === "Gizmodo") return "technology";
+  // Domestic fallback: NHK / Nikkei articles that aren't about the world.
   if (source === "NHK" || source.startsWith("日経")) return "japan";
   return null;
 }

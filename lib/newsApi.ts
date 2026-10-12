@@ -73,6 +73,48 @@ const FEEDS = [
     label: "Football Channel",
     url: "https://www.footballchannel.jp/feed",
   },
+  // Sports: Nikkan Sports (日刊スポーツ) — major national sports paper with
+  // dedicated Atom feeds per sport. Verified: 10-20 items/feed, 100%
+  // og:image + og:description.
+  {
+    label: "日刊スポーツ",
+    url: "https://www.nikkansports.com/sports/atom.xml",
+  },
+  {
+    label: "日刊スポーツ",
+    url: "https://www.nikkansports.com/baseball/atom.xml",
+  },
+  {
+    label: "日刊スポーツ",
+    url: "https://www.nikkansports.com/soccer/atom.xml",
+  },
+  {
+    label: "日刊スポーツ",
+    url: "https://www.nikkansports.com/baseball/mlb/atom.xml",
+  },
+  {
+    label: "日刊スポーツ",
+    url: "https://www.nikkansports.com/battle/sumo/atom.xml",
+  },
+  // Sports: Asahi Shimbun (朝日新聞) — major national paper with a
+  // dedicated sports RSS. Verified: 10 items, 100% og:image + og:description.
+  {
+    label: "朝日新聞",
+    url: "https://www.asahi.com/rss/asahi/sports.rdf",
+  },
+  // Technology: ITmedia — Japan's largest tech media group (ITmedia News,
+  // エンタープライズ, PC USER, Mobile, AI+, ビジネスオンライン). Verified:
+  // 50 items, 100% og:image + og:description.
+  {
+    label: "ITmedia",
+    url: "https://rss.itmedia.co.jp/rss/2.0/itmedia_all.xml",
+  },
+  // Technology: Gizmodo Japan — consumer tech, gadgets, AI, space. Verified:
+  // 20 items, 100% og:image + og:description.
+  {
+    label: "Gizmodo",
+    url: "https://gizmodo.jp/feed/",
+  },
 ];
 
 /**
