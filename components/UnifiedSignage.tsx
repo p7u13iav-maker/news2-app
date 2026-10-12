@@ -285,31 +285,30 @@ function TrendingSlide({ data }: { data: TrendingData | null }) {
                 過去48時間
               </span>
             </header>
-            <ol className="flex min-h-0 flex-1 flex-col gap-0.5 p-2">
+            <ol className="flex min-h-0 flex-1 flex-col gap-1 p-2">
               {items.map((a, i) => (
                 <li key={a.url} className="min-h-0 flex-1">
                   <a
                     href={a.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group flex h-full items-center gap-2 rounded-md px-2 py-0.5 transition hover:bg-white/[0.06]"
+                    className="group flex h-full items-start gap-2 rounded-md px-2 py-1 transition hover:bg-white/[0.06]"
                   >
                     <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md font-mono text-sm font-bold tabular-nums ${
-                        i < 3 ? "" : "opacity-50"
-                      }`}
+                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md font-mono text-xs font-bold tabular-nums"
                       style={{
                         color: i < 3 ? "#fff" : seg.accent,
                         backgroundColor:
                           i < 3 ? seg.accent : seg.soft,
+                        opacity: i < 3 ? 1 : 0.5,
                       }}
                     >
                       {i + 1}
                     </span>
-                    <p className="min-w-0 flex-1 truncate text-base font-semibold leading-tight text-white/90 group-hover:text-white md:text-lg">
+                    <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-white/90 group-hover:text-white md:text-[15px]">
                       {a.title}
                     </p>
-                    <span className="shrink-0 text-xs text-white/40">
+                    <span className="mt-0.5 shrink-0 text-[10px] leading-snug text-white/40">
                       {timeAgoShort(a.publishedAt)}
                     </span>
                   </a>
