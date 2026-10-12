@@ -344,6 +344,30 @@ export async function fetchHeadlines(
 }
 
 /**
+ * Fetch the raw RSS articles from the configured feeds WITHOUT the
+ * per-article page enrichment. NHK's RSS already carries the lead paragraph
+ * in <description>; for NHK the image still needs the og:image fetch, so
+ * callers that need images should run the matching articles through
+ * `fetchArticleMeta` afterwards (see lib/trending.ts).
+ *
+ * Exported so the trending pipeline (lib/trending.ts) can build its 4
+ * segments from the same verified direct sources used by the signage news
+ * slides.
+ */
+export async function fetchFeedArticles(
+  sources?: string[],
+): Promise<Article[]> {
+  const feeds = sources ? FEEDS.filter((f) => sources.includes(f.label)) : FEEDS;
+  const results = await Promise.allSettled(feeds.map((f) => fetchFeed(f)));
+  const lists = results
+    .filter(
+      (r): r is PromiseFulfilledResult<Article[]> => r.status === "fulfilled",
+    )
+    .map((r) => r.value);
+  return mergeArticles(lists, Infinity);
+}
+
+/**
  * Dedupe by URL, sort by publishedAt desc, and cap.
  */
 export function mergeArticles(

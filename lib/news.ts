@@ -5,243 +5,75 @@ import {
   type Article,
 } from "./newsApi";
 import { fetchTrendingNews, type TrendingArticle } from "./trending";
-import { resolveGoogleNewsUrls } from "./resolveGoogleNews";
 
 /**
  * Cache tag used to invalidate the news cache on-demand.
  */
 export const NEWS_TAG = "news";
 
-/** Extract og:description / og:image from an HTML page. */
-function extractMeta(html: string): {
-  description: string | null;
-  image: string | null;
-} {
-  const metaContent = (name: string): string | null => {
-    const re = new RegExp(
-      '<meta[^>]+(?:property|name)="' +
-        name +
-        '"[^>]+content="([^"]+)"|<meta[^>]+content="([^"]+)"[^>]+(?:property|name)="' +
-        name +
-        '"',
-    );
-    const m = html.match(re);
-    return m ? m[1] || m[2] || null : null;
-  };
-
-  const decodeEntities = (s: string): string =>
-    s
-      .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
-      .replace(/&#x([0-9a-fA-F]+);/g, (_, n) =>
-        String.fromCodePoint(parseInt(n, 16)),
-      )
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;|&apos;/g, "'")
-      .replace(/&amp;/g, "&");
-
-  const rawDesc =
-    metaContent("og:description") ?? metaContent("description");
-  let description: string | null = null;
-  if (rawDesc) {
-    const plain = decodeEntities(rawDesc).replace(/\s+/g, " ").trim();
-    if (plain.length > 0) description = plain.slice(0, 400);
-  }
-
-  const rawImg = metaContent("og:image") ?? metaContent("twitter:image");
-  let image: string | null = null;
-  if (rawImg) {
-    const img = decodeEntities(rawImg).trim();
-    if (img.startsWith("http")) image = img;
-  }
-
-  return { description, image };
-}
-
 /**
- * Keyword-based matching: find a direct-RSS article (NHK / Nikkei / BBC /
- * Guardian) whose title shares enough 2-3 char n-grams with a trending
- * title. Returns the matched article or null.
- */
-function matchTrendingToDirect(
-  trendingTitle: string,
-  pool: Article[],
-): Article | null {
-  // Extract 2-3 char n-grams from Japanese text.
-  const ngrams = (title: string): Set<string> => {
-    const s = title
-      .replace(/[A-Za-z0-9\s.,\/\-_:;!?'"()（）【】「」『』・、。，．！？:;'"()]+/g, " ")
-      .replace(/\s+/g, "");
-    const grams = new Set<string>();
-    for (let len = 2; len <= 3; len++) {
-      for (let i = 0; i + len <= s.length; i++) {
-        grams.add(s.slice(i, i + len));
-      }
-    }
-    return grams;
-  };
-
-  const trendGrams = ngrams(trendingTitle);
-  if (trendGrams.size === 0) return null;
-
-  let best: Article | null = null;
-  let bestScore = 0;
-  for (const a of pool) {
-    const aGrams = ngrams(a.title);
-    if (aGrams.size === 0) continue;
-    let inter = 0;
-    for (const g of trendGrams) if (aGrams.has(g)) inter++;
-    const union = trendGrams.size + aGrams.size - inter;
-    const score = union === 0 ? 0 : inter / union;
-    if (score > bestScore) {
-      bestScore = score;
-      best = a;
-    }
-  }
-  // Require at least 40% similarity.
-  return bestScore >= 0.4 ? best : null;
-}
-
-/**
- * Enrich trending articles with lead text + image.
+ * Enrich a trending article (already a direct-source article — NHK /
+ * Nikkei / BBC / Guardian) with lead text + og:image.
  *
- * Strategy:
- * 1. Fetch direct RSS pools (NHK, Nikkei, BBC, Guardian) in parallel.
- * 2. For each trending article, try to match a direct-RSS article by title
- *    similarity. If matched, use the direct article (guaranteed og:image).
- * 3. If no match, fall back to the batchexecute resolver + og:image fetch.
- * 4. Final fallback: jina.ai for description only.
+ * NHK's RSS already carries the lead text in <description>; for NHK we
+ * only need to fetch the image (og:image). Nikkei's RSS has neither, so we
+ * fetch both. BBC / Guardian already carry a description in the RSS; for
+ * them we only fetch the image (when not already present — in practice
+ * these two are excluded from NO_ENRICH_SOURCES in newsApi.ts because
+ * their article pages are often slow overseas).
+ *
+ * All 8 enrichment fetches run in parallel (~1-2s total).
  */
-async function enrichArticles(
-  trendingArticles: TrendingArticle[],
-): Promise<Article[]> {
-  // Step 1: Fetch direct RSS pools in parallel.
-  const [nhkResult, nikkeiResult, bbcResult, guardianResult] =
-    await Promise.allSettled([
-      fetchHeadlines(["NHK"]),
-      fetchHeadlines(["日経新聞", "日経ビジネス"]),
-      fetchHeadlines(["BBC"]),
-      fetchHeadlines(["Guardian"]),
-    ]);
-  const pick = (
-    r: PromiseSettledResult<Article[]>,
-  ): Article[] => (r.status === "fulfilled" ? r.value : []);
-  const directPool = [
-    ...pick(nhkResult),
-    ...pick(nikkeiResult),
-    ...pick(bbcResult),
-    ...pick(guardianResult),
-  ];
+async function enrichArticles(articles: TrendingArticle[]): Promise<Article[]> {
+  const enriched = await Promise.all(
+    articles.map(async (a): Promise<Article> => {
+      // For NHK we trust the RSS description (full lead paragraph) and only
+      // need the og:image.
+      // For Nikkei we need both.
+      // For BBC/Guardian the RSS description is already the lead; only the
+      // image is missing (usually).
+      const isNikkei = a.source.startsWith("日経");
+      const isNhk = a.source === "NHK";
+      const isInternational = a.source === "BBC" || a.source === "Guardian";
 
-  const results = new Map<string, Article>();
-  const unmatched: TrendingArticle[] = [];
+      // Fetch the article page for og:image (and og:description for Nikkei).
+      let description: string | null = null;
+      let image: string | null = null;
 
-  // Step 2: Try to match each trending article to a direct-RSS article.
-  for (const t of trendingArticles) {
-    const match = matchTrendingToDirect(t.title, directPool);
-    if (match) {
-      // Use the direct article (guaranteed og:image from RSS or meta).
-      results.set(t.url, {
-        source: match.source,
-        title: t.title,
-        description: match.description ?? null,
-        url: match.url,
-        urlToImage: match.urlToImage ?? null,
-        publishedAt: t.publishedAt,
-      });
-    } else {
-      unmatched.push(t);
-    }
-  }
+      // NHK's RSS <description> is the full lead paragraph — we don't have
+      // it here (TrendingArticle doesn't carry it), so we still need to
+      // fetch the page for the description. In practice the og:description
+      // on the article page matches the RSS description.
+      const meta = await fetchArticleMeta(a.url, isNikkei);
+      if (meta) {
+        description = meta.description;
+        image = meta.image;
+      }
 
-  // Step 3: For unmatched articles, use batchexecute + og:image.
-  if (unmatched.length > 0) {
-    const gnews = unmatched.filter((a) =>
-      a.url.startsWith("https://news.google.com/"),
-    );
-    const direct = unmatched.filter(
-      (a) => !a.url.startsWith("https://news.google.com/"),
-    );
+      return {
+        source: a.source,
+        title: a.title,
+        description: description ?? null,
+        url: a.url,
+        urlToImage: image ?? null,
+        publishedAt: a.publishedAt,
+      };
+    }),
+  );
 
-    // Direct URLs (non-Google): fetch meta directly.
-    await Promise.all(
-      direct.map(async (a) => {
-        const meta = await fetchArticleMeta(a.url, false);
-        results.set(a.url, {
-          source: a.source,
-          title: a.title,
-          description: meta?.description ?? null,
-          url: a.url,
-          urlToImage: meta?.image ?? null,
-          publishedAt: a.publishedAt,
-        });
-      }),
-    );
-
-    // Google News URLs: batch resolve, then fetch meta.
-    if (gnews.length > 0) {
-      const resolvedMap = await resolveGoogleNewsUrls(
-        gnews.map((a) => a.url),
-      );
-      await Promise.all(
-        gnews.map(async (a) => {
-          const realUrl = resolvedMap.get(a.url);
-          if (realUrl) {
-            try {
-              const res = await fetch(realUrl, {
-                headers: {
-                  "User-Agent":
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-                  accept: "text/html",
-                },
-                signal: AbortSignal.timeout(8_000),
-              });
-              if (res.ok) {
-                const html = await res.text();
-                const meta = extractMeta(html);
-                if (meta.image) {
-                  results.set(a.url, {
-                    source: a.source,
-                    title: a.title,
-                    description: meta.description ?? null,
-                    url: a.url,
-                    urlToImage: meta.image,
-                    publishedAt: a.publishedAt,
-                  });
-                  return;
-                }
-              }
-            } catch {
-              // fall through
-            }
-          }
-          // Title-only fallback (no jina — keeps things fast and reliable).
-          results.set(a.url, {
-            source: a.source,
-            title: a.title,
-            description: null,
-            url: a.url,
-            urlToImage: null,
-            publishedAt: a.publishedAt,
-          });
-        }),
-      );
-    }
-  }
-
-  return trendingArticles.map((a) => results.get(a.url)!).filter(Boolean);
+  // Filter out any that failed completely (no description AND no image).
+  // Keep them with null fields rather than dropping — the slide still
+  // shows the title + source.
+  return enriched;
 }
 
 /**
  * Cached access to the morning news.
  *
- * The signage news slides come from the trending API (4 segments × top
- * 2 = 8 slides). Each article is enriched with a lead paragraph + image:
- *   1. Match trending titles to direct RSS (NHK/Nikkei/BBC/Guardian) —
- *      these have guaranteed og:image.
- *   2. Unmatched: batchexecute decode → og:image from the real article.
- *   3. Final fallback: title only.
+ * The signage news slides come from the trending pipeline (4 segments ×
+ * top 2 = 8 slides). Each article is enriched with a lead paragraph +
+ * og:image by fetching the article page directly (NHK / Nikkei / BBC /
+ * Guardian all return og:image reliably).
  */
 export async function getMorningNews(): Promise<Article[]> {
   "use cache";
