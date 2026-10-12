@@ -22,15 +22,6 @@ export const NEWS_TAG = "news";
  *   "AAA。BBB"         -> "BBB"
  *   "AAA"              -> "AAA"
  */
-function trimToLastSentence(s: string): string {
-  const parts = s.split("。");
-  if (parts.length < 2) return s;
-  const last = parts[parts.length - 1];
-  // If the text ends with "。", the final segment is empty; re-append the
-  // period to the previous segment so the last sentence keeps its "。".
-  return last === "" ? parts[parts.length - 2] + "。" : last;
-}
-
 type Segment = "world" | "japan" | "sports" | "technology";
 
 interface SegmentArticle {
@@ -56,8 +47,8 @@ async function enrichArticles(
       let image: string | null = null;
 
       if (meta) {
-        // Cut the lead text to its last sentence for the signage display.
-        description = meta.description ? trimToLastSentence(meta.description) : null;
+        // Keep the full lead paragraph; the slide wraps it naturally.
+        description = meta.description ?? null;
         image = meta.image;
       }
 
@@ -79,8 +70,9 @@ async function enrichArticles(
  * Cached access to the morning news.
  *
  * The signage news slides come from the trending pipeline (4 segments ×
- * top 2 = 8 slides). Each article is enriched with a lead paragraph (trimmed
- * to its last sentence) + og:image by fetching the article page directly.
+ * top 2 = 8 slides). Each article is enriched with the full lead paragraph
+ * + og:image by fetching the article page directly. The slide wraps the
+ * paragraph naturally (line-clamp) rather than cutting it to one sentence.
  */
 export async function getMorningNews(): Promise<Article[]> {
   "use cache";

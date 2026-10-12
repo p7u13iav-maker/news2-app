@@ -271,21 +271,21 @@ function TrendingSlide({ data }: { data: TrendingData | null }) {
           >
             <header className="flex shrink-0 items-center gap-2 border-b border-white/10 px-3 py-1.5">
               <span
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-sm"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-base"
                 style={{ backgroundColor: seg.soft }}
               >
                 {seg.icon}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold leading-tight text-white">
+                <p className="text-base font-bold leading-tight text-white">
                   {seg.label}
                 </p>
               </div>
-              <span className="shrink-0 font-mono text-[10px] tabular-nums text-white/40">
+              <span className="shrink-0 font-mono text-[11px] tabular-nums text-white/40">
                 過去48時間
               </span>
             </header>
-            <ol className="flex min-h-0 flex-1 flex-col p-1.5">
+            <ol className="flex min-h-0 flex-1 flex-col gap-0.5 p-2">
               {items.map((a, i) => (
                 <li key={a.url} className="min-h-0 flex-1">
                   <a
@@ -295,7 +295,7 @@ function TrendingSlide({ data }: { data: TrendingData | null }) {
                     className="group flex h-full items-center gap-2 rounded-md px-2 py-0.5 transition hover:bg-white/[0.06]"
                   >
                     <span
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded font-mono text-[10px] font-bold tabular-nums ${
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md font-mono text-sm font-bold tabular-nums ${
                         i < 3 ? "" : "opacity-50"
                       }`}
                       style={{
@@ -306,10 +306,10 @@ function TrendingSlide({ data }: { data: TrendingData | null }) {
                     >
                       {i + 1}
                     </span>
-                    <p className="min-w-0 flex-1 truncate text-xs font-medium leading-tight text-white/90 group-hover:text-white">
+                    <p className="min-w-0 flex-1 truncate text-base font-semibold leading-tight text-white/90 group-hover:text-white md:text-lg">
                       {a.title}
                     </p>
-                    <span className="shrink-0 text-[10px] text-white/40">
+                    <span className="shrink-0 text-xs text-white/40">
                       {timeAgoShort(a.publishedAt)}
                     </span>
                   </a>
