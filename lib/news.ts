@@ -60,139 +60,177 @@ function extractMeta(html: string): {
 }
 
 /**
- * Jina.ai fallback for articles that the direct resolver can't handle
- * (e.g. paywalled or 401/403 responses).
+ * Keyword-based matching: find a direct-RSS article (NHK / Nikkei / BBC /
+ * Guardian) whose title shares enough 2-3 char n-grams with a trending
+ * title. Returns the matched article or null.
  */
-async function enrichViaJina(
-  articleUrl: string,
-): Promise<{ description: string | null; urlToImage: string | null }> {
-  try {
-    const jinaUrl = "https://r.jina.ai/" + encodeURIComponent(articleUrl);
-    const res = await fetch(jinaUrl, {
-      headers: { "User-Agent": "MorningNewsBot/1.0" },
-      signal: AbortSignal.timeout(20_000),
-    });
-    if (!res.ok) return { description: null, urlToImage: null };
-    const text = await res.text();
-
-    const mdStart = text.indexOf("Markdown Content:");
-    const body = mdStart >= 0 ? text.slice(mdStart + 17) : text;
-    const lines = body.split("\n").map((l) => l.trim());
-
-    const navWords =
-      /購読|ログイン|登録|ヘルプ|トップ|速報|朝刊|社説|オピニオン|動画|写真|ビジュアル|ポッドキャスト|連載|特集|天気予報|株式|為替|ニュース速報|関連記事|コメント|シェア|メール|印刷|フォント|文字サイズ|プレゼント|キャンペーン|広告|cookie|Cookie|クッキー|会員限定|IDで|パスワード|新規取得|サインイン|Skip to/;
-
-    let description: string | null = null;
-    let foundHeading = false;
-    for (const line of lines) {
-      if (!line) continue;
-      if (line.startsWith("#")) {
-        foundHeading = true;
-        continue;
+function matchTrendingToDirect(
+  trendingTitle: string,
+  pool: Article[],
+): Article | null {
+  // Extract 2-3 char n-grams from Japanese text.
+  const ngrams = (title: string): Set<string> => {
+    const s = title
+      .replace(/[A-Za-z0-9\s.,\/\-_:;!?'"()（）【】「」『』・、。，．！？:;'"()]+/g, " ")
+      .replace(/\s+/g, "");
+    const grams = new Set<string>();
+    for (let len = 2; len <= 3; len++) {
+      for (let i = 0; i + len <= s.length; i++) {
+        grams.add(s.slice(i, i + len));
       }
-      if (!foundHeading) continue;
-      if (line.startsWith("[") || line.startsWith("![")) continue;
-      if (line.startsWith("*") || line.startsWith("-")) continue;
-      if (line.length < 30) continue;
-      if (!/[一-鿿]/.test(line)) continue;
-      if (navWords.test(line)) continue;
-      description = line.slice(0, 400);
-      break;
     }
+    return grams;
+  };
 
-    return { description, urlToImage: null };
-  } catch {
-    return { description: null, urlToImage: null };
+  const trendGrams = ngrams(trendingTitle);
+  if (trendGrams.size === 0) return null;
+
+  let best: Article | null = null;
+  let bestScore = 0;
+  for (const a of pool) {
+    const aGrams = ngrams(a.title);
+    if (aGrams.size === 0) continue;
+    let inter = 0;
+    for (const g of trendGrams) if (aGrams.has(g)) inter++;
+    const union = trendGrams.size + aGrams.size - inter;
+    const score = union === 0 ? 0 : inter / union;
+    if (score > bestScore) {
+      bestScore = score;
+      best = a;
+    }
   }
+  // Require at least 40% similarity.
+  return bestScore >= 0.4 ? best : null;
 }
 
 /**
- * Enrich articles with lead text + image.
+ * Enrich trending articles with lead text + image.
  *
- * Primary path: resolveGoogleNewsUrls → fetch each real URL → og:image.
- * Fallback: jina.ai for articles that fail the primary path.
+ * Strategy:
+ * 1. Fetch direct RSS pools (NHK, Nikkei, BBC, Guardian) in parallel.
+ * 2. For each trending article, try to match a direct-RSS article by title
+ *    similarity. If matched, use the direct article (guaranteed og:image).
+ * 3. If no match, fall back to the batchexecute resolver + og:image fetch.
+ * 4. Final fallback: jina.ai for description only.
  */
 async function enrichArticles(
-  articles: TrendingArticle[],
+  trendingArticles: TrendingArticle[],
 ): Promise<Article[]> {
-  // Split into Google News URLs and direct URLs.
-  const gnews = articles.filter((a) =>
-    a.url.startsWith("https://news.google.com/"),
-  );
-  const direct = articles.filter(
-    (a) => !a.url.startsWith("https://news.google.com/"),
-  );
+  // Step 1: Fetch direct RSS pools in parallel.
+  const [nhkResult, nikkeiResult, bbcResult, guardianResult] =
+    await Promise.allSettled([
+      fetchHeadlines(["NHK"]),
+      fetchHeadlines(["日経新聞", "日経ビジネス"]),
+      fetchHeadlines(["BBC"]),
+      fetchHeadlines(["Guardian"]),
+    ]);
+  const pick = (
+    r: PromiseSettledResult<Article[]>,
+  ): Article[] => (r.status === "fulfilled" ? r.value : []);
+  const directPool = [
+    ...pick(nhkResult),
+    ...pick(nikkeiResult),
+    ...pick(bbcResult),
+    ...pick(guardianResult),
+  ];
 
   const results = new Map<string, Article>();
+  const unmatched: TrendingArticle[] = [];
 
-  // Direct URLs: use fetchArticleMeta.
-  await Promise.all(
-    direct.map(async (a) => {
-      const meta = await fetchArticleMeta(a.url, false);
-      results.set(a.url, {
-        source: a.source,
-        title: a.title,
-        description: meta?.description ?? null,
-        url: a.url,
-        urlToImage: meta?.image ?? null,
-        publishedAt: a.publishedAt,
+  // Step 2: Try to match each trending article to a direct-RSS article.
+  for (const t of trendingArticles) {
+    const match = matchTrendingToDirect(t.title, directPool);
+    if (match) {
+      // Use the direct article (guaranteed og:image from RSS or meta).
+      results.set(t.url, {
+        source: match.source,
+        title: t.title,
+        description: match.description ?? null,
+        url: match.url,
+        urlToImage: match.urlToImage ?? null,
+        publishedAt: t.publishedAt,
       });
-    }),
-  );
+    } else {
+      unmatched.push(t);
+    }
+  }
 
-  // Google News URLs: batch resolve, then fetch meta in parallel.
-  if (gnews.length > 0) {
-    const resolvedMap = await resolveGoogleNewsUrls(gnews.map((a) => a.url));
+  // Step 3: For unmatched articles, use batchexecute + og:image.
+  if (unmatched.length > 0) {
+    const gnews = unmatched.filter((a) =>
+      a.url.startsWith("https://news.google.com/"),
+    );
+    const direct = unmatched.filter(
+      (a) => !a.url.startsWith("https://news.google.com/"),
+    );
 
+    // Direct URLs (non-Google): fetch meta directly.
     await Promise.all(
-      gnews.map(async (a) => {
-        const realUrl = resolvedMap.get(a.url);
-
-        if (realUrl) {
-          try {
-            const res = await fetch(realUrl, {
-              headers: {
-                "User-Agent":
-                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-                accept: "text/html",
-              },
-              signal: AbortSignal.timeout(8_000),
-            });
-            if (res.ok) {
-              const html = await res.text();
-              const meta = extractMeta(html);
-              if (meta.image) {
-                results.set(a.url, {
-                  source: a.source,
-                  title: a.title,
-                  description: meta.description ?? null,
-                  url: a.url,
-                  urlToImage: meta.image,
-                  publishedAt: a.publishedAt,
-                });
-                return;
-              }
-            }
-          } catch {
-            // fall through to jina
-          }
-        }
-
-        // Fallback: jina.ai for description.
-        const jina = await enrichViaJina(a.url);
+      direct.map(async (a) => {
+        const meta = await fetchArticleMeta(a.url, false);
         results.set(a.url, {
           source: a.source,
           title: a.title,
-          description: jina.description ?? null,
+          description: meta?.description ?? null,
           url: a.url,
-          urlToImage: jina.urlToImage ?? null,
+          urlToImage: meta?.image ?? null,
           publishedAt: a.publishedAt,
         });
       }),
     );
+
+    // Google News URLs: batch resolve, then fetch meta.
+    if (gnews.length > 0) {
+      const resolvedMap = await resolveGoogleNewsUrls(
+        gnews.map((a) => a.url),
+      );
+      await Promise.all(
+        gnews.map(async (a) => {
+          const realUrl = resolvedMap.get(a.url);
+          if (realUrl) {
+            try {
+              const res = await fetch(realUrl, {
+                headers: {
+                  "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+                  accept: "text/html",
+                },
+                signal: AbortSignal.timeout(8_000),
+              });
+              if (res.ok) {
+                const html = await res.text();
+                const meta = extractMeta(html);
+                if (meta.image) {
+                  results.set(a.url, {
+                    source: a.source,
+                    title: a.title,
+                    description: meta.description ?? null,
+                    url: a.url,
+                    urlToImage: meta.image,
+                    publishedAt: a.publishedAt,
+                  });
+                  return;
+                }
+              }
+            } catch {
+              // fall through
+            }
+          }
+          // Title-only fallback (no jina — keeps things fast and reliable).
+          results.set(a.url, {
+            source: a.source,
+            title: a.title,
+            description: null,
+            url: a.url,
+            urlToImage: null,
+            publishedAt: a.publishedAt,
+          });
+        }),
+      );
+    }
   }
 
-  return articles.map((a) => results.get(a.url)!).filter(Boolean);
+  return trendingArticles.map((a) => results.get(a.url)!).filter(Boolean);
 }
 
 /**
@@ -200,9 +238,10 @@ async function enrichArticles(
  *
  * The signage news slides come from the trending API (4 segments × top
  * 2 = 8 slides). Each article is enriched with a lead paragraph + image:
- *   1. resolveGoogleNewsUrls decodes the Google News redirect URLs.
- *   2. The real article pages are fetched for og:description / og:image.
- *   3. Jina.ai fallback for articles that fail the primary path.
+ *   1. Match trending titles to direct RSS (NHK/Nikkei/BBC/Guardian) —
+ *      these have guaranteed og:image.
+ *   2. Unmatched: batchexecute decode → og:image from the real article.
+ *   3. Final fallback: title only.
  */
 export async function getMorningNews(): Promise<Article[]> {
   "use cache";
