@@ -1061,10 +1061,15 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
           </div>
           <div className="flex flex-col items-center">
             <p className="text-[10px] font-medium text-white/50">風</p>
-            <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
-              {c.windSpeed.toFixed(1)}
-              <span className="text-sm font-medium">m/s</span>
-            </p>
+            <div className="flex flex-col items-center">
+              <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
+                {c.windSpeed.toFixed(1)}
+                <span className="text-sm font-medium">m/s</span>
+              </p>
+              <p className="mt-0.5 text-[9px] leading-none text-white/40">
+                {c.windDirectionLabel}
+              </p>
+            </div>
           </div>
         </div>
       </div>
