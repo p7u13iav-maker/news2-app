@@ -1022,7 +1022,11 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
           </div>
         </div>
 
-        {/* Right: today overview metrics. */}
+        {/* Right: today overview metrics. Each column shares an identical
+            3-slot structure (label / number / sub) so their vertical
+            centers match and the big numbers line up. The wind column uses
+            the sub slot for the direction; the others use an invisible
+            spacer of the same height. */}
         <div className="flex flex-1 items-center justify-around gap-4">
           <div className="flex flex-col items-center">
             <p className="text-[10px] font-medium text-white/50">最高</p>
@@ -1030,6 +1034,7 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
               {Math.round(d.maxTemp)}
               <span className="text-sm font-medium">°</span>
             </p>
+            <p className="mt-1 text-[9px] leading-none text-transparent select-none">.</p>
           </div>
           <div className="flex flex-col items-center">
             <p className="text-[10px] font-medium text-white/50">最低</p>
@@ -1037,6 +1042,7 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
               {Math.round(d.minTemp)}
               <span className="text-sm font-medium">°</span>
             </p>
+            <p className="mt-1 text-[9px] leading-none text-transparent select-none">.</p>
           </div>
           <div className="flex flex-col items-center">
             <p className="text-[10px] font-medium text-white/50">降水確率</p>
@@ -1044,6 +1050,7 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
               {d.maxPrecipProb}
               <span className="text-sm font-medium">%</span>
             </p>
+            <p className="mt-1 text-[9px] leading-none text-transparent select-none">.</p>
           </div>
           <div className="flex flex-col items-center">
             <p className="text-[10px] font-medium text-white/50">降水量</p>
@@ -1051,6 +1058,7 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
               {d.precipitationSum.toFixed(1)}
               <span className="text-sm font-medium">mm</span>
             </p>
+            <p className="mt-1 text-[9px] leading-none text-transparent select-none">.</p>
           </div>
           <div className="flex flex-col items-center">
             <p className="text-[10px] font-medium text-white/50">湿度</p>
@@ -1058,21 +1066,17 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
               {c.humidity}
               <span className="text-sm font-medium">%</span>
             </p>
+            <p className="mt-1 text-[9px] leading-none text-transparent select-none">.</p>
           </div>
           <div className="flex flex-col items-center">
-            <p className="text-[10px] font-medium text-white/50">風</p>
-            {/* The number + direction group is self-centered on the same
-                baseline as the other metrics; the direction label hangs
-                below the center line so the number stays aligned. */}
-            <div className="flex flex-col items-center self-center">
-              <p className="font-mono text-3xl font-bold leading-none tabular-nums">
-                {c.windSpeed.toFixed(1)}
-                <span className="text-sm font-medium">m/s</span>
-              </p>
-              <p className="mt-1 text-[9px] leading-none text-white/40">
-                {c.windDirectionLabel}
-              </p>
-            </div>
+            <p className="text-[10px] font-medium text-white/50">風量</p>
+            <p className="mt-0.5 font-mono text-3xl font-bold tabular-nums">
+              {c.windSpeed.toFixed(1)}
+              <span className="text-sm font-medium">m/s</span>
+            </p>
+            <p className="mt-1 text-[9px] leading-none text-white/40">
+              {c.windDirectionLabel}
+            </p>
           </div>
         </div>
       </div>
