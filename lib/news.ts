@@ -5,42 +5,69 @@ import {
   type Article,
 } from "./newsApi";
 import { fetchTrendingNews, type TrendingArticle } from "./trending";
+import { resolveGoogleNewsUrls } from "./resolveGoogleNews";
 
 /**
- * Cache tag used to invalidate the news cache on-demand. The morning cron
- * calls revalidateTag("news") after a fresh fetch so the page picks up the
- * new headlines on the next request (stale-while-revalidate).
+ * Cache tag used to invalidate the news cache on-demand.
  */
 export const NEWS_TAG = "news";
 
-/**
- * Two-pass enrichment for Google News articles:
- *
- * Pass 1: Use r.jina.ai to follow the Google News redirect and get the
- *         article content as markdown. Extract the lead paragraph from the
- *         first substantial Japanese text line after the H1 heading.
- *         Also extract the actual article URL from share links in the
- *         markdown.
- *
- * Pass 2: Fetch the actual article page (from pass 1's URL) and read its
- *         og:image / twitter:image meta tags for the photo.
- *
- * Returns { description, urlToImage } — either can be null if not found.
- */
-async function enrichGoogleNewsArticle(
-  a: TrendingArticle,
-): Promise<{ description: string | null; urlToImage: string | null }> {
-  if (!a.url.startsWith("https://news.google.com/")) {
-    const meta = await fetchArticleMeta(a.url, false);
-    return {
-      description: meta?.description ?? null,
-      urlToImage: meta?.image ?? null,
-    };
+/** Extract og:description / og:image from an HTML page. */
+function extractMeta(html: string): {
+  description: string | null;
+  image: string | null;
+} {
+  const metaContent = (name: string): string | null => {
+    const re = new RegExp(
+      '<meta[^>]+(?:property|name)="' +
+        name +
+        '"[^>]+content="([^"]+)"|<meta[^>]+content="([^"]+)"[^>]+(?:property|name)="' +
+        name +
+        '"',
+    );
+    const m = html.match(re);
+    return m ? m[1] || m[2] || null : null;
+  };
+
+  const decodeEntities = (s: string): string =>
+    s
+      .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, n) =>
+        String.fromCodePoint(parseInt(n, 16)),
+      )
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;|&apos;/g, "'")
+      .replace(/&amp;/g, "&");
+
+  const rawDesc =
+    metaContent("og:description") ?? metaContent("description");
+  let description: string | null = null;
+  if (rawDesc) {
+    const plain = decodeEntities(rawDesc).replace(/\s+/g, " ").trim();
+    if (plain.length > 0) description = plain.slice(0, 400);
   }
 
+  const rawImg = metaContent("og:image") ?? metaContent("twitter:image");
+  let image: string | null = null;
+  if (rawImg) {
+    const img = decodeEntities(rawImg).trim();
+    if (img.startsWith("http")) image = img;
+  }
+
+  return { description, image };
+}
+
+/**
+ * Jina.ai fallback for articles that the direct resolver can't handle
+ * (e.g. paywalled or 401/403 responses).
+ */
+async function enrichViaJina(
+  articleUrl: string,
+): Promise<{ description: string | null; urlToImage: string | null }> {
   try {
-    // Pass 1: jina.ai — get markdown + extract lead text + resolve URL.
-    const jinaUrl = "https://r.jina.ai/" + encodeURIComponent(a.url);
+    const jinaUrl = "https://r.jina.ai/" + encodeURIComponent(articleUrl);
     const res = await fetch(jinaUrl, {
       headers: { "User-Agent": "MorningNewsBot/1.0" },
       signal: AbortSignal.timeout(20_000),
@@ -52,11 +79,9 @@ async function enrichGoogleNewsArticle(
     const body = mdStart >= 0 ? text.slice(mdStart + 17) : text;
     const lines = body.split("\n").map((l) => l.trim());
 
-    // Common navigation words in site headers/footers.
     const navWords =
-      /購読|ログイン|登録|ヘルプ|トップ|速報|朝刊|社説|オピニオン|動画|写真|ビジュアル|ポッドキャスト|連載|特集|天気予報|株式|為替|ニュース速報|関連記事|コメント|シェア|メール|印刷|フォント|文字サイズ|プレゼント|キャンペーン|広告|cookie|Cookie|クッキー/;
+      /購読|ログイン|登録|ヘルプ|トップ|速報|朝刊|社説|オピニオン|動画|写真|ビジュアル|ポッドキャスト|連載|特集|天気予報|株式|為替|ニュース速報|関連記事|コメント|シェア|メール|印刷|フォント|文字サイズ|プレゼント|キャンペーン|広告|cookie|Cookie|クッキー|会員限定|IDで|パスワード|新規取得|サインイン|Skip to/;
 
-    // Extract lead paragraph: first substantial Japanese text after H1.
     let description: string | null = null;
     let foundHeading = false;
     for (const line of lines) {
@@ -75,81 +100,109 @@ async function enrichGoogleNewsArticle(
       break;
     }
 
-    // Extract the actual article URL from share links in the markdown.
-    let articleUrl: string | null = null;
-    const shareMatch = body.match(/url=(https?%3A%2F%2F[^&\s]+)/i);
-    if (shareMatch) {
-      articleUrl = decodeURIComponent(shareMatch[1]);
-    }
-    if (!articleUrl) {
-      const urlRe =
-        /https?:\/\/(?!news\.google|www\.google|accounts\.google|policies\.google|fonts\.googleapis|gstatic|lh[3-5]\.googleusercontent|twitter\.com|facebook\.com)[a-z0-9.-]+\.[a-z]{2,}\/[^\s"')\]]{20,}/gi;
-      const urls = [...new Set(body.match(urlRe) || [])]
-        .filter(
-          (u) =>
-            !/weather|subscribe|login|register|help|search|member|product|present|game|fukubuki|yomiuri-ryokou|yomiuriland|yomipo|komachi|tabiyomi/i.test(
-              u,
-            ),
-        )
-        .sort((a2, b2) => b2.length - a2.length);
-      if (urls.length > 0) articleUrl = urls[0];
-    }
-
-    // Pass 2: fetch the article page for og:image.
-    let urlToImage: string | null = null;
-    if (articleUrl) {
-      try {
-        const artRes = await fetch(articleUrl, {
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-            accept: "text/html",
-          },
-          signal: AbortSignal.timeout(15_000),
-        });
-        if (artRes.ok) {
-          const html = await artRes.text();
-          const metaContent = (name: string): string | null => {
-            const re = new RegExp(
-              '<meta[^>]+(?:property|name)="' +
-                name +
-                '"[^>]+content="([^"]+)"|<meta[^>]+content="([^"]+)"[^>]+(?:property|name)="' +
-                name +
-                '"',
-            );
-            const m = html.match(re);
-            return m ? m[1] || m[2] || null : null;
-          };
-          const img =
-            metaContent("og:image") ?? metaContent("twitter:image");
-          if (img && img.startsWith("http")) urlToImage = img;
-        }
-      } catch {
-        // ignore — image is optional
-      }
-    }
-
-    return { description, urlToImage };
+    return { description, urlToImage: null };
   } catch {
     return { description: null, urlToImage: null };
   }
 }
 
 /**
+ * Enrich articles with lead text + image.
+ *
+ * Primary path: resolveGoogleNewsUrls → fetch each real URL → og:image.
+ * Fallback: jina.ai for articles that fail the primary path.
+ */
+async function enrichArticles(
+  articles: TrendingArticle[],
+): Promise<Article[]> {
+  // Split into Google News URLs and direct URLs.
+  const gnews = articles.filter((a) =>
+    a.url.startsWith("https://news.google.com/"),
+  );
+  const direct = articles.filter(
+    (a) => !a.url.startsWith("https://news.google.com/"),
+  );
+
+  const results = new Map<string, Article>();
+
+  // Direct URLs: use fetchArticleMeta.
+  await Promise.all(
+    direct.map(async (a) => {
+      const meta = await fetchArticleMeta(a.url, false);
+      results.set(a.url, {
+        source: a.source,
+        title: a.title,
+        description: meta?.description ?? null,
+        url: a.url,
+        urlToImage: meta?.image ?? null,
+        publishedAt: a.publishedAt,
+      });
+    }),
+  );
+
+  // Google News URLs: batch resolve, then fetch meta in parallel.
+  if (gnews.length > 0) {
+    const resolvedMap = await resolveGoogleNewsUrls(gnews.map((a) => a.url));
+
+    await Promise.all(
+      gnews.map(async (a) => {
+        const realUrl = resolvedMap.get(a.url);
+
+        if (realUrl) {
+          try {
+            const res = await fetch(realUrl, {
+              headers: {
+                "User-Agent":
+                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+                accept: "text/html",
+              },
+              signal: AbortSignal.timeout(8_000),
+            });
+            if (res.ok) {
+              const html = await res.text();
+              const meta = extractMeta(html);
+              if (meta.image) {
+                results.set(a.url, {
+                  source: a.source,
+                  title: a.title,
+                  description: meta.description ?? null,
+                  url: a.url,
+                  urlToImage: meta.image,
+                  publishedAt: a.publishedAt,
+                });
+                return;
+              }
+            }
+          } catch {
+            // fall through to jina
+          }
+        }
+
+        // Fallback: jina.ai for description.
+        const jina = await enrichViaJina(a.url);
+        results.set(a.url, {
+          source: a.source,
+          title: a.title,
+          description: jina.description ?? null,
+          url: a.url,
+          urlToImage: jina.urlToImage ?? null,
+          publishedAt: a.publishedAt,
+        });
+      }),
+    );
+  }
+
+  return articles.map((a) => results.get(a.url)!).filter(Boolean);
+}
+
+/**
  * Cached access to the morning news.
- *
- * - `cacheLife('minutes')` keeps the page fresh without re-fetching the RSS
- *   feeds on every request (1 min revalidate / 5 min stale / 1 h expire).
- * - `cacheTag(NEWS_TAG)` lets the cron force an on-demand invalidation every
- *   morning so the very first visitor of the day gets the freshest batch.
- *
- * This runs in a `'use cache'` scope, so it is NOT called from a Route
- * Handler (the cron revalidates the tag instead of calling this directly).
  *
  * The signage news slides come from the trending API (4 segments × top
  * 2 = 8 slides). Each article is enriched with a lead paragraph + image:
- *   1. r.jina.ai follows the Google News redirect → markdown (lead text).
- *   2. The actual article page is fetched for og:image (photo).
+ *   1. resolveGoogleNewsUrls decodes the Google News redirect URLs.
+ *   2. The real article pages are fetched for og:description / og:image.
+ *   3. Jina.ai fallback for articles that fail the primary path.
  */
 export async function getMorningNews(): Promise<Article[]> {
   "use cache";
@@ -164,21 +217,7 @@ export async function getMorningNews(): Promise<Article[]> {
       ...trending.sports.slice(0, 2),
       ...trending.technology.slice(0, 2),
     ];
-    const enriched = await Promise.all(
-      top2.map(async (a) => {
-        const { description, urlToImage } =
-          await enrichGoogleNewsArticle(a);
-        return {
-          source: a.source,
-          title: a.title,
-          description: description ?? null,
-          url: a.url,
-          urlToImage: urlToImage ?? null,
-          publishedAt: a.publishedAt,
-        } as Article;
-      }),
-    );
-    return enriched;
+    return await enrichArticles(top2);
   } catch {
     try {
       return await fetchHeadlines(["NHK", "日経新聞", "日経ビジネス"]);
