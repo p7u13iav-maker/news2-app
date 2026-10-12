@@ -46,24 +46,60 @@ async function enrichGoogleNewsArticle(
     if (!res.ok) return { description: null, urlToImage: null };
     const text = await res.text();
 
-    // Extract the lead paragraph: first non-empty, non-heading, non-link
-    // line after the "Markdown Content:" marker.
+    // Extract the lead paragraph and image from the article markdown.
+    // Strategy:
+    // 1. Find the "Markdown Content:" section.
+    // 2. Skip the H1 heading (article title).
+    // 3. Find the first substantial Japanese text line (the lead paragraph).
+    // 4. Find the first non-ad, non-Google image.
     const mdStart = text.indexOf("Markdown Content:");
     const body = mdStart >= 0 ? text.slice(mdStart + 17) : text;
     const lines = body.split("\n").map((l) => l.trim());
+
+    // Common navigation words that appear in site headers/footers.
+    const navWords =
+      /購読|ログイン|登録|ヘルプ|トップ|速報|朝刊|社説|オピニオン|動画|写真|ビジュアル|ポッドキャスト|連載|特集|天気予報|株式|為替|ニュース速報|関連記事|コメント|シェア|メール|印刷|フォント|文字サイズ|プレゼント|キャンペーン|広告|cookie|Cookie|クッキー/;
+
     let description: string | null = null;
+    let foundHeading = false;
     for (const line of lines) {
       if (!line) continue;
-      if (line.startsWith("#") || line.startsWith("[")) continue;
+      if (line.startsWith("#")) {
+        foundHeading = true;
+        continue;
+      }
+      if (!foundHeading) continue; // Skip everything before the H1.
+      if (line.startsWith("[") || line.startsWith("![")) continue;
       if (line.startsWith("*") || line.startsWith("-")) continue;
-      if (line.length < 20) continue;
+      if (line.length < 30) continue;
+      if (!/[一-鿿]/.test(line)) continue;
+      if (navWords.test(line)) continue;
       description = line.slice(0, 400);
       break;
     }
 
-    // Extract the first image URL from the markdown.
-    const imgMatch = body.match(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/);
-    const urlToImage = imgMatch ? imgMatch[1] : null;
+    // Extract the first non-Google, non-ad image.
+    let urlToImage: string | null = null;
+    const imgRe = /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g;
+    let m: RegExpExecArray | null;
+    while ((m = imgRe.exec(body)) !== null) {
+      const url = m[2];
+      const alt = m[1] || "";
+      if (
+        url.includes("googleusercontent") ||
+        url.includes("google.com") ||
+        url.includes("gstatic") ||
+        url.includes("blob:")
+      )
+        continue;
+      if (
+        /ad|banner|present|gift|promo|campaign/i.test(url) ||
+        /プレゼント|キャンペーン|広告/i.test(alt)
+      )
+        continue;
+      urlToImage = url;
+      break;
+    }
 
     return { description, urlToImage };
   } catch {

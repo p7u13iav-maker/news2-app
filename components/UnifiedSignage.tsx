@@ -240,61 +240,58 @@ function TrendingSlide({ data }: { data: TrendingData | null }) {
     );
   }
   return (
-    <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-4">
+    <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-3">
       {TRENDING_SEGMENTS.map((seg) => {
-        const items = data[seg.key].slice(0, 2);
+        const items = data[seg.key].slice(0, 5);
         return (
           <section
             key={seg.key}
             className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm"
             style={{ borderTop: `2px solid ${seg.accent}` }}
           >
-            <header className="flex shrink-0 items-center gap-2.5 border-b border-white/10 px-4 py-2">
+            <header className="flex shrink-0 items-center gap-2 border-b border-white/10 px-3 py-1.5">
               <span
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lg"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-sm"
                 style={{ backgroundColor: seg.soft }}
               >
                 {seg.icon}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-base font-bold leading-tight text-white">
+                <p className="text-sm font-bold leading-tight text-white">
                   {seg.label}
                 </p>
-                <p className="font-mono text-[10px] tabular-nums text-white/40">
-                  過去48時間 · TOP {items.length}
-                </p>
               </div>
+              <span className="shrink-0 font-mono text-[10px] tabular-nums text-white/40">
+                過去48時間
+              </span>
             </header>
-            <ol className="flex min-h-0 flex-1 flex-col gap-1 p-2">
+            <ol className="flex min-h-0 flex-1 flex-col p-1.5">
               {items.map((a, i) => (
-                <li key={a.url} className="min-h-0">
+                <li key={a.url} className="min-h-0 flex-1">
                   <a
                     href={a.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group flex h-full items-center gap-2.5 rounded-md px-2.5 py-1.5 transition hover:bg-white/[0.06]"
+                    className="group flex h-full items-center gap-2 rounded-md px-2 py-0.5 transition hover:bg-white/[0.06]"
                   >
                     <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded font-mono text-xs font-bold tabular-nums"
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded font-mono text-[10px] font-bold tabular-nums ${
+                        i < 3 ? "" : "opacity-50"
+                      }`}
                       style={{
-                        color: seg.accent,
-                        backgroundColor: seg.soft,
+                        color: i < 3 ? "#fff" : seg.accent,
+                        backgroundColor:
+                          i < 3 ? seg.accent : seg.soft,
                       }}
                     >
                       {i + 1}
                     </span>
-                    <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
-                      <p className="line-clamp-1 text-sm font-medium leading-tight text-white/90 group-hover:text-white">
-                        {a.title}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-[11px] text-white/40">
-                        <span className="min-w-0 truncate">{a.source}</span>
-                        <span className="shrink-0">·</span>
-                        <span className="shrink-0 font-mono tabular-nums">
-                          {timeAgoShort(a.publishedAt)}
-                        </span>
-                      </div>
-                    </div>
+                    <p className="min-w-0 flex-1 truncate text-xs font-medium leading-tight text-white/90 group-hover:text-white">
+                      {a.title}
+                    </p>
+                    <span className="shrink-0 text-[10px] text-white/40">
+                      {timeAgoShort(a.publishedAt)}
+                    </span>
                   </a>
                 </li>
               ))}

@@ -152,6 +152,119 @@ function Sparkline({
   );
 }
 
+/**
+ * Large USD/JPY hero bar. Shows the current rate in big numbers with the
+ * 3-month change, a mini sparkline, and a date range.
+ */
+function FxHero({
+  market,
+  large,
+}: {
+  market: MarketData;
+  large: boolean;
+}) {
+  const pts = market.points;
+  const first = pts[0]?.v;
+  const last = pts[pts.length - 1]?.v;
+  const diff = first && last ? last - first : 0;
+  const up = diff >= 0;
+  const sign = up ? "+" : "";
+
+  // Mini sparkline (reuse the same geometry as Sparkline but wider).
+  const vals = pts.map((p) => p.v);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const n = pts.length;
+  const W = 100;
+  const H = 30;
+  const PAD = 2;
+  const xOf = (i: number) => (n === 1 ? PAD : PAD + ((W - 2 * PAD) * i) / (n - 1));
+  const yOf = (v: number) =>
+    H - PAD - ((H - 2 * PAD) * (v - min)) / range;
+  const d = pts
+    .map((p, i) => {
+      const x = xOf(i);
+      const y = yOf(p.v);
+      return `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" ");
+  const stroke = up ? "#34d399" : "#f87171";
+
+  return (
+    <div
+      className={`mb-3 flex items-center gap-4 rounded-xl border border-amber-400/20 bg-amber-500/[0.06] px-5 ${
+        large ? "py-4" : "py-3"
+      }`}
+    >
+      {/* Icon */}
+      <span
+        className={`flex shrink-0 items-center justify-center rounded-full bg-amber-500/15 ${
+          large ? "h-14 w-14 text-3xl" : "h-10 w-10 text-2xl"
+        }`}
+      >
+        💱
+      </span>
+
+      {/* Rate + label */}
+      <div className="min-w-0 flex-1">
+        <p
+          className={`font-medium tracking-wide text-amber-200/70 ${
+            large ? "text-sm" : "text-xs"
+          }`}
+        >
+          円/ドル為替（USD/JPY）
+        </p>
+        <div className="flex items-baseline gap-2">
+          <span
+            className={`font-mono font-bold tabular-nums text-white ${
+              large ? "text-5xl" : "text-3xl"
+            }`}
+          >
+            {last != null ? last.toFixed(2) : "-"}
+          </span>
+          <span
+            className={`font-mono font-semibold tabular-nums ${
+              large ? "text-lg" : "text-sm"
+            } ${up ? "text-emerald-400" : "text-red-400"}`}
+          >
+            {sign}
+            {diff >= 0 ? "" : ""}
+            {Math.abs(diff).toFixed(2)}円
+            {up ? " ↑" : " ↓"}
+            <span className="ml-1.5 text-white/30">（3ヶ月）</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Mini sparkline */}
+      <div className={`hidden shrink-0 sm:block ${large ? "h-16 w-40" : "h-12 w-28"}`}>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full">
+          <path
+            d={`${d} L${xOf(n - 1)},${H - PAD} L${xOf(0)},${H - PAD} Z`}
+            fill={up ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)"}
+            stroke="none"
+          />
+          <path
+            d={d}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={2}
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      </div>
+
+      {/* Date range */}
+      {pts.length >= 2 && (
+        <span className={`hidden shrink-0 text-white/30 md:block ${large ? "text-xs" : "text-[10px]"}`}>
+          {fmtDate(pts[0].t)}〜{fmtDate(pts[pts.length - 1].t)}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function MarketSparklines({
   size = "compact",
 }: {
@@ -275,27 +388,16 @@ export default function MarketSparklines({
           <span className={large ? "text-2xl" : "text-lg"}>📊</span> 市場データ
           (3ヶ月)
         </h2>
-        <div className="flex items-center gap-3">
-          {data && byKey["usdjpy"]?.ok && (
-            <span
-              className={`rounded-full bg-amber-500/15 px-3 py-1 font-mono font-semibold tabular-nums text-amber-300 ${
-                large ? "text-sm" : "text-xs"
-              }`}
-            >
-              💱 {fmt(byKey["usdjpy"].points[byKey["usdjpy"].points.length - 1]?.v ?? 0)}円
-            </span>
-          )}
-          <span className={`text-white/40 ${large ? "text-sm" : "text-xs"}`}>
-            {data
-              ? new Date(data.fetchedAt).toLocaleString("ja-JP", {
-                  month: "numeric",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "取得中…"}
-          </span>
-        </div>
+        <span className={`text-white/40 ${large ? "text-sm" : "text-xs"}`}>
+          {data
+            ? new Date(data.fetchedAt).toLocaleString("ja-JP", {
+                month: "numeric",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "取得中…"}
+        </span>
       </div>
 
       {error && (
@@ -320,6 +422,11 @@ export default function MarketSparklines({
             </p>
           ))}
         </div>
+      )}
+
+      {/* FX hero — large, prominent USD/JPY display. */}
+      {data && byKey["usdjpy"]?.ok && (
+        <FxHero market={byKey["usdjpy"]} large={large} />
       )}
 
       {/* 3-column grid */}
