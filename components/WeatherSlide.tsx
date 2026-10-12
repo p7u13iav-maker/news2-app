@@ -1,13 +1,43 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DAILY_QUOTES } from "@/lib/dailyQuotes";
+import {
+  DAILY_QUOTE_POOLS,
+  type QuoteSeason,
+  type QuoteCondition,
+} from "@/lib/dailyQuotes";
 
-/** Day-of-year (0-364) in JST, used to index the 365 daily quotes. */
-function dayOfYearJST(date: Date): number {
-  const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
-  const start = Date.UTC(jst.getUTCFullYear(), 0, 0);
-  return Math.floor((jst.getTime() - start) / 86400000) % 365;
+/** JST month (1-12) for a given date. */
+function monthJST(date: Date): number {
+  return new Date(date.getTime() + 9 * 60 * 60 * 1000).getUTCMonth() + 1;
+}
+
+/** Map a JST month to a Japanese season (冬/春/夏/秋). */
+function seasonForMonth(month: number): QuoteSeason {
+  if (month === 12 || month <= 2) return "冬";
+  if (month <= 5) return "春";
+  if (month <= 8) return "夏";
+  return "秋";
+}
+
+/** Map a WMO weather code to a quote condition (sunny/cloudy/rain/snow/wind). */
+function conditionForWeatherCode(code: number): QuoteCondition {
+  // Snow: WMO codes 71-77.
+  if (code >= 71 && code <= 77) return "snow";
+  // Rain: 51-67 (drizzle/rain), 80-82 (showers).
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
+  // Thunder: 95-99 (treat as rain).
+  if (code >= 95) return "rain";
+  // Cloud: 2 (scattered), 3 (broken).
+  if (code === 2 || code === 3) return "cloudy";
+  // Default: sunny (0 clear, 1 mostly clear, 45/48 fog, 50-56 freezing drizzle).
+  return "sunny";
+}
+
+/** Pick a quote by (season, weather condition). Same combo = same line. */
+function pickQuote(season: QuoteSeason, cond: QuoteCondition): string {
+  const pool = DAILY_QUOTE_POOLS[season][cond];
+  return pool[0];
 }
 
 /**
@@ -952,8 +982,13 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
   const d = data.daily;
   const bg = skyGradient(c.weatherCode);
   const tColor = tempColor(c.weatherCode);
-  // 365-day rotating quote: same date → same quote, advances each day (JST).
-  const dailyQuote = DAILY_QUOTES[dayOfYearJST(new Date(d.date))];
+  // Quote by (season, current weather): same combo → same line, no date
+  // variation. The weather code drives the condition, the JST month the
+  // season, so the line always matches the day's actual sky.
+  const dailyQuote = pickQuote(
+    seasonForMonth(monthJST(new Date(d.date))),
+    conditionForWeatherCode(c.weatherCode),
+  );
 
   const main = (
     <main className="relative z-10 flex min-h-0 flex-1 flex-col gap-4 p-8">
