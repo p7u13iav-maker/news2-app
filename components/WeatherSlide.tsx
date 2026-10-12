@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DAILY_QUOTES } from "@/lib/dailyQuotes";
+
+/** Day-of-year (0-364) in JST, used to index the 365 daily quotes. */
+function dayOfYearJST(date: Date): number {
+  const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  const start = Date.UTC(jst.getUTCFullYear(), 0, 0);
+  return Math.floor((jst.getTime() - start) / 86400000) % 365;
+}
 
 /**
  * Reusable weather slide.
@@ -944,6 +952,8 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
   const d = data.daily;
   const bg = skyGradient(c.weatherCode);
   const tColor = tempColor(c.weatherCode);
+  // 365-day rotating quote: same date → same quote, advances each day (JST).
+  const dailyQuote = DAILY_QUOTES[dayOfYearJST(new Date(d.date))];
 
   const main = (
     <main className="relative z-10 flex min-h-0 flex-1 flex-col gap-4 p-8">
@@ -1073,7 +1083,7 @@ export function WeatherSlide({ data, tide, embedded = false }: WeatherSlideProps
             今日の一言
           </p>
           <p className="mt-1 text-base leading-snug text-white/85">
-            {weatherSummary(c, d)}
+            {dailyQuote}
           </p>
         </div>
       </div>
