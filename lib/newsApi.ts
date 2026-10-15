@@ -193,6 +193,72 @@ function parseItem(itemXml: string, source: string): Article | null {
   };
 }
 
+/**
+ * Extract an href from an Atom <link> tag. Atom uses an attribute instead of
+ * element text:
+ *   <link rel="alternate" type="text/html" href="https://..."/>
+ *   <link rel="enclosure" type="image/jpeg" href="https://..."/>
+ * Returns null when the tag is absent or has no href.
+ */
+function atomLinkHref(xml: string, rel?: string): string | null {
+  const tags = [...xml.matchAll(/<link\b[^>]*\/?>/g)];
+  for (const t of tags) {
+    const tag = t[0];
+    if (rel) {
+      const relMatch = tag.match(/rel="([^"]*)"/);
+      if (!relMatch || relMatch[1] !== rel) continue;
+    }
+    const href = tag.match(/href="([^"]*)"/);
+    if (href) return href[1];
+  }
+  return null;
+}
+
+/** Parse one Atom <entry> block into an Article. Returns null on bad items. */
+function parseEntry(entryXml: string, source: string): Article | null {
+  const rawTitle = tagValue(entryXml, "title");
+  if (!rawTitle) return null;
+  const title = decodeEntities(unwrapCdata(rawTitle)).trim();
+  if (!title) return null;
+
+  // Link: rel="alternate" (falls back to any link with an href).
+  let url =
+    atomLinkHref(entryXml, "alternate") ?? atomLinkHref(entryXml) ?? "";
+  url = decodeEntities(url).trim();
+  if (url.startsWith("http://")) url = url.replace("http://", "https://");
+  if (!url.startsWith("http")) return null;
+
+  // Lead text: <summary> (Atom's equivalent of RSS <description>).
+  const rawDesc = tagValue(entryXml, "summary");
+  let description: string | null = null;
+  if (rawDesc) {
+    const plain = decodeEntities(unwrapCdata(rawDesc)).replace(/<[^>]+>/g, " ");
+    description = plain.replace(/\s+/g, " ").trim().slice(0, 400) || null;
+  }
+
+  // Image: <link rel="enclosure" type="image/..." href="...">.
+  let urlToImage: string | null = null;
+  const imgHref = atomLinkHref(entryXml, "enclosure");
+  if (imgHref) urlToImage = decodeEntities(imgHref);
+
+  // Date: <published> or <updated> (ISO 8601 with offset).
+  const rawDate =
+    tagValue(entryXml, "published") ?? tagValue(entryXml, "updated") ?? "";
+  const publishedAt =
+    rawDate && !Number.isNaN(new Date(rawDate).getTime())
+      ? new Date(rawDate).toISOString()
+      : new Date().toISOString();
+
+  return {
+    source,
+    title,
+    description,
+    url,
+    urlToImage,
+    publishedAt,
+  };
+}
+
 /** Fetch and parse a single RSS feed into an Article list. */
 async function fetchFeed(feed: {
   label: string;
@@ -213,19 +279,24 @@ async function fetchFeed(feed: {
       throw new Error(`HTTP ${res.status} from ${feed.url}`);
     }
     const xml = await res.text();
-    // Split into <item>...</item> blocks. Matches both RSS 2.0 (<item>) and
-    // RDF 1.0 (<item rdf:about="...">) item openings.
+    // Split into item blocks. Supports all three formats:
+    //   RSS 2.0   <item>...</item>
+    //   RDF 1.0   <item rdf:about="...">...</item>
+    //   Atom 1.0  <entry>...</entry>  (日刊スポーツ's five feeds)
+    const isAtom = /<entry[\s>]/.test(xml);
+    const openRe = isAtom ? /<entry(?:\s[^>]*)?[\s>]/ : /<item(?:\s[^>]*)?[\s>]/;
+    const openTag = isAtom ? "entry" : "item";
     const items = xml
-      .split(/<item(?:\s[^>]*)?[\s>]/)
+      .split(openRe)
       .slice(1)
       .map((block) => {
-        // Re-attach the opening tag so tagValue works on the full item.
-        const closeIdx = block.indexOf("</item>");
-        return "<item>" + (closeIdx >= 0 ? block.slice(0, closeIdx) : block);
+        // Re-attach the opening tag so tagValue works on the full block.
+        const closeIdx = block.indexOf(`</${openTag}>`);
+        return `<${openTag}>` + (closeIdx >= 0 ? block.slice(0, closeIdx) : block);
       });
     const out: Article[] = [];
     for (const item of items) {
-      const a = parseItem(item, feed.label);
+      const a = isAtom ? parseEntry(item, feed.label) : parseItem(item, feed.label);
       if (a) out.push(a);
     }
     return out;

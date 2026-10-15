@@ -146,17 +146,17 @@ export interface TrendingData {
 export const TOP_N = 5;
 
 /**
- * Verified direct RSS sources for the trending ranking.
+ * Verified direct RSS sources for the trending ranking (see FEEDS in
+ * lib/newsApi.ts). Google News RSS is used ONLY to count cross-outlet
+ * coverage for the trending score; the displayed articles always come from
+ * these verified direct sources:
  *
- * We no longer use Google News RSS (its redirect URLs are unreliable to
- * resolve and many publishers block direct fetches). Instead we classify
- * articles from the five verified sources whose feeds we pull:
- *
- *   - NHK          (cat0/cat1/cat5/cat6 — social, economy, international)
- *   - 日経新聞      (business / economy)
- *   - 日経ビジネス  (business)
- *   - BBC          (world, English)
- *   - Guardian     (world, English)
+ *   - NHK            (cat0/cat1/cat5/cat6 — social, economy, international)
+ *   - 日経新聞 / 日経ビジネス (business / economy)
+ *   - 西日本新聞      (general domestic + sports)
+ *   - 日刊スポーツ ×5 / 朝日スポーツ (sports, Atom feeds)
+ *   - Football Channel (soccer)
+ *   - ITmedia / Gizmodo (technology)
  *
  * Each article is classified into at most one of the four segments by
  * keyword matching, then ranked by "attention" within its segment.
@@ -164,7 +164,7 @@ export const TOP_N = 5;
 
 /** Articles that are clearly about sport. */
 const SPORTS_RE =
-  /野球|サッカー|ソフトボール|体操|柔道|水泳|陸上|テニス|バレーボール|卓球|スケート|スキー|ゴルフ|相撲|プロレス|レスリング|アーチェリー|バドミントン|フェンシング|ボクシング|カーリング|ホッケー|ハンドボール|バスケ|馬術|自転車|ボート|セーリング|射撃|空手|剣道|弓道|スポーツ|選手|チーム|リーグ|優勝|決勝|準決勝|大会|五輪|オリンピック|パラリンピック|ワールドカップ|J1リーグ|NPB|MLB|NFL|NBA|EPL|監督|コーチ|キャプテン|ゴール|得点|勝利|敗北|順位戦|プレーオフ/;
+  /野球|サッカー|ソフトボール|体操|新体操|柔道|水泳|水球|陸上|駅伝|マラソン|テニス|ソフトテニス|バレーボール|バレー|卓球|スケート|スノボ|スノーボード|スキー|フィギュア|ゴルフ|相撲|大相撲|力士|横綱|大関|関脇|稀勢の里|プロレス|レスリング|アーチェリー|バドミントン|フェンシング|ボクシング|格闘技|UFC|RIZIN|K-1|カーリング|ホッケー|ハンドボール|バスケ|バスケットボール|馬術|自転車|ボート|カヌー|ヨット|ローイング|トライアスロン|セーリング|射撃|空手|剣道|弓道|ラグビー|スポーツ|選手|チーム|リーグ|J1|J2|J3|J1リーグ|優勝|決勝|準決勝|大会|五輪|オリンピック|パラリンピック|ワールドカップ|NPB|MLB|NFL|NBA|EPL|明治安田|監督|コーチ|キャプテン|ゴール|得点|勝利|敗北|順位戦|プレーオフ|競馬|競輪|オートレース|JRA|中央競馬|G1|騎手|調教師|厩舎|追い切り|ドラフト|本塁打|ホームラン|打点|先発|クローザー|エース|スターター|移籍|入団|引退/;
 
 /** Articles about technology / business & economy. */
 const TECH_RE =
@@ -193,8 +193,19 @@ function classifySegment(title: string, source: string): Segment | null {
   // Dedicated tech sources: everything that didn't match sports/world is
   // technology (their entire content is tech-focused).
   if (source === "ITmedia" || source === "Gizmodo") return "technology";
-  // Domestic fallback: NHK / Nikkei articles that aren't about the world.
-  if (source === "NHK" || source.startsWith("日経")) return "japan";
+  // Domestic fallback: everything else we carry is domestic news. This
+  // includes general-interest articles from sports-focused outlets
+  // (日刊スポーツ, 朝日スポーツ, 西日本) that lack an explicit sport word —
+  // they belong in japan, not in sports.
+  if (
+    source === "NHK" ||
+    source.startsWith("日経") ||
+    source === "日刊スポーツ" ||
+    source === "朝日新聞" ||
+    source === "西日本新聞"
+  ) {
+    return "japan";
+  }
   return null;
 }
 
