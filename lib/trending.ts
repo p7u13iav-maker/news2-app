@@ -205,6 +205,21 @@ const CRIME_RE =
   /虐待|不祥事|スキャンダル|窃盗|盗難|詐欺|横領|汚職|偽造|恐喝|強盗|脅迫|痴漢|わいせつ|盗撮|ストーカー|嫌がらせ|告発|暴露|テロ|爆破|誘拐|人質|拉致|失踪|行方不明|死亡|遺体|意識不明|重体|重傷|飲酒|酒気帯び|酩酊/;
 
 /**
+ * Royal family names / titles. Combined with an "attendance" verb (ROYAL_
+ * WATCH below) these identify "the Emperor / Crown Princess watched a match"
+ * stories, which are domestic news, not sports.
+ */
+const ROYAL_RE =
+  /天皇|皇后|両陛下|愛子さま|秋篠宮|紀子さま|皇太子|敬宮|皇嗣|徳仁|雅子|眞子|佳子|高円宮|文仁|典子|紀宮|皇族|宮内庁|宮家|宮家|皇居|東宮|離宮/;
+
+/**
+ * Attendance / visit verbs. When a royal name AND one of these appear in the
+ * same title, the article is about the royal attending an event (a match,
+ * a ceremony), not about the sport itself. Routed to japan.
+ */
+const ROYAL_WATCH_RE = /観戦|観覧|視察|出席|来場|来訪|参観|見学/;
+
+/**
  * Classify an article into exactly one segment, or null if it doesn't fit
  * any. Order matters:
  *   1. sports — sport keyword, or any article from a sports-specialist
@@ -220,9 +235,15 @@ const CRIME_RE =
  */
 
 function classifySegment(title: string, source: string): Segment | null {
+  // "Royal watched a match" stories are domestic news, not sports.
+  // e.g. "愛子さま 青森でフェンシング観戦" / "両陛下 国民スポーツ大会開会式に出席"
+  const isRoyalWatch = ROYAL_RE.test(title) && ROYAL_WATCH_RE.test(title);
+
   // Sport keyword match (any source), unless the title is about a crime /
-  // incident / abuse where the sport word is incidental.
-  if (SPORTS_RE.test(title) && !CRIME_RE.test(title)) return "sports";
+  // incident / abuse or a royal watching a match.
+  if (SPORTS_RE.test(title) && !CRIME_RE.test(title) && !isRoyalWatch) {
+    return "sports";
+  }
   // Sports-specialist sources: articles that mention a country name or
   // tech term are still sports (e.g. "大の里がサッカー日本代表を観戦",
   // "eスポーツのワールドカップ延期"). Everything else from these sources
@@ -232,7 +253,9 @@ function classifySegment(title: string, source: string): Segment | null {
     source === "日刊スポーツ" ||
     source === "朝日新聞" ||
     source === "Football Channel";
-  if (isSportsSource && !CRIME_RE.test(title)) return "sports";
+  if (isSportsSource && !CRIME_RE.test(title) && !isRoyalWatch) {
+    return "sports";
+  }
   if (WORLD_RE.test(title)) return "world";
   if (TECH_RE.test(title)) return "technology";
   // Dedicated tech sources: everything that didn't match sports/world is
