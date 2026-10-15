@@ -162,9 +162,24 @@ export const TOP_N = 5;
  * keyword matching, then ranked by "attention" within its segment.
  */
 
-/** Articles that are clearly about sport. */
+/**
+ * Articles that are clearly about sport.
+ *
+ * Only unambiguous terms: sport/event names, official ranks, and
+ * league/competition names. Ambiguous words that also appear in
+ * non-sport contexts are excluded:
+ *   - スキー  -> matches "ゼレンスキー" (Zelensky)  => use スキージャンプ / アルペンスキー
+ *   - 監督    -> "映画監督" / "病院の医長" etc.    => drop (rely on 【チーム名】 prefix below)
+ *   - 先発    -> "先発登板" in other contexts      => use 予告先発 / 先発投手
+ *   - エース  -> "エース級" in non-sport           => use 先発エース / エース格
+ *   - 勝利 / 得点 / ゴール / チーム / 選手 / 大会 / 優勝 => too generic, drop
+ *
+ * Sports-specialist sources (日刊スポーツ / 朝日スポーツ / Football Channel)
+ * are handled separately in classifySegment, so their articles don't need
+ * to match a sport keyword to land in the sports segment.
+ */
 const SPORTS_RE =
-  /野球|サッカー|ソフトボール|体操|新体操|柔道|水泳|水球|陸上|駅伝|マラソン|テニス|ソフトテニス|バレーボール|バレー|卓球|スケート|スノボ|スノーボード|スキー|フィギュア|ゴルフ|相撲|大相撲|力士|横綱|大関|関脇|稀勢の里|プロレス|レスリング|アーチェリー|バドミントン|フェンシング|ボクシング|格闘技|UFC|RIZIN|K-1|カーリング|ホッケー|ハンドボール|バスケ|バスケットボール|馬術|自転車|ボート|カヌー|ヨット|ローイング|トライアスロン|セーリング|射撃|空手|剣道|弓道|ラグビー|スポーツ|選手|チーム|リーグ|J1|J2|J3|J1リーグ|優勝|決勝|準決勝|大会|五輪|オリンピック|パラリンピック|ワールドカップ|NPB|MLB|NFL|NBA|EPL|明治安田|監督|コーチ|キャプテン|ゴール|得点|勝利|敗北|順位戦|プレーオフ|競馬|競輪|オートレース|JRA|中央競馬|G1|騎手|調教師|厩舎|追い切り|ドラフト|本塁打|ホームラン|打点|先発|クローザー|エース|スターター|移籍|入団|引退/;
+  /野球|サッカー|ソフトボール|体操|新体操|柔道|水泳|水球|陸上|駅伝|マラソン|テニス|ソフトテニス|バレーボール|バレー|卓球|スケート|スノボ|スノーボード|スキージャンプ|アルペンスキー|フィギュア|ゴルフ|相撲|大相撲|力士|横綱|大関|関脇|稀勢の里|土俵|プロレス|レスリング|アーチェリー|バドミントン|フェンシング|ボクシング|格闘技|UFC|RIZIN|K-1|カーリング|ホッケー|ハンドボール|バスケ|バスケットボール|馬術|自転車|ケイリン|ボート|カヌー|ヨット|ローイング|トライアスロン|セーリング|射撃|空手|剣道|弓道|ラグビー|スポーツ|五輪|オリンピック|パラリンピック|ワールドカップ|NPB|MLB|NFL|NBA|EPL|J1|J2|J3|J1リーグ|明治安田|順位戦|プレーオフ|セントラルリーグ|パシフィックリーグ|イースタンリーグ|ウェスタンリーグ|日本シリーズ|オールスター|競馬|競輪|オートレース|JRA|中央競馬|G1|JG1|騎手|調教師|厩舎|追い切り|本塁打|ホームラン|打点|予告先発|先発投手|クローザー|先発エース|エース格|スターター|日本代表|代表チーム|国民スポーツ大会|アジア大会|世界水泳|全日本選手権|日本選手権/;
 
 /** Articles about technology / business & economy. */
 const TECH_RE =
@@ -175,33 +190,59 @@ const WORLD_RE =
   /国際|海外|外交|外相|駐日大使|大使|国際機関|国連|WHO|IMF|WTO|NATO|G7|G20|北朝鮮|韓国|中国|台湾|ロシア|米国|アメリカ|イラン|イスラエル|ウクライナ|中東|パレスチナ|ガザ|シリア|イラク|アフガン|パキスタン|インド|東南アジア|インドネシア|フィリピン|ベトナム|ミャンマー|タイ|マレーシア|シンガポール|オーストラリア|ニュージーランド|欧州|EU|ドイツ|フランス|イタリア|スペイン|イギリス|北欧|東欧|アフリカ|南米|中南米|ブラジル|メキシコ|カナダ|米大統領|中・|露・|欧・/;
 
 /**
+ * Guard: titles about a crime / abuse / incident where a sport word is
+ * incidental. E.g. "高齢者グループホームでプロレス技などの虐待行為" — a
+ * pro-wrestling move used in abuse, not pro-wrestling news.
+ *
+ * Deliberately EXCLUDES terms that are routine in sports contexts and would
+ * wrongly demote legitimate sports stories: 事故 / 逮捕 / 拘留 / 問題 /
+ * 調査 / 裁判 / 訴訟 / 事件 (e.g. "監督が体罰で謹慎処分" and "王皓監督への
+ * 暴言で女性3人を拘留" are both sports news), and all injury / illness /
+ * disaster terms (骨折 / 靱帯 / 手術 / 入院 / 地震 / 台風 are everyday in
+ * sports reporting).
+ */
+const CRIME_RE =
+  /虐待|不祥事|スキャンダル|窃盗|盗難|詐欺|横領|汚職|偽造|恐喝|強盗|脅迫|痴漢|わいせつ|盗撮|ストーカー|嫌がらせ|告発|暴露|テロ|爆破|誘拐|人質|拉致|失踪|行方不明|死亡|遺体|意識不明|重体|重傷|飲酒|酒気帯び|酩酊/;
+
+/**
  * Classify an article into exactly one segment, or null if it doesn't fit
  * any. Order matters:
- *   1. sports — sport keywords (most specific).
+ *   1. sports — sport keyword, or any article from a sports-specialist
+ *      source (日刊スポーツ / 朝日スポーツ / Football Channel). A
+ *      crime/abuse guard (CRIME_RE) prevents sport words in crime titles
+ *      (e.g. "ゼレンスキー", "プロレス技の虐待") from misfiring.
  *   2. world  — named countries / international affairs.
  *   3. technology — business/economy/tech keywords, OR any article from a
  *      dedicated tech source (ITmedia / Gizmodo) that didn't match sports
- *      or world. This ensures tech-source articles always land in the
- *      technology segment, even when their titles lack explicit tech words.
- *   4. japan  — domestic fallback for NHK / Nikkei articles that aren't
- *      clearly about the world.
+ *      or world.
+ *   4. japan  — domestic fallback for NHK / Nikkei / Nishinippon articles
+ *      that aren't about the world or tech.
  */
+
 function classifySegment(title: string, source: string): Segment | null {
-  if (SPORTS_RE.test(title)) return "sports";
+  // Sport keyword match (any source), unless the title is about a crime /
+  // incident / abuse where the sport word is incidental.
+  if (SPORTS_RE.test(title) && !CRIME_RE.test(title)) return "sports";
+  // Sports-specialist sources: articles that mention a country name or
+  // tech term are still sports (e.g. "大の里がサッカー日本代表を観戦",
+  // "eスポーツのワールドカップ延期"). Everything else from these sources
+  // is sports by default — but a crime/abuse article from a sports source
+  // is still a crime story, not sports.
+  const isSportsSource =
+    source === "日刊スポーツ" ||
+    source === "朝日新聞" ||
+    source === "Football Channel";
+  if (isSportsSource && !CRIME_RE.test(title)) return "sports";
   if (WORLD_RE.test(title)) return "world";
   if (TECH_RE.test(title)) return "technology";
   // Dedicated tech sources: everything that didn't match sports/world is
   // technology (their entire content is tech-focused).
   if (source === "ITmedia" || source === "Gizmodo") return "technology";
-  // Domestic fallback: everything else we carry is domestic news. This
-  // includes general-interest articles from sports-focused outlets
-  // (日刊スポーツ, 朝日スポーツ, 西日本) that lack an explicit sport word —
-  // they belong in japan, not in sports.
+  // Domestic fallback: NHK / Nikkei / Nishinippon articles that aren't
+  // about the world or tech are domestic news.
   if (
     source === "NHK" ||
     source.startsWith("日経") ||
-    source === "日刊スポーツ" ||
-    source === "朝日新聞" ||
     source === "西日本新聞"
   ) {
     return "japan";
