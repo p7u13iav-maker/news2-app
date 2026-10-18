@@ -73,7 +73,14 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Sigastra requires a Referer header for server-side calls (since
+    // 2026-10-15). Sending our own production domain as the Referer is
+    // accepted and returns 200. Without it, the API returns 401
+    // "key_required".
     const res = await fetch(sigastraUrl(period), {
+      headers: {
+        Referer: "https://news2-app-p7u13iav.vercel.app/",
+      },
       signal: AbortSignal.timeout(20_000),
     });
     if (!res.ok) {
