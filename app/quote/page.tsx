@@ -12,19 +12,9 @@ function jstNow(): Date {
   return new Date(Date.now() + 9 * 60 * 60 * 1000);
 }
 
-function dayOfYear(date: Date): number {
-  const start = new Date(Date.UTC(date.getUTCFullYear(), 0, 0));
-  return Math.floor((date.getTime() - start.getTime()) / 86400000);
-}
-
-/** 更新たびに異なる名言を返す（時間ベースで決定的）。 */
+/** リクエストごとにランダムに名言を返す。 */
 function getQuote(): { quote: (typeof QUOTES)[number]; index: number } {
-  const now = new Date();
-  const dayOfYear = Math.floor(
-    (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000
-  );
-  const hour = now.getHours();
-  const index = (dayOfYear + hour) % QUOTES.length;
+  const index = Math.floor(Math.random() * QUOTES.length);
   return { quote: QUOTES[index], index };
 }
 
@@ -32,8 +22,6 @@ async function QuoteContent() {
   await connection();
   const now = jstNow();
   const { quote } = getQuote();
-  const doy = dayOfYear(now);
-  const progress = ((doy - 1) / 365) * 100;
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-[#0a0f1a] text-white">
@@ -100,7 +88,7 @@ async function QuoteContent() {
       </header>
 
       {/* Main content */}
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-12 pb-4">
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-12 pb-12">
         <div className="w-full max-w-3xl">
           {/* Person name — large, left-aligned */}
           <div className="mb-8">
@@ -179,38 +167,7 @@ async function QuoteContent() {
         </div>
       </main>
 
-      {/* Footer: progress + nav */}
-      <footer className="relative z-10 shrink-0 px-12 pb-8 pt-4">
-        {/* Progress bar */}
-        <div className="mb-4 flex items-center gap-4">
-          <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/[0.06]">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${progress}%`,
-                background:
-                  "linear-gradient(90deg, #f59e0b, #fbbf24)",
-                boxShadow: "0 0 8px rgba(251,191,36,0.3)",
-              }}
-            />
-          </div>
-          <span className="shrink-0 text-[11px] font-mono tabular-nums text-white/25">
-            {doy}/365
-          </span>
-        </div>
 
-        <div className="flex items-center justify-between">
-          <a
-            href="/"
-            className="text-xs font-medium text-white/25 transition hover:text-white/50"
-          >
-            ← サイネージ
-          </a>
-          <span className="text-[11px] text-white/15">
-            出典確認済みの名言 · 毎日1件
-          </span>
-        </div>
-      </footer>
     </div>
   );
 }
