@@ -54,7 +54,7 @@ async function QuoteContent() {
               今日のひととき
             </p>
             <p className="text-sm text-white/50">
-              偉人の名言とエピソード · 全{QUOTES.length}件より毎日1件
+              偉人の名言とエピソード · 全{QUOTES.length}件から毎日1件
             </p>
           </div>
         </div>
