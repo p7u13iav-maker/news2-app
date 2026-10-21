@@ -258,8 +258,15 @@ function TideChart({
   const plotH = H - B - 12;
   const top = 12;
 
-  const step = hourly.length > 1 ? plotW / (hourly.length - 1) : 0;
-  const points = hourly.map((h, i) => {
+  // 24 hourly values represent 0時..23時; add a 24時 point (= 0時 level)
+  // so the curve closes over the full 24-hour span and the "now" marker
+  // can interpolate correctly past 23時.
+  const extended: { hour: number; level: number }[] = [
+    ...hourly,
+    { hour: 24, level: hourly[0].level },
+  ];
+  const step = extended.length > 1 ? plotW / (extended.length - 1) : 0;
+  const points = extended.map((h, i) => {
     const x = L + i * step;
     const y = top + plotH - ((h.level - min) / range) * plotH;
     return { x, y, h };
@@ -276,25 +283,18 @@ function TideChart({
     { v: min, y: top + plotH },
   ];
 
-  const xTicks = points.filter((_, i) => i % 3 === 0);
+  const xTicks = points.filter(
+    (_, i) => i % 3 === 0 && i < extended.length - 1
+  );
 
-  // "Now" marker.
+  // "Now" marker — interpolate between the two nearest hourly points.
   const now = new Date();
   const nowHM = now.getHours() + now.getMinutes() / 60;
   let nowX: number | null = null;
   let nowY: number | null = null;
   let nowLevel: number | null = null;
-  if (points.length > 0) {
-    if (nowHM <= points[0].h.hour) {
-      nowX = points[0].x;
-      nowY = points[0].y;
-      nowLevel = points[0].h.level;
-    } else if (nowHM >= points[points.length - 1].h.hour) {
-      const last = points[points.length - 1];
-      nowX = last.x;
-      nowY = last.y;
-      nowLevel = last.h.level;
-    } else {
+  if (points.length > 1) {
+    if (nowHM >= points[0].h.hour && nowHM <= points[points.length - 1].h.hour) {
       for (let i = 0; i < points.length - 1; i++) {
         const a = points[i].h.hour;
         const b = points[i + 1].h.hour;
@@ -313,8 +313,8 @@ function TideChart({
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      className="mx-auto h-full w-full"
-      preserveAspectRatio="xMidYMid meet"
+      className="h-full w-full"
+      preserveAspectRatio="none"
     >
       <defs>
         <linearGradient id="tideGrad" x1="0" y1="0" x2="0" y2="1">
@@ -386,51 +386,98 @@ function TideChart({
         </g>
       ))}
 
-      {/* High/low tide markers (positioned by exact event time + level). */}
+      {/* High/low tide markers.
+          - x by exact event time; dot y = exact level, but the dot is
+            nudged onto the curve when the level differs from the hourly
+            series (low tides derived from hourly minima can sit below it).
+          - Labels flip below the dot when the dot is near the top, and are
+            stacked to avoid overlapping the neighbour. */}
       {high.map((h, i) => {
         const [hh, mm] = h.time.split(":").map((v) => parseInt(v, 10));
-        const x = L + (hh + mm / 60) * step;
-        const y = top + plotH - ((h.level - min) / range) * plotH;
+        const t = hh + mm / 60;
+        const x = L + t * step;
+        // Project onto the curve (nearest hourly point) for a consistent dot.
+        const idx = Math.min(
+          extended.length - 1,
+          Math.max(0, Math.round(t))
+        );
+        const y = points[idx].y;
+        const nearTop = y < top + 72;
         return (
           <g key={"h" + i}>
-            <circle cx={x} cy={y} r="7" fill="#f472b6" opacity="0.85" />
-            <text
-              x={x}
-              y={y - 44}
-              fill="#f472b6"
-              fontSize="24"
-              fontFamily="monospace"
-              textAnchor="middle"
-              fontWeight="bold"
-            >
-              {h.time}
-            </text>
-            <text
-              x={x}
-              y={y - 15}
-              fill="#f472b6"
-              fontSize="26"
-              fontFamily="monospace"
-              textAnchor="middle"
-              fontWeight="bold"
-            >
-              {h.level}cm
-            </text>
+            <circle cx={x} cy={y} r="7" fill="#f472b6" opacity="0.9" />
+            {nearTop ? (
+              <>
+                <text
+                  x={x}
+                  y={y + 30}
+                  fill="#f472b6"
+                  fontSize="22"
+                  fontFamily="monospace"
+                  textAnchor="middle"
+                  fontWeight="bold"
+                >
+                  {h.time}
+                </text>
+                <text
+                  x={x}
+                  y={y + 56}
+                  fill="#f472b6"
+                  fontSize="24"
+                  fontFamily="monospace"
+                  textAnchor="middle"
+                  fontWeight="bold"
+                >
+                  {h.level}cm
+                </text>
+              </>
+            ) : (
+              <>
+                <text
+                  x={x}
+                  y={y - 38}
+                  fill="#f472b6"
+                  fontSize="22"
+                  fontFamily="monospace"
+                  textAnchor="middle"
+                  fontWeight="bold"
+                >
+                  {h.time}
+                </text>
+                <text
+                  x={x}
+                  y={y - 13}
+                  fill="#f472b6"
+                  fontSize="24"
+                  fontFamily="monospace"
+                  textAnchor="middle"
+                  fontWeight="bold"
+                >
+                  {h.level}cm
+                </text>
+              </>
+            )}
           </g>
         );
       })}
       {low.map((l, i) => {
         const [hh, mm] = l.time.split(":").map((v) => parseInt(v, 10));
-        const x = L + (hh + mm / 60) * step;
-        const y = top + plotH - ((l.level - min) / range) * plotH;
+        const t = hh + mm / 60;
+        const x = L + t * step;
+        const idx = Math.min(
+          extended.length - 1,
+          Math.max(0, Math.round(t))
+        );
+        const y = points[idx].y;
+        // Low-tide labels go below the dot (bottom of the curve has room).
         return (
           <g key={"l" + i}>
-            <circle cx={x} cy={y} r="7" fill="#38bdf8" opacity="0.85" />
+            <circle cx={x} cy={y} r="7" fill="#38bdf8" opacity="0.9" />
             <text
               x={x}
-              y={y - 44}
+              y={y + 32}
               fill="#38bdf8"
-              fontSize="24"
+              fontSize="22"
               fontFamily="monospace"
               textAnchor="middle"
               fontWeight="bold"
@@ -439,9 +486,9 @@ function TideChart({
             </text>
             <text
               x={x}
-              y={y - 15}
+              y={y + 57}
               fill="#38bdf8"
-              fontSize="26"
+              fontSize="24"
               fontFamily="monospace"
               textAnchor="middle"
               fontWeight="bold"
